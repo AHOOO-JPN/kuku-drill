@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>KuKuドリル</title>
+<meta name="theme-color" content="#9c2cff">
+<style>
+:root{
+  --bg:#0a0714; --grad1:#2b115a; --grad2:#091a3a;
+  --pink:#ff4dc4; --blue:#3bc7ff;
+  --panel: rgba(255,255,255,.08);
+  --panel2: rgba(255,255,255,.05);
+  --border: rgba(255,255,255,.14);
+  --text:#f7f6ff; --muted:#c7c2e6;
+  --ok:#35ffa1; --ng:#ff6a6a;
+  --radius:18px; --radius-sm:14px;
+  --wallOpacity:.36;
+  --accentA:#ff4dc4; --accentB:#3bc7ff;
+}
+body.theme-mix{ --accentA:#ff4dc4; --accentB:#3bc7ff; }
+body.theme-pink{ --accentA:#ff7adf; --accentB:#ff5ea6; }
+body.theme-blue{ --accentA:#7ad3ff; --accentB:#3bc7ff; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; color:var(--text); font-family:system-ui,-apple-system,"Inter","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
+  display:flex; justify-content:center; align-items:flex-start; padding:16px;
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(156,44,255,.32), var(--bg) 60%),
+    radial-gradient(1100px 700px at 120% 10%, rgba(59,199,255,.26), var(--bg) 60%),
+    linear-gradient(180deg, var(--grad1) 0%, var(--bg) 100%);
+  overflow-x:hidden;
+}
+.wall{ position:fixed; inset:0; z-index:-2; opacity:var(--wallOpacity);
+  background-image: var(--neon-wall);
+  background-size:260px 260px; filter:saturate(120%) contrast(110%);
+}
+.beams{ position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.9;
+  background:
+    conic-gradient(from 0deg at 20% 0%, color-mix(in oklab, var(--accentA) 45%, transparent), transparent 30%),
+    conic-gradient(from 180deg at 80% 10%, color-mix(in oklab, var(--accentB) 45%, transparent), transparent 35%);
+  filter: blur(44px) saturate(120%); animation:spin 18s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.app{width:100%;max-width:720px;margin:0 auto;}
+header{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px;gap:8px}
+.title{font-weight:900;font-size:28px;letter-spacing:.5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.badge{
+  display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; cursor:pointer; user-select:none;
+  background:linear-gradient(90deg,var(--accentA),var(--accentB));
+  color:#0b0416; font-weight:800; border:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);
+}
+.btn-ghost{ padding:8px 12px; border-radius:999px; border:1px solid var(--border); background:transparent; color:#e8e2ff; font-weight:800; cursor:pointer }
+
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  border:1px solid var(--border); border-radius:18px; padding:14px; backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(12,4,40,.5);
+}
+.panel{ background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--border); border-radius:16px; padding:12px }
+
+.problem{
+  text-align:center; font-size:56px; font-weight:900; letter-spacing:1px; padding:16px 10px; border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04)); border:1px solid var(--border);
+  text-shadow:0 0 14px color-mix(in oklab, var(--accentB) 55%, transparent), 0 0 10px color-mix(in oklab, var(--accentA) 45%, transparent); 
+  margin-bottom:12px;
+}
+.kuku-input{ text-align:right; width:100%; font-size:28px; padding:14px 16px; border-radius:16px; border:1px solid var(--border);
+  background:rgba(255,255,255,.1); color:#fff; outline:none; }
+
+.keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px }
+.key{ font-size:24px; padding:16px 10px; text-align:center; border-radius:14px; border:1px solid var(--border);
+  background:linear-gradient(180deg,var(--panel),var(--panel2)); color:#f2efff; cursor:pointer; user-select:none; }
+.key:active{ transform:translateY(1px) scale(.99); }
+
+.key.ok{
+  position:relative; font-weight:900;
+  background: linear-gradient(90deg,var(--accentA),var(--accentB));
+  color:#0b0416;
+  border:0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.25),
+    0 6px 18px color-mix(in oklab, var(--accentB) 35%, transparent);
+}
+.key.ok::before{
+  content:""; position:absolute; inset:0; border-radius:14px;
+  background:linear-gradient(90deg,color-mix(in oklab,var(--accentA) 92%, transparent), color-mix(in oklab,var(--accentB) 92%, transparent));
+  mask:linear-gradient(#000,#000); opacity:.85; pointer-events:none;
+}
+
+.statrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+.stat{ background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--border); border-radius:14px; padding:10px; text-align:center }
+.stat small{color:var(--muted)} .stat b{display:block;font-size:18px}
+
+.result{text-align:center;margin-top:10px;font-weight:900;min-height:28px}
+.result.ok{color:var(--ok)} .result.ng{color:var(--ng)}
+
+details{ margin-top:12px }
+summary{
+  list-style:none; cursor:pointer; padding:10px 12px; border-radius:12px; border:1px solid var(--border);
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--accentA) 25%, transparent), color-mix(in oklab, var(--accentB) 25%, transparent)),
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  color:#fff; font-weight:800;
+}
+summary::-webkit-details-marker{ display:none }
+.section-body{ margin-top:10px; padding:10px; border-radius:12px; border:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); }
+
+.pillset{display:flex;flex-wrap:wrap;gap:8px}
+.pill{ padding:8px 12px; border-radius:999px; border:1px solid var(--border);
+  background:linear-gradient(90deg, color-mix(in oklab, var(--accentA) 22%, transparent), color-mix(in oklab, var(--accentB) 22%, transparent));
+  color:#eae7ff; cursor:pointer; font-size:14px; user-select:none; }
+.pill.active{ outline:2px solid color-mix(in oklab, var(--accentA) 55%, transparent); box-shadow:0 0 20px color-mix(in oklab, var(--accentA) 35%, transparent)}
+
+.sep{height:1px;background:linear-gradient(90deg, color-mix(in oklab, var(--accentA) 0%, transparent), color-mix(in oklab, var(--accentA) 40%, transparent), color-mix(in oklab, var(--accentB) 40%, transparent), color-mix(in oklab, var(--accentB) 0%, transparent));margin:10px 0}
+
+footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
+
+/* ====== シート（詳細設定） ====== */
+.fab{position:fixed; right:14px; bottom:16px; z-index:980; display:flex; align-items:center; gap:8px}
+#openSettings{border-radius:999px; padding:12px 14px; font-weight:800; cursor:pointer; background:linear-gradient(90deg, var(--accentA), var(--accentB)); color:#0b0416; border:0; box-shadow:0 12px 30px rgba(12,4,40,.5)}
+.sheet{position:fixed; left:0; right:0; bottom:-72vh; height:72vh; z-index:990;
+  background:rgba(10,7,20,.6); backdrop-filter: blur(18px); border-top:1px solid var(--border); border-radius:18px 18px 0 0;
+  transition: bottom .28s ease}
+.sheet.show{bottom:0}
+.sheet .grab{width:50px; height:5px; border-radius:999px; background:rgba(255,255,255,.35); margin:8px auto}
+.sheet .inner{padding:10px 14px 18px; height:calc(100% - 18px); overflow:auto}
+.label{font-size:12px;color:var(--muted);margin:8px 0 6px}
+
+/* モーダル */
+.modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:999}
+.modal.show{display:flex}
+.modal .back{position:absolute; inset:0; background:rgba(0,0,0,.45)}
+/* モーダルパネルを常に画面内に収める（iPhone対策） */
+.modal .panel{
+  width: clamp(280px, 92vw, 720px);
+  max-width: 92vw;
+  margin: 0 auto;
+  box-sizing: border-box;
+
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  backdrop-filter:blur(14px);
+}
+
+/* テーブルを親で横スクロール許可（小画面でのはみ出し防止） */
+.table-wrap{
+  margin-top:8px;
+  overflow-x:auto;         /* ← 追加 */
+  -webkit-overflow-scrolling: touch;
+}
+.history-table{
+  min-width: 560px;        /* 列が潰れすぎないよう最低幅を確保 */
+  width: 100%;
+  border-collapse:separate; border-spacing:0; font-size:14px;
+  border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+}
+.modal .h{font-weight:900;font-size:18px;margin-bottom:6px}
+.btnrow{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px}
+.btn{min-width:120px; padding:12px 14px; border-radius:14px; font-weight:900; cursor:pointer; border:1px solid var(--border); background:transparent; color:#fff}
+.btn.grad{ border:0; color:#0b0416; background:linear-gradient(90deg,var(--accentA),var(--accentB)) }
+
+/* mascot */
+.mascot{position:fixed; left:50%; bottom:12vh; transform:translateX(-50%); z-index:1001; width:140px; height:140px; border-radius:50%; overflow:hidden;
+  box-shadow:0 10px 40px rgba(0,0,0,.35), inset 0 0 0 4px rgba(255,255,255,.85); background:#000}
+.mascot img{width:100%; height:100%; object-fit:cover}
+@keyframes cheer-bounce{0%{transform:translate(-50%,0)}25%{transform:translate(-50%,-12px)}50%{transform:translate(-50%,0)}75%{transform:translate(-50%,-10px)}100%{transform:translate(-50%,0)}}
+@keyframes cry-shake{0%{transform:translate(-50%,0)}20%{transform:translate(calc(-50% - 8px),0)}40%{transform:translate(calc(-50% + 8px),0)}60%{transform:translate(calc(-50% - 6px),0)}80%{transform:translate(calc(-50% + 6px),0)}100%{transform:translate(-50%,0)}}
+.mascot.cheer{animation:cheer-bounce .9s ease-in-out 3}
+.mascot.cry{animation:cry-shake .6s ease-in-out 2}
+.tear{ position:absolute; width:14px; height:22px; left:50%; top:18px; transform:translateX(-50%); border-radius:10px; background:#7fd4ff; opacity:.85}
+.tear.right{ left:65% } .tear.left{ left:35% }
+/* ▼3,2,1 ポップ表示用 */
+.pop-grow{ animation:pop .45s ease forwards }
+@keyframes pop{
+  0%{ transform:scale(.4); opacity:.2 }
+  60%{ transform:scale(1.2); opacity:1 }
+  100%{ transform:scale(1) }
+}
+/* ===== Confetti (paper fireworks) ===== */
+.confetti{
+  position:fixed;
+  top:-10px;
+  width:8px;
+  height:14px;
+  opacity:.9;
+  z-index:1000;
+  border-radius:2px
+}
+/* History table look */
+.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.hist-table th, .hist-table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+}
+.hist-table thead th {
+  background: rgba(255,255,255,.10);
+}
+.hist-section-title {
+  margin: 10px 0 6px;
+}
+/* ── 履歴テーブルの見た目強化 ───────────────────── */
+.table-wrap{ margin-top:8px }
+.table-note{ font-size:12px; color:var(--muted); margin:6px 0 4px }
+
+.history-table{
+  width:100%; border-collapse:separate; border-spacing:0; font-size:14px;
+  border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+}
+.history-table th, .history-table td{
+  padding:10px 12px; border-bottom:1px solid var(--border);
+}
+.history-table th{
+  text-align:left; background:rgba(255,255,255,.08); font-weight:700;
+}
+.history-table tr:last-child td{ border-bottom:none }
+
+/* 交互のうっすらゼブラ */
+.history-table tbody tr:nth-child(odd):not(.best-row):not(.miss-row){
+  background:rgba(255,255,255,.02);
+}
+
+/* ベスト行の強調（やりすぎないグロー） */
+.best-row{
+  position:relative;
+  background:linear-gradient(90deg, rgba(59,199,255,.10), rgba(255,77,196,.10));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.best-badge{
+  display:inline-flex; align-items:center; gap:6px; font-weight:800;
+}
+.best-badge .star{
+  font-size:14px; filter:drop-shadow(0 0 4px rgba(255,255,255,.5));
+}
+
+/* ミスがあった回をほんのり赤みで */
+.miss-row{
+  background:rgba(255,106,106,.10);
+}
+
+/* 正解数/全問数のミニラベル */
+.solved-chip{
+  font-size:12px; font-weight:700; padding:3px 8px; border-radius:999px;
+  background:rgba(255,255,255,.10); border:1px solid var(--border);
+}
+</style>
+</head>
+<body class="theme-mix">
+<div class="wall"></div><div class="beams"></div>
+
+<div class="app">
+  <header>
+    <div class="title" id="titleTxt">KuKuドリル</div>
+    <div class="row">
+      <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div id="problem" class="problem" aria-live="assertive" aria-atomic="true">— × — = ?</div>
+    <input id="answer" class="kuku-input" type="text" inputmode="none" placeholder="こたえ" readonly>
+    <div class="keypad">
+      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+      <div class="key">0</div><div class="key">⌫</div><div class="key ok" id="okKey">OK</div>
+    </div>
+
+    <div id="result" class="result"></div>
+    <div class="statrow">
+      <div class="stat"><small id="labScore">スコア</small><b id="score">0</b></div>
+      <div class="stat"><small id="labStreak">れんさ</small><b id="streak">0</b></div>
+      <div class="stat"><small id="labAvg">平均タイム</small><b id="avgTime">—</b></div>
+    </div>
+
+    <details id="rangeD">
+      <summary id="rngTitle">出題範囲（かけられる数 × かける数）</summary>
+      <div class="section-body">
+        <div class="label" id="labA">かけられる数（段）</div>
+        <div id="danSet" class="pillset"></div>
+        <div class="sep"></div>
+        <div class="label" id="labB">かける数（1〜9）</div>
+        <div id="kuSet" class="pillset"></div>
+      </div>
+    </details>
+
+    <details id="modeD">
+      <summary id="labMode">モード</summary>
+      <div class="section-body pillset" id="modeSet">
+        <button class="pill active" data-mode="product" id="modeP">答えを入力（標準）</button>
+        <button class="pill" data-mode="missingB" id="modeMB">□ × B = ?（左を入力）</button>
+        <button class="pill" data-mode="missingA" id="modeMA">A × □ = ?（右を入力）</button>
+      </div>
+    </details>
+
+    <details id="ttD">
+      <summary id="timerLabel">タイムアタック <small id="timerStatus">未開始</small></summary>
+      <div class="section-body">
+        <div class="pillset">
+          <button class="pill" id="timer15">15問</button><span class="pill small" id="best15" style="opacity:.65">Best: —</span>
+          <button class="pill" id="timer30">30問</button><span class="pill small" id="best30" style="opacity:.65">Best: —</span>
+          <button class="pill" id="timer60">60問</button><span class="pill small" id="best60" style="opacity:.65">Best: —</span>
+          <button class="pill" id="timer81">99(81問)ランダム</button><span class="pill small" id="best81" style="opacity:.65">Best: —</span>
+          <button class="pill" id="timerFree">無制限</button>
+          <button class="pill" id="openHistory">履歴</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <footer>© KuKuドリル</footer>
+</div>
+
+<!-- 詳細設定 -->
+<div class="fab"><button id="openSettings">⚙️詳細設定</button></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="inner">
+    <div class="label" id="secSound">サウンド</div>
+    <div class="pillset" id="soundPack">
+      <div class="opt pill" data-pack="synth">Synth Pop</div>
+      <div class="opt pill" data-pack="edm">EDM</div>
+      <div class="opt pill" data-pack="cute">Cute</div>
+    </div>
+
+    <div class="label" id="secLang">言語設定</div>
+    <div class="pillset" id="langSet">
+      <button class="pill" data-lang="ja">JP🇯🇵</button>
+      <button class="pill" data-lang="en">EN🇺🇸</button>
+    </div>
+
+    <div class="label" id="secTog">読み上げ / 効果音 / 応援</div>
+    <div class="pillset" id="toggles">
+      <button class="pill toggle" data-flag="speak" id="togSpeak">読み上げ</button>
+      <button class="pill toggle" data-flag="sfx"   id="togSfx">効果音</button>
+      <button class="pill toggle" data-flag="cheer" id="togCheer">応援</button>
+    </div>
+
+    <div class="label" id="secCheer">応援</div>
+    <div class="pillset">
+      <button class="pill" id="faceBtn">顔を設定</button>
+      <button class="pill" id="faceDel">顔を削除</button>
+    </div>
+
+    <div class="label" id="secBg">背景画像</div>
+    <div class="pillset">
+      <button class="pill" id="bgPick">背景画像</button>
+      <button class="pill" id="bgReset">背景リセット</button>
+      <input type="file" id="bgFile" accept="image/*" style="display:none">
+    </div>
+    <div class="label" style="margin-top:12px">データ</div>
+<div class="pillset">
+  <button class="pill" id="hardResetBtn" type="button">すべてのデータをリセット</button>
+</div>
+    <div class="label" id="secBright">明るさ</div>
+    <input type="range" id="bgBright" min="0" max="100" value="36" style="width:100%">
+
+    <div class="row" style="justify-content:center;margin-top:12px">
+      <button class="btn" id="closeSettings">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 顔 撮影モーダル -->
+<div class="modal" id="faceModal"><div class="back"></div><div class="panel" style="text-align:center">
+  <div class="h" id="faceTitle">応援の顔を撮影</div><div class="small" id="faceHint">丸枠に顔を入れてね。ローカル保存のみ。</div>
+  <div style="position:relative; width:min(80vw,320px); height:min(80vw,320px); margin:10px auto;">
+    <video id="cam" autoplay playsinline style="width:100%;height:100%;border-radius:50%;object-fit:cover;background:#000"></video>
+    <div style="position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 6px rgba(255,255,255,.9);pointer-events:none"></div>
+  </div>
+  <canvas id="shot" width="320" height="320" style="display:none"></canvas>
+  <div class="btnrow"><button class="btn" id="faceCancel">キャンセル</button><button class="btn grad" id="faceTake">撮影</button><button class="btn grad" id="faceSave" disabled>保存</button></div>
+</div></div>
+
+<!-- モーダル：スタート確認 / 結果 / 履歴 -->
+<div class="modal" id="startModal"><div class="back"></div><div class="panel" style="text-align:center">
+  <div class="h" id="startTitle">スタートしますか？</div>
+  <div class="small" id="startDesc">選択した本数で開始します。</div>
+  <div id="countNum" style="font-size:46px;font-weight:900;margin:8px 0">⏱</div>
+  <div class="btnrow">
+    <button class="btn" id="startCancel">キャンセル</button>
+    <button class="btn grad" id="startGo">OK</button>
+  </div>
+</div></div>
+
+<div class="modal" id="resultModal"><div class="back"></div><div class="panel">
+  <div class="h" id="rpTitle">結果</div>
+  <div class="small" id="rpBody" style="white-space:pre-line">—</div>
+  <div class="btnrow">
+    <button class="btn grad" id="rpShare">共有</button>
+    <button class="btn" id="rpCopy">テキストをコピー</button>
+    <button class="btn grad" id="rpClose">OK</button>
+  </div>
+</div></div>
+
+<div class="modal" id="historyModal"><div class="back"></div><div class="panel">
+  <div class="h" id="histTitle">履歴（直近10件）</div>
+  <div id="historyContent" class="small">—</div>
+  <div class="btnrow"><button class="btn" id="clearHistory" type="button">履歴をクリア</button><button class="btn grad" id="historyClose">閉じる</button></div>
+</div></div>
+
+<script>
+// ==== Safe localStorage shim (iPhone HTML Viewer / Private mode 対策) ====
+(function(){
+  var ok = true;
+  try {
+    var k = '__ls_test__';
+    window.localStorage.setItem(k, '1');
+    window.localStorage.removeItem(k);
+  } catch (e) { ok = false; }
+
+  if (!ok) {
+    // 例外を出さないダミー実装（ページが落ちるのを防ぐ）
+    var mem = {};
+    window.localStorage = {
+      getItem: function(key){ return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null; },
+      setItem: function(key, val){ mem[key] = String(val); },
+      removeItem: function(key){ delete mem[key]; },
+      clear: function(){ mem = {}; },
+      key: function(i){ return Object.keys(mem)[i] || null; },
+      get length(){ return Object.keys(mem).length; }
+    };
+    // 必要なら通知
+    try { alert('このビューアではデータ保存が無効です。履歴や設定は次回起動時に残りません。'); } catch(_) {}
+  }
+})();
+(function(){
+  const $=id=>document.getElementById(id);
+
+  /* ========== テーマ ========== */
+const paletteBtn=$('paletteBtn'), paletteLabel=$('paletteLabel'), paletteEmoji=$('paletteEmoji');
+const resetBtn=$('resetBtn'); // なくてもOKにする
+if (resetBtn) {
+  resetBtn.onclick=function(){ localStorage.clear(); location.reload(); };
+}
+  function setTheme(t){
+    document.body.classList.remove('theme-mix','theme-pink','theme-blue');
+    if(t==='pink'){ document.body.classList.add('theme-pink'); paletteLabel.textContent='PINK'; paletteEmoji.textContent='💖'; }
+    else if(t==='blue'){ document.body.classList.add('theme-blue'); paletteLabel.textContent='BLUE'; paletteEmoji.textContent='💙'; }
+    else{ document.body.classList.add('theme-mix'); paletteLabel.textContent='MIX'; paletteEmoji.textContent='💙×💖'; t='mix'; }
+    localStorage.setItem('kukuTheme', t);
+  }
+  setTheme(localStorage.getItem('kukuTheme')||'mix');
+  paletteBtn.onclick=function(){
+    const cur=localStorage.getItem('kukuTheme')||'mix';
+    setTheme(cur==='mix'?'pink':(cur==='pink'?'blue':'mix'));
+  };
+
+  /* ========== i18n ========== */
+  const i18n={
+    ja:{
+      title:'KuKuドリル', answerPH:'こたえ',
+      range:'出題範囲（かけられる数 × かける数）', A:'かけられる数（段）', B:'かける数（1〜9）',
+      mode:'モード', modeP:'答えを入力（標準）', modeMB:'□ × B = ?（左を入力）', modeMA:'A × □ = ?（右を入力）',
+      timer:'タイムアタック', notStarted:'未開始', startQ:'スタートしますか？', startDesc:'選択した本数で開始します。',
+      ok:'OK', cancel:'キャンセル', score:'スコア', streak:'れんさ', avg:'平均タイム', history:'履歴',
+      q15:'15問', q30:'30問', q60:'60問', q81:'99(81問)ランダム', qFree:'無制限', best:'Best: —',
+      speak:'読み上げ', sfx:'効果音', cheer:'応援', settings:'詳細設定', close:'閉じる',
+      sound:'サウンド', lang:'言語設定', tog:'読み上げ / 効果音 / 応援', bg:'背景画像', bright:'明るさ', hardReset:'すべてのデータをリセット',
+      pickBg:'背景画像', resetBg:'背景リセット', footer:'© KuKuドリル',
+      faceTitle:'応援の顔を撮影', faceHint:'丸枠に顔を入れてね。ローカル保存のみ。', faceSet:'顔を設定', faceDel:'顔を削除',
+      correct:t=>`正解！ ${t.toFixed(1)}秒`, wrong:ans=>`ざんねん… 正解は ${ans}`,
+      remainOk:n=>`のこり ${n} 問（ミスなし）`, remainNg:n=>`のこり ${n} 問（ミスあり：記録外）`,
+      runDone:n=>`${n}問 完走！`, runInvalid:`途中でまちがいがあったため、この回は記録されません。`,
+      runFree:`無制限モード結果`, runFreeBody:(q,sec,pt)=>`解いた数: ${q}問 / 所要 ${sec.toFixed(1)}秒 / ${pt}点（記録対象外）`,
+      bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}秒 / ${score}点（${date}）`,
+      speakProb:(a,b)=>`${a} かける ${b}`, speakStart:'スタート',
+      histTitle:'履歴（直近10件）', clearHistory:'履歴をクリア'
+    },
+    en:{
+      title:'KuKu Drill', answerPH:'answer',
+      range:'Range (Multiplicand × Multiplier)', A:'Multiplicand (tables)', B:'Multiplier (1–9)',
+      mode:'Mode', modeP:'Enter product (default)', modeMB:'□ × B = ? (fill left)', modeMA:'A × □ = ? (fill right)',
+      timer:'Time Trial', notStarted:'Not started', startQ:'Ready to start?', startDesc:'Start with selected number of problems.',
+      ok:'OK', cancel:'Cancel', score:'Score', streak:'Streak', avg:'Avg time', history:'History',
+      q15:'15', q30:'30', q60:'60', q81:'All 9×9 Random', qFree:'∞', best:'Best: —',
+      speak:'TTS', sfx:'SFX', cheer:'Cheer', settings:'Settings', close:'Close',
+      sound:'Sound', lang:'Language', tog:'TTS / SFX / Cheer', bg:'Background', bright:'Brightness', hardReset:'Reset ALL data',
+      pickBg:'Pick image', resetBg:'Reset background', footer:'© KuKu Drill',
+      faceTitle:'Take cheering face', faceHint:'Fit your face in the round frame. Local only.', faceSet:'Set face', faceDel:'Remove face',
+      correct:t=>`Correct! ${t.toFixed(1)}s`, wrong:ans=>`Oops… answer is ${ans}`,
+      remainOk:n=>`${n} left (no miss)`, remainNg:n=>`${n} left (miss: no record)`,
+      runDone:n=>`${n}Q Completed!`, runInvalid:`Record void due to a mistake.`,
+      runFree:`Unlimited Result`, runFreeBody:(q,sec,pt)=>`Solved: ${q} / ${sec.toFixed(1)}s / ${pt}pts (not recorded)`,
+      bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}s / ${score}pts (${date})`,
+      speakProb:(a,b)=>`${a} times ${b}`, speakStart:'Start',
+      histTitle:'History (last 10)', clearHistory:'Clear history'
+    }
+  };
+  let appLang=localStorage.getItem('kukuLang')||'ja';
+  const el = {
+    titleTxt:$('titleTxt'), ans:$('answer'),
+    labScore:$('labScore'), labStreak:$('labStreak'), labAvg:$('labAvg'),
+    rngTitle:$('rngTitle'), labA:$('labA'), labB:$('labB'),
+    labMode:$('labMode'), timerLabel:$('timerLabel'), timerStatus:$('timerStatus'),
+    modeP:$('modeP'), modeMB:$('modeMB'), modeMA:$('modeMA'),
+    best15:$('best15'), best30:$('best30'), best60:$('best60'), best81:$('best81'),
+    timer15:$('timer15'), timer30:$('timer30'), timer60:$('timer60'), timer81:$('timer81'), timerFree:$('timerFree'),
+    openHistory:$('openHistory'),
+    openSettings:$('openSettings'), closeSettings:$('closeSettings'),
+    secSound:$('secSound'), secLang:$('secLang'), secTog:$('secTog'), secBg:$('secBg'), secBright:$('secBright'),
+    bgPick:$('bgPick'), bgReset:$('bgReset'),
+    faceBtn:$('faceBtn'), faceDel:$('faceDel'),
+    togSpeak: $('togSpeak'),
+    togSfx:   $('togSfx'),
+    togCheer: $('togCheer'),
+    hardResetBtn: $('hardResetBtn')
+  };
+
+  function txt(node, s){ if(node) node.textContent=s; }
+  function updateLangUI(){
+    const t=i18n[appLang];
+    document.documentElement.lang=(appLang==='ja'?'ja':'en');
+    txt(el.titleTxt, t.title); el.ans.placeholder=t.answerPH;
+    txt(el.labScore,t.score); txt(el.labStreak,t.streak); txt(el.labAvg,t.avg);
+    txt(el.rngTitle,t.range); txt(el.labA,t.A); txt(el.labB,t.B);
+    txt(el.labMode,t.mode); txt(el.modeP,t.modeP); txt(el.modeMB,t.modeMB); txt(el.modeMA,t.modeMA);
+    txt(el.timerLabel, t.timer); el.timerStatus.textContent=t.notStarted;
+    txt(el.timer15, t.q15); txt(el.timer30, t.q30); txt(el.timer60, t.q60); txt(el.timer81, t.q81); txt(el.timerFree, t.qFree);
+    txt(el.best15, t.best); txt(el.best30, t.best); txt(el.best60, t.best); txt(el.best81, t.best);
+    txt(el.openHistory, t.history);
+    // settings & buttons
+    txt(el.openSettings, t.settings); txt(el.closeSettings, t.close);
+    txt(el.secSound, t.sound); txt(el.secLang, t.lang); txt(el.secTog, t.tog); txt(el.secBg, t.bg); txt(el.secBright, t.bright);
+    txt(el.bgPick, t.pickBg); txt(el.bgReset, t.resetBg);
+    if(resetBtn) txt(resetBtn, appLang==='ja'?'リセット':'Reset');
+     if (el.hardResetBtn) txt(el.hardResetBtn, t.hardReset);   // ← 追加
+    // face texts
+    $('faceTitle').textContent = t.faceTitle; $('faceHint').textContent = t.faceHint;
+    txt(el.faceBtn, t.faceSet); txt(el.faceDel, t.faceDel);
+    // start/result labels
+    $('startTitle').textContent=t.startQ; $('startDesc').textContent=t.startDesc;
+    $('startCancel').textContent=t.cancel; $('startGo').textContent=t.ok;
+    $('rpShare').textContent=(appLang==='ja'?'共有':'Share'); $('rpCopy').textContent=(appLang==='ja'?'テキストをコピー':'Copy text'); $('rpClose').textContent=t.ok;
+    $('histTitle').textContent=t.histTitle; $('clearHistory').textContent=t.clearHistory; $('historyClose').textContent=t.close;
+    document.querySelector('footer').textContent=t.footer;
+    // ▼トグルのラベルも言語に合わせて更新
+    txt(el.togSpeak, t.speak);
+    txt(el.togSfx,   t.sfx);
+    txt(el.togCheer, t.cheer);
+    // lang pills active
+    document.querySelectorAll('#langSet .pill').forEach(b=>b.classList.toggle('active', b.dataset.lang===appLang));
+    localStorage.setItem('kukuLang', appLang);
+    initVoices();
+  }
+  $('langSet').addEventListener('click', e=>{
+    const t=e.target.closest('button'); if(!t) return;
+    appLang=t.dataset.lang; updateLangUI();
+  });
+
+  /* ========== 背景の既定SVG（デフォルト） ========= */
+  function injectDefaultNeon(){
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 220 220'>
+      <defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%23ff4dc4'/><stop offset='1' stop-color='%233bc7ff'/></linearGradient></defs>
+      <rect width='100%' height='100%' fill='black'/>
+      <g opacity='0.12' stroke='url(%23g)'><path d='M-40 220 L 260 -40'/><path d='M-20 240 L 280 -20'/><path d='M0 260 L 300 0'/></g></svg>`;
+    document.documentElement.style.setProperty('--neon-wall', `url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}')`);
+  }
+  injectDefaultNeon();
+
+  /* ========== 背景ユーザー画像 ========= */
+  const bgPick=$('bgPick'), bgReset=$('bgReset'), bgFile=$('bgFile'), bgBright=$('bgBright');
+function setWallBackground(uri){
+  document.documentElement.style.setProperty('--neon-wall', uri);
+  const wall = document.querySelector('.wall');
+  if (wall) wall.style.backgroundImage = uri;
+}
+function clearWallInline(){
+  const wall = document.querySelector('.wall');
+  if (wall) wall.style.backgroundImage = ''; // インラインを消す
+}
+function validUserBg(){
+  const d = localStorage.getItem('neonWallData');
+  return !!(d && d.indexOf('data:image')===0);
+}
+function applySavedOrDefaultWall(){
+  const saved = localStorage.getItem('neonWallData');
+  if (validUserBg()){
+    setWallBackground("url('"+saved+"')");
+  }else{
+    // 既定SVGをCSS変数へセットし、インラインは消す
+    injectDefaultNeon();
+    clearWallInline();
+  }
+  const savedOp = localStorage.getItem('neonWallOpacity');
+  if (savedOp){
+    document.documentElement.style.setProperty('--wallOpacity', savedOp);
+    bgBright.value = Math.round(parseFloat(savedOp)*100);
+  }
+}
+bgReset.onclick = ()=>{
+  localStorage.removeItem('neonWallData');
+  applySavedOrDefaultWall();
+  alert(appLang==='ja'?'背景をリセットしました':'Background reset');
+};
+  bgBright.oninput=()=>{ const v=Math.max(0,Math.min(100,parseInt(bgBright.value||'36',10)))/100; document.documentElement.style.setProperty('--wallOpacity', String(v)); localStorage.setItem('neonWallOpacity', String(v)); };
+  // ▼ 画像選択のハンドラが消えていたので復活
+bgPick.onclick = ()=> bgFile.click();
+
+bgFile.onchange = (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    // DataURL を保存 & すぐ反映
+    try{
+      localStorage.setItem('neonWallData', r.result);
+    }catch(_){}
+    setWallBackground("url('"+r.result+"')");
+  };
+  r.readAsDataURL(f);
+};
+  applySavedOrDefaultWall();
+
+  /* ========== SFX / TTS ========= */
+  const AudioCtx=window.AudioContext||window.webkitAudioContext; const audio=AudioCtx?new AudioCtx():null;
+  function ensureAudio(){ if(audio && audio.state==='suspended') audio.resume(); }
+  let currentPack=localStorage.getItem('kukuSoundPack')||'synth';
+  function setSoundPack(p){ currentPack=p; localStorage.setItem('kukuSoundPack', p);
+    document.querySelectorAll('#soundPack .opt').forEach(o=>o.classList.toggle('active', o.dataset.pack===p));
+  }
+  setSoundPack(currentPack);
+  $('soundPack').addEventListener('click', e=>{ const t=e.target.closest('.opt'); if(!t) return; setSoundPack(t.dataset.pack); pop(); });
+
+  function tone(f,t,type,gain=.95){ if(!audio||!getFlag('sfx')) return; const o=audio.createOscillator(), g=audio.createGain(); o.type=type; o.frequency.value=f; o.connect(g).connect(audio.destination); const now=audio.currentTime; g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(gain,now+.02); g.gain.exponentialRampToValueAtTime(.0001, now+t); o.start(); o.stop(now+t+.02); }
+  function pop(){ ensureAudio(); if(currentPack==='cute') tone(880,.09,'triangle'); else if(currentPack==='edm') tone(520,.06,'sawtooth'); else tone(900,.08,'sine'); }
+  function buzz(){ ensureAudio(); tone(120,.32,'sawtooth',.7); setTimeout(()=>tone(110,.22,'square',.6),80); }
+    function pinpon(){ ensureAudio(); tone(1319,.12,'sine'); setTimeout(()=>tone(1760,.16,'sine'),120); }
+
+  /* ========== TTS（女性優先） ========== */
+  let preferredVoice=null, FEMALE=/Kyoko|Mizuki|Nanami|Nozomi|Samantha|Victoria|Allison|Zira|Amy|Emma|Joanna|Female|女/i;
+  function pickVoice(lang){
+    const vs=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+    const cand=vs.filter(v=>new RegExp(lang,'i').test(v.lang));
+    if(!cand.length) return null;
+    for(const v of cand){ if(FEMALE.test(v.name)) return v; }
+    return cand[0];
+  }
+  function initVoices(){
+    if(!window.speechSynthesis) return;
+    preferredVoice=pickVoice(appLang==='ja'?'ja-JP':'en-US');
+  }
+  if(window.speechSynthesis){
+    initVoices();
+    window.speechSynthesis.onvoiceschanged=initVoices;
+  }
+  function speakText(txt){
+    if(!window.speechSynthesis||!getFlag('speak')) return;
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang=(appLang==='ja'?'ja-JP':'en-US');
+    if(preferredVoice && new RegExp(u.lang,'i').test(preferredVoice.lang)) u.voice=preferredVoice;
+    u.rate=1.0; u.pitch=1.0;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+
+  /* ===== Confetti (paper fireworks) ===== */
+  function confettiBurst(){
+    const colors=['#ff4dc4','#3bc7ff','#ffe066','#35ffa1','#ff8af2','#a1a8ff'];
+    const n=90;
+    for(let i=0;i<n;i++){
+      const d=document.createElement('div');
+      d.className='confetti';
+      d.style.left=(Math.random()*100)+'vw';
+      d.style.background=colors[(Math.random()*colors.length)|0];
+      d.style.transform='rotate('+(Math.random()*360)+'deg)';
+      const dur=900+Math.random()*1200;
+      d.style.transition=`transform ${dur}ms ease-out, top ${dur}ms ease-out, opacity ${dur}ms ease`;
+      document.body.appendChild(d);
+      requestAnimationFrame(()=>{
+        d.style.top='110vh';
+        d.style.transform+=` translateY(90vh) rotate(${360+Math.random()*360}deg)`;
+        d.style.opacity='0.9';
+      });
+      setTimeout(()=>d.remove(), dur+400);
+    }
+  }
+  /* ========== トグル（pillでON/OFF） ========= */
+  function getFlag(k){ return localStorage.getItem('kukuFlag_'+k)!=='0'; }
+  function setFlag(k,v){ localStorage.setItem('kukuFlag_'+k, v?'1':'0'); }
+  function applyToggleUI(){
+    ['speak','sfx','cheer'].forEach(k=>{
+      const btn=document.querySelector(`.toggle[data-flag="${k}"]`);
+      const on=getFlag(k); btn.classList.toggle('active', on);
+    });
+  }
+  document.getElementById('toggles').addEventListener('click', e=>{
+    const t=e.target.closest('.toggle'); if(!t) return;
+    const key=t.dataset.flag; const next=!getFlag(key); setFlag(key,next); applyToggleUI(); pop();
+  });
+  applyToggleUI();
+
+  /* ========== 出題 ========= */
+  const problem=$('problem'), ans=$('answer'), result=$('result');
+  const scoreEl=$('score'), streakEl=$('streak'), avgTimeEl=$('avgTime');
+  const modeSet=$('modeSet'), danSet=$('danSet'), kuSet=$('kuSet');
+  let state={a:null,b:null,correct:null,start:null,score:0,streak:0,times:[],mode:'product'};
+  let allowedA=new Set(JSON.parse(localStorage.getItem('allowedA')||'[1,2,3,4,5,6,7,8,9]'));
+  let allowedB=new Set(JSON.parse(localStorage.getItem('allowedB')||'[1,2,3,4,5,6,7,8,9]'));
+  
+// ======== 重複なし出題のためのユーティリティ ========
+// 配列をシャッフル（Fisher–Yates）
+function shuffle(arr){
+  for(let i=arr.length-1; i>0; i--){
+    const j=(Math.random()*(i+1))|0;
+    [arr[i], arr[j]]=[arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// allowedA × allowedB の直積を配列に
+function combosFromSets(Aset, Bset){
+  const list=[];
+  const a=Array.from(Aset).sort((x,y)=>x-y);
+  const b=Array.from(Bset).sort((x,y)=>x-y);
+  for(const x of a){ for(const y of b){ list.push([x,y]); } }
+  return list;
+}
+
+// ラン（タイムトライアル）用の問題キューを用意
+// n===81 → 1..9 × 1..9 の81通りを必ず1回ずつ
+// それ以外 → 現在のallowedA×allowedBから n 個ぶんを重複なしで（不足分はシャッフルで埋める）
+function buildProblemQueue(n){
+  let pool;
+  if(n===81){
+    pool=[];
+    for(let a=1;a<=9;a++){ for(let b=1;b<=9;b++){ pool.push([a,b]); } }
+  }else{
+    pool=combosFromSets(allowedA, allowedB);
+  }
+  shuffle(pool);
+
+  if(n===Infinity){
+    // 無制限は使い切ったら後で補充
+    return pool.slice();
+  }
+
+  if(pool.length===0) return [[1,1]];
+
+  const q=[];
+  while(q.length<n){
+    if(q.length+pool.length<=n){ q.push(...pool); shuffle(pool); }
+    else{ q.push(...pool.slice(0, n-q.length)); }
+  }
+  return q;
+}
+  function pillLabel(i,type){ return (type==='A') ? (appLang==='ja' ? (i+'段') : (i+'×')) : String(i); }
+  function buildPills(container,type){
+    container.innerHTML=''; for(let i=1;i<=9;i++){ const btn=document.createElement('button'); btn.className='pill'+(((type==='A'?allowedA:allowedB).has(i))?' active':''); btn.textContent=pillLabel(i,type);
+      btn.onclick=()=>{ const set=(type==='A'?allowedA:allowedB); if(set.has(i)) set.delete(i); else set.add(i); btn.classList.toggle('active'); localStorage.setItem(type==='A'?'allowedA':'allowedB', JSON.stringify(Array.from(set))); pop(); newProblem(); };
+      container.appendChild(btn);
+    }
+  }
+  buildPills(danSet,'A'); buildPills(kuSet,'B');
+  modeSet.addEventListener('click', e=>{
+    const t=e.target.closest('.pill'); if(!t) return;
+    [...modeSet.querySelectorAll('.pill')].forEach(p=>p.classList.remove('active'));
+    t.classList.add('active'); state.mode=t.dataset.mode; pop(); newProblem();
+  });
+
+  function randFrom(set){ const a=Array.from(set); return a.length?a[Math.floor(Math.random()*a.length)]:1; }
+  function newProblem(skipFocus){
+  // タイムトライアル中でキューがあるならそこから出す
+  if(run && Array.isArray(run.queue) && run.queue.length){
+    const idx = run.isUnlimited ? 0 : (run.target - run.left); // 0始まりの現在インデックス
+    const pair = run.queue[idx] || run.queue[0];
+    state.a = pair[0]; state.b = pair[1];
+  }else{
+    // 通常出題：選択範囲からランダム
+    state.a = randFrom(allowedA);
+    state.b = randFrom(allowedB);
+  }
+
+  state.correct = state.a * state.b;
+  const m = state.mode;
+  problem.textContent = (m==='product')
+    ? `${state.a} × ${state.b} = ?`
+    : (m==='missingB') ? `□ × ${state.b} = ${state.correct}`
+    : `${state.a} × □ = ${state.correct}`;
+
+  state.start = performance.now();
+  ans.value = '';
+  if(!skipFocus) ans.blur();
+
+  // 読み上げ（既存の処理そのまま）
+  speakText(i18n[appLang].speakProb(state.a, state.b));
+}
+  function answerText(){ return (state.mode==='product')?state.correct:(state.mode==='missingB'?state.a:state.b); }
+  function updateStats(){ scoreEl.textContent=state.score; streakEl.textContent=state.streak; const n=state.times.length; avgTimeEl.textContent=n? ((state.times.reduce((a,b)=>a+b,0)/n).toFixed(1)+(appLang==='ja'?'秒':'s')):'—'; }
+  function showMsg(t,ok){ result.textContent=t; result.className='result '+(ok?'ok':'ng'); }
+
+  document.querySelectorAll('.keypad .key').forEach(k=>{
+    k.onclick=()=>{
+      ensureAudio();
+      const v=k.textContent.trim();
+      if(v==='⌫'){ ans.value=ans.value.slice(0,-1); pop(); return; }
+      if(k.id==='okKey'){ check(); return; }
+      ans.value += v; pop();
+    };
+  });
+
+  /* ========== タイムトライアル ========= */
+  const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
+  function rHist(n){ try{return JSON.parse(localStorage.getItem('historyRun'+n)||'[]')}catch(e){return[]} }
+  function wHist(n,a){ localStorage.setItem('historyRun'+n, JSON.stringify(a)); }
+  function addHistory(n,e){ const a=rHist(n); a.unshift(e); if(a.length>50) a.pop(); wHist(n,a); }
+  function bestOf(n){ const a=rHist(n).filter(x=>x.valid); if(!a.length) return null; return a.reduce((p,c)=>p.sec<=c.sec?p:c); }
+  function fmt(iso){ const d=new Date(iso); const z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; }
+  function renderBests(){
+    const t=i18n[appLang]; [15,30,60,81].forEach(n=>{ const b=bestOf(n); bestEls[n].textContent=b? t.bestLabel(b.sec,b.score,fmt(b.date)) : t.best; });
+  }
+  renderBests();
+
+  let run=null;
+function beginRun(n){
+  if(n===81){
+    run = {
+      target:81, left:81, isUnlimited:false, isAllKuku:true,
+      queue: buildProblemQueue(81), hasMiss:false,
+      startAt: performance.now(), scoreStart: state.score
+    };
+  } else if(n===Infinity){
+    run = {
+      target:Infinity, left:Infinity, isUnlimited:true, isAllKuku:false,
+      queue: buildProblemQueue(Infinity), hasMiss:false,
+      startAt: performance.now(), scoreStart: state.score, pos:0
+    };
+  } else {
+    run = {
+      target:n, left:n, isUnlimited:false, isAllKuku:false,
+      queue: buildProblemQueue(n), hasMiss:false,
+      startAt: performance.now(), scoreStart: state.score
+    };
+  }
+  // UI更新＆最初の出題
+  timerStatus.textContent = (appLang==='ja')
+    ? `のこり ${run.left} 問（ミスなし）`
+    : `left ${run.left} (no miss)`;
+  newProblem(true);
+}
+  function beginUnlimited(){ const t=i18n[appLang]; run={target:Infinity,left:Infinity,isUnlimited:true,hasMiss:false,startAt:performance.now(),scoreStart:state.score}; timerStatus.textContent=(appLang==='ja'?'無制限モード中':'Unlimited'); }
+
+function finishRun(){
+  const t=i18n[appLang];
+  const elapsed=(performance.now()-run.startAt)/1000;
+
+  // 今回の獲得点（= 正解数×10）
+  const gained = state.score - run.scoreStart;
+  const solved = Math.max(0, Math.round(gained/10)); // 正解数
+  const total  = run.isUnlimited ? solved : run.target;
+
+  // ▼全問正解のフラグ（無制限は false）
+  const allOk = (!run.isUnlimited) && (!run.hasMiss) && (solved === total);
+
+  let title, body, shareText;
+
+  if (run.isUnlimited) {
+    title=t.runFree;
+    body=t.runFreeBody((gained/10), elapsed, gained);
+    shareText=`KuKu: Free ${(gained/10)} Q, ⏱${elapsed.toFixed(1)}s / ${gained}pts`;
+  } else {
+    const rec = {
+      sec: elapsed,
+      score: gained,
+      correct: solved,
+      total: total,
+      valid: allOk,                 // ベスト算出対象は「全問正解のみ」
+      date: new Date().toISOString()
+    };
+    addHistory(run.target, rec);
+    renderBests();
+
+    title = t.runDone(run.target);
+
+    if (allOk) {
+      // ★ 全問正解のときだけ祝砲
+      pinpon();
+      confettiBurst();
+
+      const best = bestOf(run.target);
+      body = (appLang==='ja')
+        ? `今回: ${rec.sec.toFixed(1)}秒 / ${rec.score}点 / ${rec.correct}/${rec.total}（${fmt(rec.date)}）`
+        : `This run: ${rec.sec.toFixed(1)}s / ${rec.score}pts / ${rec.correct}/${rec.total} (${fmt(rec.date)})`;
+      if (best) {
+        body += (appLang==='ja')
+          ? `\n自己ベスト: ${best.sec.toFixed(1)}秒 / ${best.score}点（${fmt(best.date)}）`
+          : `\nPersonal Best: ${best.sec.toFixed(1)}s / ${best.score}pts (${fmt(best.date)})`;
+      }
+      shareText=(appLang==='ja')
+        ? `KuKu ${run.target}問 全問正解！ ⏱${rec.sec.toFixed(1)}秒 / ${rec.score}点`
+        : `KuKu ${run.target}Q All Correct! ⏱${rec.sec.toFixed(1)}s / ${rec.score}pts`;
+    } else {
+      // ミスあり（祝砲なし）
+      body = (appLang==='ja')
+        ? `今回: ${rec.sec.toFixed(1)}秒 / ${rec.score}点 / ${rec.correct}/${rec.total}\n${t.runInvalid}`
+        : `This run: ${rec.sec.toFixed(1)}s / ${rec.score}pts / ${rec.correct}/${rec.total}\n${t.runInvalid}`;
+    }
+  }
+
+  $('rpTitle').textContent=title;
+  $('rpBody').textContent=body;
+  $('resultModal').classList.add('show');
+
+  const close=()=>$('resultModal').classList.remove('show');
+  $('rpClose').onclick=close;
+  $('resultModal').querySelector('.back').onclick=close;
+  $('rpCopy').onclick=()=>{
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(shareText||body).catch(()=>{});
+    }
+  };
+  $('rpShare').onclick=()=>{
+    if(navigator.share){ navigator.share({text:shareText||body}).catch(()=>{}); }
+    else { $('rpCopy').click(); }
+  };
+
+  run=null;
+  $('timerStatus').textContent=i18n[appLang].notStarted;
+}
+function openStart(n){
+  const startM = $('startModal');
+  const descEl = $('startDesc');
+  const countEl = $('countNum');
+
+  startM.classList.add('show');
+  // 説明文（日本語/英語と本数で出し分け）
+  const desc = (appLang==='ja')
+    ? (n===Infinity ? '無制限でスタートします。'
+       : (n===81 ? '99(81問)ランダムでスタートします。' : (n+'問でスタートします。')))
+    : (n===Infinity ? 'Start Unlimited.'
+       : (n===81 ? 'Start All 9×9 Random.' : ('Start with '+n+' questions.')));
+  descEl.textContent = desc;
+
+  countEl.textContent = '⏱';           // 初期表示
+  countEl.classList.remove('pop-grow'); // アニメ初期化
+
+  const close = ()=>{ startM.classList.remove('show'); };
+  $('startCancel').onclick = close;
+  startM.querySelector('.back').onclick = close;
+
+  $('startGo').onclick = ()=>{
+    // ▼OKを押したら 3→2→1 のカウントダウン（“ピッ”音のみ・TTSなし）
+    // 音は既存の SFX/tone() を使用。SFXがOFFなら無音で進む。
+    let i = 0;
+    const seq = ['3','2','1'];
+
+    // カウントを1つ進める関数
+    const tick = ()=>{
+      countEl.textContent = seq[i];
+      countEl.classList.remove('pop-grow');  // アニメをやり直すための再付与
+      void countEl.offsetWidth;
+      countEl.classList.add('pop-grow');
+
+      // ピッ音（短いビープ）
+      ensureAudio();
+      tone(700, .12, 'sine', 0.9);
+
+      i++;
+      if(i < seq.length){
+        setTimeout(tick, 650);  // 次の数字へ
+      }else{
+        setTimeout(()=>{
+          // カウントダウン完了 → モーダルを閉じ、ラン開始＆最初の問題生成
+          close();
+          if(n===Infinity) beginUnlimited(); else beginRun(n);
+          newProblem(true);
+        }, 650);
+      }
+    };
+
+    // カウント開始
+    countEl.textContent = '⏱';
+    setTimeout(tick, 220);
+  };
+}
+  $('timer15').onclick=()=>openStart(15);
+  $('timer30').onclick=()=>openStart(30);
+  $('timer60').onclick=()=>openStart(60);
+  $('timer81').onclick=()=>openStart(81);
+  $('timerFree').onclick=()=>openStart(Infinity);
+
+  /* ========== チェック ========= */
+  function showMascot(kind){
+    if(!getFlag('cheer')) return;
+    const shotData=localStorage.getItem('kukuFaceData'); if(!shotData) return;
+    const box=document.createElement('div'); box.className='mascot '+(kind==='cry'?'cry':'cheer');
+    const img=new Image(); img.src=shotData; box.appendChild(img); document.body.appendChild(box);
+    if(kind==='cry'){
+      const t1=document.createElement('div'); t1.className='tear left';
+      const t2=document.createElement('div'); t2.className='tear right';
+      box.appendChild(t1); box.appendChild(t2);
+      setTimeout(()=>{ t1.style.top='70px'; t2.style.top='70px'; t1.style.transition=t2.style.transition='top 600ms ease'; },10);
+    }
+    setTimeout(()=>box.remove(),2600);
+  }
+
+  function check(){
+    const t=i18n[appLang]; const val=parseInt(ans.value,10);
+    if(isNaN(val)){ showMsg(appLang==='ja'?'数字を入れてね':'Enter numbers', false); buzz(); return; }
+    const ok=(state.mode==='product')? val===state.correct : (state.mode==='missingB'? val===state.a : val===state.b);
+    const took=(performance.now()-state.start)/1000; state.times.push(took); if(state.times.length>50) state.times.shift();
+    if(ok){ state.score+=10; state.streak+=1; showMsg(t.correct(took), true); pinpon(); showMascot('cheer'); }
+    else { state.streak=0; showMsg(t.wrong(answerText()), false); buzz(); showMascot('cry'); if(run && !run.isUnlimited){ run.hasMiss=true; } }
+
+        if (run && !run.isUnlimited) {
+      run.left--;
+      if (run.left > 0) {
+        timerStatus.textContent = run.hasMiss
+          ? i18n[appLang].remainNg(run.left)
+          : i18n[appLang].remainOk(run.left);
+        updateStats();
+        setTimeout(newProblem, 450);
+      } else {
+        finishRun();
+      }
+      return;
+
+    // ▼無制限（run が存在し、かつ isUnlimited）のときだけこちら
+    } else if (run && run.isUnlimited) {
+      if (typeof run.pos !== 'number') run.pos = 0;
+      run.pos++;
+
+      // もうすぐ尽きるなら補充
+      if (run.queue && run.queue.length) {
+        if (run.pos + 1 >= run.queue.length) {
+          run.queue = run.queue.concat(buildProblemQueue(Infinity));
+        }
+      }
+
+      updateStats();
+      setTimeout(newProblem, 450);
+      return;
+
+    // ▼通常練習（run がない）
+    } else {
+      updateStats();
+      setTimeout(newProblem, 450);
+      return;
+    }
+    }
+  ans.addEventListener('focus', ()=>ans.blur());
+
+  // ========== 履歴モーダル ==========
+  // 履歴の読み出し（安全に）
+  function readHistory(n){
+    try { return JSON.parse(localStorage.getItem('historyRun'+n) || '[]'); }
+    catch(e){ return []; }
+  }
+
+// ==== 履歴モーダル一式（見出し/本文・ボタンラベル・クリックハンドラ） ====
+
+function renderHistory(){
+  const t = i18n[appLang];
+  function z(n){ return String(n).padStart(2,'0'); }
+  function fmt(iso){
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+  }
+  function readHistory(n){
+    try{ return JSON.parse(localStorage.getItem('historyRun'+n))||[]; }catch(e){ return []; }
+  }
+function section(n){
+  const list = readHistory(n).slice(0, 10);
+  const best = (function(){
+    const a = readHistory(n).filter(x => x.valid);
+    if (!a.length) return null;
+    return a.reduce((p,c)=> p.sec <= c.sec ? p : c);
+  })();
+
+  const rows = list.map(h=>{
+    const okRatio = (h.correct!=null && h.total!=null) ? `${h.correct}/${h.total}` : '';
+    const isBest = !!best && h.valid && h.sec === best.sec && h.score === best.score && h.date === best.date;
+    return `
+      <tr class="${isBest?'best-row':''} ${(!h.valid?'miss-row':'')}">
+        <td>${fmt(h.date)}</td>
+        <td>${(h.sec!=null)?h.sec.toFixed(1):''}</td>
+        <td>${h.score!=null?h.score:''}</td>
+        <td>${okRatio}</td>
+        <td>${isBest?'<span class="best-badge">⭐️</span>':''}</td>
+      </tr>`;
+  }).join('');
+
+  const empty = `<tr><td colspan="5" class="small">${appLang==='ja'?'まだ記録がありません':'No records yet'}</td></tr>`;
+  const title = (appLang==='ja') ? `${n}問` : `${n}Q`;
+
+  return `
+    <div class="table-wrap">
+      <h4 class="small hist-section-title" style="margin:10px 0 6px">${title}</h4>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>${appLang==='ja'?'日時':'Date'}</th>
+            <th>${appLang==='ja'?'秒':'Sec'}</th>
+            <th>${appLang==='ja'?'点':'Pts'}</th>
+            <th>${appLang==='ja'?'正解数/全':'Solved/Total'}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows || empty}</tbody>
+      </table>
+    </div>`;
+} 
+// 見出しと本文
+  $('histTitle').textContent = (appLang==='ja'?'履歴（直近10件）':'History (last 10)');
+  $('historyContent').innerHTML = section(15)+section(30)+section(60)+section(81);
+  // ボタンラベル
+  $('clearHistory').textContent = (appLang==='ja'?'履歴をクリア':'Clear history');
+  $('historyClose').textContent  = (appLang==='ja'?'閉じる':'Close');
+}
+
+// クリックハンドラ（重複なく1回だけ）
+$('openHistory').onclick = function(){
+  renderHistory();
+  $('historyModal').classList.add('show');
+};
+$('historyClose').onclick = function(){
+  $('historyModal').classList.remove('show');
+};
+$('historyModal').querySelector('.back').onclick = function(){
+  $('historyModal').classList.remove('show');
+};
+
+// ===== クリック対策：pointerup / touchend / click をすべて拾う（重複呼び出し防止つき） =====
+function onTap(el, handler){
+  if(!el) return;
+  let lock = false;
+  const wrap = (e)=>{
+    if (lock) return;
+    lock = true;
+    try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+    handler(e);
+    setTimeout(()=>{ lock = false; }, 300); // 二重発火防止
+  };
+  ['pointerup','touchend','click'].forEach(ev=>{
+    el.addEventListener(ev, wrap, {passive:false});
+  });
+}
+
+function askConfirm(msg){
+  // confirm が使えない環境でも処理は進める（true を返す）
+  try { return window.confirm(msg); } catch(e){ return true; }
+}
+
+/* ─────────── 履歴クリア ─────────── */
+var clearBtn = document.getElementById('clearHistory');
+
+function handleClearHistory(e){
+  try{ e && e.preventDefault(); e && e.stopPropagation(); }catch(_){}
+  const msg = (appLang==='ja'
+    ? '履歴をすべて削除しますか？（ベスト表示も消えます）'
+    : 'Clear all history (also clears bests)?');
+  if(!askConfirm(msg)) return false;
+
+  const kill = k => { try{ localStorage.removeItem(k); }catch(_){ } };
+  [15,30,60,81].forEach(n=> kill('historyRun'+n));
+
+  // 古いキー（前バージョン）も掃除
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      if (/^(history|hist|best)/i.test(k)) kill(k);
+    });
+  }catch(_){}
+
+  // 空配列を再セット（パース前提の場所があるため）
+  [15,30,60,81].forEach(n=>{
+    try{ localStorage.setItem('historyRun'+n, '[]'); }catch(_){}
+  });
+
+  // UI 反映
+  renderBests();
+  renderHistory();
+
+  // 画面上でも反映が分かるように
+  try { alert(appLang==='ja'?'履歴を削除しました':'History cleared'); } catch(_){}
+  return false;
+}
+onTap(clearBtn, handleClearHistory);
+
+/* ─────────── すべてのデータをリセット ─────────── */
+const hardResetBtn = document.getElementById('hardResetBtn');
+
+function handleHardReset(){
+  const msg = (appLang==='ja'
+    ? '【確認】スコア・履歴・ベスト・設定・背景画像・応援の顔など、すべてのデータを削除します。元に戻せません。よろしいですか？'
+    : 'CONFIRM: Delete ALL data (scores, history, bests, settings, bg, face). This cannot be undone. Proceed?');
+  if(!askConfirm(msg)) return;
+
+  try{ localStorage.clear(); }catch(_){}
+  // 再描画（reload が無視される環境向けに二段構え）
+  try{ location.reload(); }catch(_){}
+  try{ window.location.href = window.location.href; }catch(_){}
+}
+onTap(hardResetBtn, handleHardReset);
+
+  /* ========== 顔（応援） ========= */
+  let stream=null;
+  $('faceBtn').onclick=function(){
+    $('sheet').classList.remove('show');
+    $('faceModal').classList.add('show');
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:640}}, audio:false})
+        .then(s=>{ stream=s; $('cam').srcObject=s; })
+        .catch(()=>{ alert(appLang==='ja'?'カメラが使えませんでした。設定から許可してください。':'Camera unavailable. Please allow access.'); });
+    }else{ alert(appLang==='ja'?'この環境ではカメラが使えません':'Camera not supported'); }
+  };
+  function closeFace(){ $('faceModal').classList.remove('show'); if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
+  $('faceCancel').onclick=closeFace;
+  $('faceModal').querySelector('.back').onclick=closeFace;
+  $('faceTake').onclick=function(){
+    if(!$('cam').srcObject){ alert(appLang==='ja'?'カメラを起動できません':'Cannot start camera'); return; }
+    const ctx=$('shot').getContext('2d'), s=$('shot').width; ctx.clearRect(0,0,s,s); ctx.save(); ctx.beginPath(); ctx.arc(s/2,s/2,s/2,0,Math.PI*2); ctx.closePath(); ctx.clip(); ctx.drawImage($('cam'),0,0,s,s); ctx.restore(); $('faceSave').disabled=false;
+  };
+  $('faceSave').onclick=function(){
+    try{ const data=$('shot').toDataURL('image/png'); localStorage.setItem('kukuFaceData', data); alert(appLang==='ja'?'保存しました！':'Saved!'); }catch(e){ alert(appLang==='ja'?'保存に失敗しました':'Save failed'); }
+    closeFace();
+  };
+  $('faceDel').onclick=function(){ if(confirm(appLang==='ja'?'保存済みの顔を削除しますか？':'Remove saved face?')){ localStorage.removeItem('kukuFaceData'); alert(appLang==='ja'?'削除しました':'Removed'); } };
+
+  /* ========== 詳細設定シート ========= */
+  const sheet=$('sheet'); $('openSettings').onclick=()=>{ sheet.classList.add('show'); }; $('closeSettings').onclick=()=>{ sheet.classList.remove('show'); };
+
+  /* ========== 初期化 ========= */
+  updateLangUI();
+  newProblem(true);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+</script>
+</body>
+</html>
