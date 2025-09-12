@@ -806,11 +806,24 @@ function buildProblemQueue(n){
   function randFrom(set){ const a=Array.from(set); return a.length?a[Math.floor(Math.random()*a.length)]:1; }
 
   function newProblem(skipFocus){
-  // タイムトライアル中ならキューから、通常はランダム
   if (run && Array.isArray(run.queue) && run.queue.length){
-    const idx = run.isUnlimited ? 0 : (run.target - run.left); // 0-based
-    const pair = run.queue[idx] || run.queue[0];
-    state.a = pair[0]; state.b = pair[1];
+let pair;
+if (run.isUnlimited) {
+  // 無制限モード：位置(pos)を進める
+  pair = run.queue[run.pos];
+  run.pos++;
+  // キューを使い切ったら、再度シャッフルして先頭に戻る
+  if (run.pos >= run.queue.length) {
+    shuffle(run.queue);
+    run.pos = 0;
+  }
+} else {
+  // 固定長モード：残り問題数からインデックスを計算
+  const idx = run.target - run.left;
+  pair = run.queue[idx];
+}
+state.a = pair[0]; state.b = pair[1];
+
   } else {
     state.a = randFrom(allowedA);
     state.b = randFrom(allowedB);
@@ -1142,7 +1155,20 @@ function check(){
   }
   state.times.push(sec); if(state.times.length > 40) state.times.shift();
   updateStats();
-
+  
+  // タイムアタック中なら、残り問題数を減らし、UIを更新
+  if (run && !run.isUnlimited) {
+    run.left--;
+    // 完走したかチェック
+    if (run.left <= 0) {
+      finishRun();
+      return; // 完走したので次の問題は出さない
+    }
+    // 残り問題数を表示に反映
+    const t = i18n[appLang];
+    timerStatus.textContent = run.hasMiss ? t.remainNg(run.left) : t.remainOk(run.left);
+  }
+  
   // 次の問題へ
   setTimeout(()=>{ newProblem(true); }, 600);
 }
