@@ -830,15 +830,16 @@ function buildProblemQueue(n){
     questionChirp();
     setTimeout(() => {
       speakText(appLang === 'ja' ? `かける ${state.b}` : `times ${state.b}`);
-    }, 300); // ← 少し遅らせる
+    }, 300);
     setTimeout(() => questionChirp(), 600);
 
   } else if (state.mode === 'missingA') {
-    // A × □ = ? ・・・Aを読んでからチッ
+    // A × □ = ? ・・・「A かける」を読んでからチッ
     speakText(appLang === 'ja' ? `${state.a} かける` : `${state.a} times`);
-    setTimeout(() => questionChirp(), 400); // ← A の後に鳴らす
-  }　// ★ここで newProblem 関数を閉じる
-} // ← これでOK。余分な「});」は不要
+    setTimeout(() => questionChirp(), 400);
+  }
+
+} // ★ ← これを必ず入れて newProblem(skipFocus) を閉じる
   
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
