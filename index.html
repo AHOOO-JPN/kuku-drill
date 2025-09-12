@@ -385,6 +385,8 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
     <div style="position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 6px rgba(255,255,255,.9);pointer-events:none"></div>
   </div>
   <canvas id="shot" width="320" height="320" style="display:none"></canvas>
+    <button class="btn" id="facePickFile" style="margin-bottom: 10px;">ファイルから選択</button>
+  <input type="file" id="faceFileInput" accept="image/*" style="display:none">
   <div class="btnrow"><button class="btn" id="faceCancel">キャンセル</button><button class="btn grad" id="faceTake">撮影</button><button class="btn grad" id="faceSave" disabled>保存</button></div>
 </div></div>
 
@@ -1310,20 +1312,25 @@ onTap(hardResetBtn, handleHardReset);
       v.style.display = 'block';
       c.style.display = 'none';
       $('faceSave').disabled = true;
-      $('faceTake').textContent = (appLang==='ja' ? '撮影' : 'Snap');
+      $('faceTake').textContent = (appLang==='ja' ? '撮影' : 'Retake'); // 元に戻す
+      $('faceTake').style.display = 'inline-block'; // 撮影ボタン表示
     }else{
       v.style.display = 'none';
       c.style.display = 'block';
       $('faceSave').disabled = false;
-      $('faceTake').textContent = (appLang==='ja' ? '撮り直し' : 'Retake');
+      $('faceTake').textContent = (appLang==='ja' ? '撮り直し' : 'Retake'); // ファイル選択時は「撮り直し」
+      // ファイル選択時は「撮り直し」ボタンを非表示にすることも可能。今回は「撮影」のままにしておく
+    }
+    // カメラのストリームがあるかどうかで撮影ボタンの表示を切り替える
+    if (!stream) {
+        $('faceTake').style.display = 'none'; // カメラが使えないなら撮影ボタンは隠す
+    } else {
+        $('faceTake').style.display = 'inline-block';
     }
   }
 
-  // カメラ起動＆モーダル表示
-  $('faceBtn').onclick=function(){
-    $('sheet').classList.remove('show');
-    $('faceModal').classList.add('show');
-
+  // カメラ起動処理（関数化）
+  function startCamera(){
     if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
       navigator.mediaDevices.getUserMedia({
         video:{ facingMode:'user', width:{ideal:640}, height:{ideal:640} },
@@ -1332,14 +1339,81 @@ onTap(hardResetBtn, handleHardReset);
         stream = s;
         const v = $('cam');
         v.srcObject = s;
-        v.classList.add('mirror');   // ← 鏡表示（プレビューのみ）
+        v.classList.add('mirror');
         showLivePreview(true);
       }).catch(()=>{
         alert(appLang==='ja'?'カメラが使えませんでした。設定から許可してください。':'Camera unavailable. Please allow access.');
+        showLivePreview(false); // カメラ使えないのでプレビューは静止画（真っ黒）に
+        $('faceTake').style.display = 'none'; // 撮影ボタンを非表示
       });
     }else{
       alert(appLang==='ja'?'この環境ではカメラが使えません':'Camera not supported');
+      showLivePreview(false); // カメラ使えないのでプレビューは静止画（真っ黒）に
+      $('faceTake').style.display = 'none'; // 撮影ボタンを非表示
     }
+  }
+
+  // 顔設定ボタンのクリックイベント（モーダル表示とカメラ起動）
+  $('faceBtn').onclick=function(){
+    $('sheet').classList.remove('show');
+    $('faceModal').classList.add('show');
+    startCamera(); // モーダル開いたらすぐカメラ起動を試みる
+  };
+
+  // ▼【追加】ファイル選択ボタンのクリックイベント
+  $('facePickFile').onclick = function() {
+    // カメラが起動していれば停止する
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    // ファイル入力要素をクリックしてファイル選択ダイアログを開く
+    $('faceFileInput').click();
+  };
+
+  // ▼【追加】ファイルが選択されたときの処理
+  $('faceFileInput').onchange = function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = $('shot');
+        const ctx = canvas.getContext('2d');
+        const size = canvas.width; // 320px
+
+        ctx.clearRect(0, 0, size, size);
+        ctx.save();
+        // 円形クリップ
+        ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+
+        // 画像をキャンバスに合わせて描画（中央に配置し、はみ出してもOK）
+        const aspectRatio = img.width / img.height;
+        let drawWidth, drawHeight, offsetX, offsetY;
+        if (img.width > img.height) { // 横長
+          drawHeight = size;
+          drawWidth = size * aspectRatio;
+          offsetX = (size - drawWidth) / 2;
+          offsetY = 0;
+        } else { // 縦長または正方形
+          drawWidth = size;
+          drawHeight = size / aspectRatio;
+          offsetY = (size - drawHeight) / 2;
+          offsetX = 0;
+        }
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        ctx.restore();
+
+        // 静止画プレビューに切り替え、保存ボタンを有効にする
+        showLivePreview(false);
+        $('faceSave').disabled = false;
+        $('faceFileInput').value = ''; // 同じファイルを再度選択できるようにクリア
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   // 撮影／撮り直し
