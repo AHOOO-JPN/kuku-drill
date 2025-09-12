@@ -843,7 +843,7 @@ if (m === 'product') {
   setTimeout(() => questionChirp(), 400);
 }
 // ここで関数 newProblem(skipFocus) が閉じる
-  }
+  };
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
   function rHist(n){ try{return JSON.parse(localStorage.getItem('historyRun'+n)||'[]')}catch(e){return[]} }
