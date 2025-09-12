@@ -173,7 +173,13 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 .btnrow{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px}
 .btn{min-width:120px; padding:12px 14px; border-radius:14px; font-weight:900; cursor:pointer; border:1px solid var(--border); background:transparent; color:#fff}
 .btn.grad{ border:0; color:#0b0416; background:linear-gradient(90deg,var(--accentA),var(--accentB)) }
-
+.pill.grad {
+  border: 0;
+  color: #0b0416;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--accentA), var(--accentB));
+  box-shadow: 0 6px 18px color-mix(in oklab, var(--accentB) 35%, transparent);
+}
 /* mascot */
 .mascot{position:fixed; left:50%; bottom:12vh; transform:translateX(-50%); z-index:1001; width:140px; height:140px; border-radius:50%; overflow:hidden;
   box-shadow:0 10px 40px rgba(0,0,0,.35), inset 0 0 0 4px rgba(255,255,255,.85); background:#000}
