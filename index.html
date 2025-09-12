@@ -184,6 +184,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 .mascot.cry{animation:cry-shake .6s ease-in-out 2}
 .tear{ position:absolute; width:14px; height:22px; left:50%; top:18px; transform:translateX(-50%); border-radius:10px; background:#7fd4ff; opacity:.85}
 .tear.right{ left:65% } .tear.left{ left:35% }
+
 /* ▼3,2,1 ポップ表示用 */
 .pop-grow{ animation:pop .45s ease forwards }
 @keyframes pop{
@@ -485,7 +486,7 @@ if (resetBtn) {
       faceTitle:'応援の顔を撮影', faceHint:'丸枠に顔を入れてね。ローカル保存のみ。', faceSet:'顔を設定', faceDel:'顔を削除',
       correct:t=>`正解！ ${t.toFixed(1)}秒`, wrong:ans=>`ざんねん… 正解は ${ans}`,
       remainOk:n=>`のこり ${n} 問（ミスなし）`, remainNg:n=>`のこり ${n} 問（ミスあり：記録外）`,
-      runDone:n=>`${n}問 完走！`, runInvalid:`途中でまちがいがあったため、この回は記録されません。`,
+      runDone:n=>`${n}問 完走！`, runInvalid:`途中でまちがいがありました。ざんねん😢`,
       runFree:`無制限モード結果`, runFreeBody:(q,sec,pt)=>`解いた数: ${q}問 / 所要 ${sec.toFixed(1)}秒 / ${pt}点（記録対象外）`,
       bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}秒 / ${score}点（${date}）`,
       speakProb:(a,b)=>`${a} かける ${b}`, speakStart:'スタート',
