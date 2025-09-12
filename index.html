@@ -563,6 +563,15 @@ if (resetBtn) {
     const t=e.target.closest('button'); if(!t) return;
     appLang=t.dataset.lang; updateLangUI();
   });
+function scrollToInput() {
+  const answerInput = $('answer');
+  if (answerInput) {
+    // input要素がビューポートの下部に来るようにスクロール
+    // iOSのSafariでキーボードが出ても隠れないように少し上に調整
+    const y = answerInput.getBoundingClientRect().top + window.pageYOffset - window.innerHeight / 3;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }
+}
 
   /* ========== 背景の既定SVG（デフォルト） ========= */
   function injectDefaultNeon(){
@@ -1043,6 +1052,7 @@ function openStart(n){
           // カウントダウン完了 → モーダルを閉じ、ラン開始＆最初の問題生成
           close();
           if(n===Infinity) beginUnlimited(); else beginRun(n);
+          scrollToInput();
         }, 650);
       }
     };
