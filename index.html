@@ -141,6 +141,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:999}
 .modal.show{display:flex}
 .modal .back{position:absolute; inset:0; background:rgba(0,0,0,.45)}
+
 /* モーダルパネルを常に画面内に収める（iPhone対策） */
 .modal .panel{
   width: clamp(280px, 92vw, 720px);
@@ -262,6 +263,10 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
   font-size:12px; font-weight:700; padding:3px 8px; border-radius:999px;
   background:rgba(255,255,255,.10); border:1px solid var(--border);
 }
+/* 顔カメラをミラー表示（プレビュー用のみ） */
+#cam.mirror { transform: scaleX(-1); 
+}
+
 </style>
 </head>
 <body class="theme-mix">
@@ -1213,27 +1218,108 @@ onTap(hardResetBtn, handleHardReset);
 
   /* ========== 顔（応援） ========= */
   let stream=null;
+
+  // ライブ/静止画プレビューを切り替え
+  function showLivePreview(isLive){
+    const v = $('cam');
+    const c = $('shot');
+    if(isLive){
+      v.style.display = 'block';
+      c.style.display = 'none';
+      $('faceSave').disabled = true;
+      $('faceTake').textContent = (appLang==='ja' ? '撮影' : 'Snap');
+    }else{
+      v.style.display = 'none';
+      c.style.display = 'block';
+      $('faceSave').disabled = false;
+      $('faceTake').textContent = (appLang==='ja' ? '撮り直し' : 'Retake');
+    }
+  }
+
+  // カメラ起動＆モーダル表示
   $('faceBtn').onclick=function(){
     $('sheet').classList.remove('show');
     $('faceModal').classList.add('show');
+
     if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
-      navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:640}}, audio:false})
-        .then(s=>{ stream=s; $('cam').srcObject=s; })
-        .catch(()=>{ alert(appLang==='ja'?'カメラが使えませんでした。設定から許可してください。':'Camera unavailable. Please allow access.'); });
-    }else{ alert(appLang==='ja'?'この環境ではカメラが使えません':'Camera not supported'); }
+      navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:'user', width:{ideal:640}, height:{ideal:640} },
+        audio:false
+      }).then(s=>{
+        stream = s;
+        const v = $('cam');
+        v.srcObject = s;
+        v.classList.add('mirror');   // ← 鏡表示（プレビューのみ）
+        showLivePreview(true);
+      }).catch(()=>{
+        alert(appLang==='ja'?'カメラが使えませんでした。設定から許可してください。':'Camera unavailable. Please allow access.');
+      });
+    }else{
+      alert(appLang==='ja'?'この環境ではカメラが使えません':'Camera not supported');
+    }
   };
-  function closeFace(){ $('faceModal').classList.remove('show'); if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
-  $('faceCancel').onclick=closeFace;
-  $('faceModal').querySelector('.back').onclick=closeFace;
+
+  // 撮影／撮り直し
   $('faceTake').onclick=function(){
-    if(!$('cam').srcObject){ alert(appLang==='ja'?'カメラを起動できません':'Cannot start camera'); return; }
-    const ctx=$('shot').getContext('2d'), s=$('shot').width; ctx.clearRect(0,0,s,s); ctx.save(); ctx.beginPath(); ctx.arc(s/2,s/2,s/2,0,Math.PI*2); ctx.closePath(); ctx.clip(); ctx.drawImage($('cam'),0,0,s,s); ctx.restore(); $('faceSave').disabled=false;
+    const v = $('cam');
+    const c = $('shot');
+    const s = c.width; // 320
+
+    // すでに静止画表示中 → 撮り直し（ライブに戻す）
+    if (v.style.display === 'none'){
+      showLivePreview(true);
+      return;
+    }
+
+    if(!v.srcObject){
+      alert(appLang==='ja'?'カメラを起動できません':'Cannot start camera');
+      return;
+    }
+
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0,0,s,s);
+    ctx.save();
+    // 円形クリップ
+    ctx.beginPath(); ctx.arc(s/2, s/2, s/2, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+
+    // 保存する画像は左右反転を戻して描画（プレビューはミラーだが、保存は正向き）
+    ctx.translate(s, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(v, 0, 0, s, s);
+
+    ctx.restore();
+
+    showLivePreview(false); // 静止画プレビューに切り替え
   };
+
+  // 保存
   $('faceSave').onclick=function(){
-    try{ const data=$('shot').toDataURL('image/png'); localStorage.setItem('kukuFaceData', data); alert(appLang==='ja'?'保存しました！':'Saved!'); }catch(e){ alert(appLang==='ja'?'保存に失敗しました':'Save failed'); }
+    try{
+      const data = $('shot').toDataURL('image/png');
+      localStorage.setItem('kukuFaceData', data);
+      alert(appLang==='ja'?'保存しました！':'Saved!');
+    }catch(e){
+      alert(appLang==='ja'?'保存に失敗しました':'Save failed');
+    }
     closeFace();
   };
-  $('faceDel').onclick=function(){ if(confirm(appLang==='ja'?'保存済みの顔を削除しますか？':'Remove saved face?')){ localStorage.removeItem('kukuFaceData'); alert(appLang==='ja'?'削除しました':'Removed'); } };
+
+  // キャンセル/背景タップで閉じる
+  function closeFace(){
+    $('faceModal').classList.remove('show');
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    showLivePreview(true); // 次回のため初期状態へ
+  }
+  $('faceCancel').onclick = closeFace;
+  $('faceModal').querySelector('.back').onclick = closeFace;
+
+  // 顔データ削除
+  $('faceDel').onclick=function(){
+    if(confirm(appLang==='ja'?'保存済みの顔を削除しますか？':'Remove saved face?')){
+      localStorage.removeItem('kukuFaceData');
+      alert(appLang==='ja'?'削除しました':'Removed');
+    }
+  };
 
   /* ========== 詳細設定シート ========= */
   const sheet=$('sheet'); $('openSettings').onclick=()=>{ sheet.classList.add('show'); }; $('closeSettings').onclick=()=>{ sheet.classList.remove('show'); };
