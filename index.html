@@ -173,12 +173,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 .btnrow{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px}
 .btn{min-width:120px; padding:12px 14px; border-radius:14px; font-weight:900; cursor:pointer; border:1px solid var(--border); background:transparent; color:#fff}
 .btn.grad{ border:0; color:#0b0416; background:linear-gradient(90deg,var(--accentA),var(--accentB)) }
-.pill.grad {
-  border: 0 !important;
-  background: linear-gradient(90deg, var(--accentA), var(--accentB)) !important;
-  color: #0b0416 !important;
-  font-weight: 800 !important;
-}
+
 /* mascot */
 .mascot{position:fixed; left:50%; bottom:12vh; transform:translateX(-50%); z-index:1001; width:140px; height:140px; border-radius:50%; overflow:hidden;
   box-shadow:0 10px 40px rgba(0,0,0,.35), inset 0 0 0 4px rgba(255,255,255,.85); background:#000}
@@ -272,47 +267,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 /* 顔カメラをミラー表示（プレビュー用のみ） */
 #cam.mirror { transform: scaleX(-1); 
 }
-/* 履歴ボタンをOKボタン風のグラデに */
-.pill.grad{
-  position: relative;
-  border: 0;
-  font-weight: 900;
-  color: #0b0416;
-  background: linear-gradient(90deg, var(--accentA), var(--accentB));
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.25),
-    0 6px 18px color-mix(in oklab, var(--accentB) 35%, transparent);
-}
-/* OKボタンと同じ“艶”のオーバーレイ */
-.pill.grad::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--accentA) 92%, transparent),
-    color-mix(in oklab, var(--accentB) 92%, transparent)
-  );
-  mask: linear-gradient(#000, #000);
-  opacity: .85;
-  pointer-events: none;
-}
-/* 押下時のちょい押し込み感 */
-.pill.grad:active{
-  transform: translateY(1px) scale(.99);
-}
-  /* 押したときの“押し込み”強化＋微発光 */
-  #openHistory.pill:active {
-    transform: translateY(1px) scale(.99);
-    filter: saturate(110%) brightness(1.02);
-  }
-  /* キーボード操作のフォーカスリング */
-  #openHistory.pill:focus-visible {
-    outline: 2px solid color-mix(in oklab, var(--accentB) 60%, white 0%);
-    outline-offset: 3px;
-    border-radius: 999px;
-  }
+
 </style>
 </head>
 <body class="theme-mix">
@@ -470,9 +425,6 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 </div></div>
 
 <script>
-window.onerror = function (msg, src, line, col, err) {
-  alert('JS error: ' + msg + '\n' + src + ':' + line + ':' + col);
-};
 // ==== Safe localStorage shim (iPhone HTML Viewer / Private mode 対策) ====
 (function(){
   var ok = true;
@@ -698,18 +650,8 @@ bgFile.onchange = (e)=>{
   function tone(f,t,type,gain=.95){ if(!audio||!getFlag('sfx')) return; const o=audio.createOscillator(), g=audio.createGain(); o.type=type; o.frequency.value=f; o.connect(g).connect(audio.destination); const now=audio.currentTime; g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(gain,now+.02); g.gain.exponentialRampToValueAtTime(.0001, now+t); o.start(); o.stop(now+t+.02); }
   function pop(){ ensureAudio(); if(currentPack==='cute') tone(880,.09,'triangle'); else if(currentPack==='edm') tone(520,.06,'sawtooth'); else tone(900,.08,'sine'); }
   function buzz(){ ensureAudio(); tone(120,.32,'sawtooth',.7); setTimeout(()=>tone(110,.22,'square',.6),80); }
-  function pinpon(){ ensureAudio(); tone(1319,.12,'sine'); setTimeout(()=>tone(1760,.16,'sine'),120); }
-  // 「？」っぽいチープ音（小さな上昇→下降）
-  function questionChirp(){
-  if(!audio || !(getFlag('sfx') && !getFlag('speak'))) return; // SFX or TTSオンのときだけ
-  ensureAudio();
-  // ぴ↑（上昇）
-  tone(700, .08, 'sine', 0.9);
-  setTimeout(()=>tone(980, .08, 'sine', 0.9), 90);
-  // ぴ↓（下降）少し後
-  setTimeout(()=>tone(620, .10, 'triangle', 0.8), 200);
-}
-  
+    function pinpon(){ ensureAudio(); tone(1319,.12,'sine'); setTimeout(()=>tone(1760,.16,'sine'),120); }
+
   /* ========== TTS（女性優先） ========== */
   let preferredVoice=null, FEMALE=/Kyoko|Mizuki|Nanami|Nozomi|Samantha|Victoria|Allison|Zira|Amy|Emma|Joanna|Female|女/i;
   function pickVoice(lang){
@@ -865,23 +807,21 @@ function buildProblemQueue(n){
   ans.value = '';
   if(!skipFocus) ans.blur();
 
-// 読み上げ（出題の種類ごとに）
-if (state.mode === 'product') {
-  // A × B = ?
+  // 読み上げ（既存の処理そのまま）
   speakText(i18n[appLang].speakProb(state.a, state.b));
-
-} else if (state.mode === 'missingB') {
-  // □ × B = ? → 「？音」→「かける/ times B」
-  questionChirp();
-  setTimeout(()=>{
-    speakText(appLang==='ja' ? `かける ${state.b}` : `times ${state.b}`);
-  }, 160);
-
-} else if (state.mode === 'missingA') {
-  // A × □ = ? → 「A かける / A times」→ 「？音」
-  speakText(appLang==='ja' ? `${state.a} かける` : `${state.a} times`);
-  setTimeout(()=>{ questionChirp(); }, 180);
 }
+  function answerText(){ return (state.mode==='product')?state.correct:(state.mode==='missingB'?state.a:state.b); }
+  function updateStats(){ scoreEl.textContent=state.score; streakEl.textContent=state.streak; const n=state.times.length; avgTimeEl.textContent=n? ((state.times.reduce((a,b)=>a+b,0)/n).toFixed(1)+(appLang==='ja'?'秒':'s')):'—'; }
+  function showMsg(t,ok){ result.textContent=t; result.className='result '+(ok?'ok':'ng'); }
+
+  document.querySelectorAll('.keypad .key').forEach(k=>{
+    k.onclick=()=>{
+      ensureAudio();
+      const v=k.textContent.trim();
+      if(v==='⌫'){ ans.value=ans.value.slice(0,-1); pop(); return; }
+      if(k.id==='okKey'){ check(); return; }
+      ans.value += v; pop();
+    };
   });
 
   /* ========== タイムトライアル ========= */
