@@ -273,7 +273,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
   color: #0b0416 !important;
   font-weight: 800 !important;
 }
-  /* 追加（style内やCSSファイルの末尾に） */
+/* 物理キーボードを閉じてもテンキーは常に押せる */
 .keypad[aria-hidden="true"] { pointer-events: auto; }
   /* OKキーは最前面＆必ずクリック可 */
 #okKey { position: relative; z-index: 3; pointer-events: auto; }
@@ -887,21 +887,10 @@ function questionChirp(){
 document.querySelectorAll('.keypad .key').forEach(k=>{
   k.onclick = () => {
     ensureAudio();
-
-    // 先に「OK」判定（見た目オーバーレイに関係なく動かす）
-    if (k.id === 'okKey') { check(); return; }
-
-    // テキストから判定（⌫ と ✖ の両対応）
+    if (k.id === 'okKey'){ check(); return; }            // ← OK は check を呼ぶ
     const v = k.textContent.trim();
-    if (v === '⌫' || v === '✖') {              // ← 削除キーの両方を許可
-      ans.value = ans.value.slice(0, -1);
-      pop();
-      return;
-    }
-
-    // 数字ボタン
-    ans.value += v;
-    pop();
+    if (v === '⌫' || v === '✖'){ ans.value = ans.value.slice(0,-1); pop(); return; }
+    ans.value += v; pop();
   };
 });
   
@@ -909,17 +898,15 @@ document.querySelectorAll('.keypad .key').forEach(k=>{
 (function(){
   const ok = document.getElementById('okKey');
   if(!ok) return;
-
   let lock = false;
   const fire = (e)=>{
-    try { e.preventDefault(); e.stopPropagation(); } catch(_){}
+    try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
     if (lock) return;
     lock = true;
-    try { ensureAudio(); pop(); } catch(_){}
-    safeCheck();
+    try{ ensureAudio(); pop(); }catch(_){}
+    check();                         // ← ここは必ず check()
     setTimeout(()=>{ lock = false; }, 300);
   };
-
   ['pointerup','touchend','click'].forEach(ev=>{
     ok.addEventListener(ev, fire, {passive:false});
   });
@@ -1147,51 +1134,54 @@ function openStart(n){
     setTimeout(()=>box.remove(),2600);
   }
   
-  function check(){
-    const t=i18n[appLang]; const val=parseInt(ans.value,10);
-    if(isNaN(val)){ showMsg(appLang==='ja'?'数字を入れてね':'Enter numbers', false); buzz(); return; }
-    const ok=(state.mode==='product')? val===state.correct : (state.mode==='missingB'? val===state.a : val===state.b);
-    const took=(performance.now()-state.start)/1000; state.times.push(took); if(state.times.length>50) state.times.shift();
-    if(ok){ state.score+=10; state.streak+=1; showMsg(t.correct(took), true); pinpon(); showMascot('cheer'); }
-    else { state.streak=0; showMsg(t.wrong(answerText()), false); buzz(); showMascot('cry'); if(run && !run.isUnlimited){ run.hasMiss=true; } }
+  function answerText(){
+  // 今のモードに対する“正しい入力値”
+  return (state.mode==='product') ? state.correct
+       : (state.mode==='missingB') ? state.a
+       : state.b; // missingA
+}
 
-        if (run && !run.isUnlimited) {
-      run.left--;
-      if (run.left > 0) {
-        timerStatus.textContent = run.hasMiss
-          ? i18n[appLang].remainNg(run.left)
-          : i18n[appLang].remainOk(run.left);
-        updateStats();
-        setTimeout(newProblem, 450);
-      } else {
-        finishRun();
-      }
-      return;
+function updateStats(){
+  scoreEl.textContent  = state.score;
+  streakEl.textContent = state.streak;
+  const n = state.times.length;
+  avgTimeEl.textContent = n
+    ? (state.times.reduce((a,b)=>a+b,0)/n).toFixed(1) + (appLang==='ja'?'秒':'s')
+    : '—';
+}
 
-    // ▼無制限（run が存在し、かつ isUnlimited）のときだけこちら
-    } else if (run && run.isUnlimited) {
-      if (typeof run.pos !== 'number') run.pos = 0;
-      run.pos++;
+function showMsg(t, ok){
+  result.textContent = t;
+  result.className   = 'result ' + (ok ? 'ok' : 'ng');
+}
 
-      // もうすぐ尽きるなら補充
-      if (run.queue && run.queue.length) {
-        if (run.pos + 1 >= run.queue.length) {
-          run.queue = run.queue.concat(buildProblemQueue(Infinity));
-        }
-      }
+function check(){
+  // 入力の取得
+  const val = parseInt(ans.value, 10);
+  if (isNaN(val)){ showMsg(appLang==='ja'?'数字を入れてね':'Enter a number', false); return; }
 
-      updateStats();
-      setTimeout(newProblem, 450);
-      return;
+  // 正解判定
+  const ok  = (val === answerText());
+  const sec = (performance.now() - state.start) / 1000;
 
-    // ▼通常練習（run がない）
-    } else {
-      updateStats();
-      setTimeout(newProblem, 450);
-      return;
-    }
-    }
-  ans.addEventListener('focus', ()=>ans.blur());
+  // スコアなど更新
+  if (ok){
+    state.score++;
+    state.streak++;
+    if (getFlag('cheer')) try{ cheerFace(); }catch(_){}
+    showMsg((appLang==='ja'?'正解！ ':'OK! ') + sec.toFixed(1) + (appLang==='ja'?'秒':'s'), true);
+    pop();
+  }else{
+    state.streak = 0;
+    showMsg((appLang==='ja'?'ざんねん… 正解は ':'Answer: ') + answerText(), false);
+    buzz();
+  }
+  state.times.push(sec); if(state.times.length > 40) state.times.shift();
+  updateStats();
+
+  // 次の問題へ
+  setTimeout(()=>{ newProblem(true); }, 600);
+}
 
   // ========== 履歴モーダル ==========
   // 履歴の読み出し（安全に）
