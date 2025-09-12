@@ -698,7 +698,7 @@ bgFile.onchange = (e)=>{
   function pinpon(){ ensureAudio(); tone(1319,.12,'sine'); setTimeout(()=>tone(1760,.16,'sine'),120); }
   // 「？」っぽいチープ音（小さな上昇→下降）
   function questionChirp(){
-  if(!audio || !(getFlag('sfx') || getFlag('speak'))) return; // SFX or TTSオンのときだけ
+  if(!audio || !(getFlag('sfx') && getFlag('speak'))) return; // SFX or TTSオンのときだけ
   ensureAudio();
   // ぴ↑（上昇）
   tone(700, .08, 'sine', 0.9);
