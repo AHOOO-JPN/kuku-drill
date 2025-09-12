@@ -273,17 +273,6 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 /* 顔カメラをミラー表示（プレビュー用のみ） */
 #cam.mirror { transform: scaleX(-1); 
 }
-/* 履歴ボタンをOKボタン風のグラデに */
-.pill.grad{
-  position: relative;
-  border: 0;
-  font-weight: 900;
-  color: #0b0416;
-  background: linear-gradient(90deg, var(--accentA), var(--accentB));
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.25),
-    0 6px 18px color-mix(in oklab, var(--accentB) 35%, transparent);
-}
 /* OKボタンと同じ“艶”のオーバーレイ */
 .pill.grad::before{
   content: "";
@@ -302,6 +291,12 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 /* 押下時のちょい押し込み感 */
 .pill.grad:active{
   transform: translateY(1px) scale(.99);
+}
+.pill.grad {
+  border: 0 !important;
+  background: linear-gradient(90deg, var(--accentA), var(--accentB)) !important;
+  color: #0b0416 !important;
+  font-weight: 800 !important;
 }
 </style>
 </head>
