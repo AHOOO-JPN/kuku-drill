@@ -7,7 +7,6 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>KuKuドリル</title>
 <meta name="theme-color" content="#9c2cff">
 <style>
@@ -298,7 +297,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 
   <div class="card">
     <div id="problem" class="problem" aria-live="assertive" aria-atomic="true">— × — = ?</div>
-    <input id="answer" class="kuku-input" type="text" inputmode="none" placeholder="こたえ" readonly>
+    <input id="answer" class="kuku-input" type="text" inputmode="none" placeholder="こたえ" readonly aria-labelledby="problem">
     <div class="keypad">
       <div class="key">7</div><div class="key">8</div><div class="key">9</div>
       <div class="key">4</div><div class="key">5</div><div class="key">6</div>
@@ -348,7 +347,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
     </details>
   </div>
 
-  <footer>© KuKuドリル</footer>
+  <footer>&copy: KuKuドリル</footer>
 </div>
 
 <!-- 詳細設定 -->
@@ -1168,7 +1167,7 @@ function check(){
   if (ok){
     state.score++;
     state.streak++;
-    if (getFlag('cheer')) try{ cheerFace(); }catch(_){}
+    if (getFlag('cheer')) try{ showMascot('cheer'); }catch(_){}
     showMsg((appLang==='ja'?'正解！ ':'OK! ') + sec.toFixed(1) + (appLang==='ja'?'秒':'s'), true);
     pop();
   }else{
