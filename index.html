@@ -275,6 +275,10 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 }
   /* 追加（style内やCSSファイルの末尾に） */
 .keypad[aria-hidden="true"] { pointer-events: auto; }
+  /* OKキーは最前面＆必ずクリック可 */
+#okKey { position: relative; z-index: 3; pointer-events: auto; }
+/* 光沢の疑似要素はクリックをブロックしない */
+.key.ok::before { pointer-events: none; }
 </style>
 </head>
 <body class="theme-mix">
@@ -579,7 +583,21 @@ if (resetBtn) {
     const t=e.target.closest('button'); if(!t) return;
     appLang=t.dataset.lang; updateLangUI();
   });
-
+// --- OK専用ハンドラ（iOSでの拾い漏れ対策） ---
+(function(){
+  const ok = document.getElementById('okKey');
+  if (!ok) return;
+  const fire = (e)=>{
+    try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+    ensureAudio();           // 触った感のピッ音（欲しければ）
+    pop();
+    check();                 // 既存の判定関数を呼ぶ
+  };
+  // クリック/タッチ/ポインタの全部で拾う（重複発火は stopPropagation 済み）
+  ['pointerup','touchend','click'].forEach(ev=>{
+    ok.addEventListener(ev, fire, {passive:false});
+  });
+})();
   /* ========== 背景の既定SVG（デフォルト） ========= */
   function injectDefaultNeon(){
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 220 220'>
