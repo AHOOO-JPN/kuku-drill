@@ -279,6 +279,9 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 #okKey { position: relative; z-index: 3; pointer-events: auto; }
 /* 光沢の疑似要素はクリックをブロックしない */
 .key.ok::before { pointer-events: none; }
+  /* OKキーは常にクリック可。光沢レイヤはクリックをブロックしない */
+#okKey { position: relative; z-index: 3; pointer-events: auto; }
+.key.ok::before { pointer-events: none; }
 </style>
 </head>
 <body class="theme-mix">
@@ -885,6 +888,33 @@ document.querySelectorAll('.keypad .key').forEach(k=>{
     ans.value += v; pop();
   };
 });
+  // --- OK専用ハンドラ（iOSでの拾い漏れ/伝播問題の保険） ---
+(function () {
+  const ok = document.getElementById('okKey');
+  if (!ok) return;
+
+  // 2重発火防止用ロック
+  let lock = false;
+  const fire = (e) => {
+    try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
+    if (lock) return;
+    lock = true;
+
+    // 触った感（任意）
+    try { ensureAudio(); pop(); } catch (_) {}
+
+    // ★ check() を確実に呼ぶ（エラーで止まっても次で解放される）
+    try { check(); } catch (_) {}
+
+    // ほんの少し後にロック解除
+    setTimeout(() => { lock = false; }, 300);
+  };
+
+  // 3種類すべてで拾う（どれかは必ず通る）
+  ['pointerup', 'touchend', 'click'].forEach(ev => {
+    ok.addEventListener(ev, fire, { passive: false });
+  });
+})();
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
   function rHist(n){ try{return JSON.parse(localStorage.getItem('historyRun'+n)||'[]')}catch(e){return[]} }
