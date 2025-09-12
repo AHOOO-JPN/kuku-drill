@@ -281,7 +281,8 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 .key.ok::before { pointer-events: none; }
   /* OKキーは常にクリック可。光沢レイヤはクリックをブロックしない */
 #okKey { position: relative; z-index: 3; pointer-events: auto; }
-.key.ok::before { pointer-events: none; }
+.key.ok::before{ pointer-events: none; }
+  .key.ok{ position: relative; }
 </style>
 </head>
 <body class="theme-mix">
@@ -589,14 +590,18 @@ if (resetBtn) {
 // --- OK専用ハンドラ（iOSでの拾い漏れ対策） ---
 (function(){
   const ok = document.getElementById('okKey');
-  if (!ok) return;
+  if(!ok) return;
+
+  let lock = false;
   const fire = (e)=>{
-    try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-    ensureAudio();           // 触った感のピッ音（欲しければ）
-    pop();
-    check();                 // 既存の判定関数を呼ぶ
+    try { e.preventDefault(); e.stopPropagation(); } catch(_){}
+    if (lock) return;
+    lock = true;
+    try { ensureAudio(); pop(); } catch(_){}
+    check();                    // ← safeCheck() ではなく check() を呼ぶ
+    setTimeout(()=>{ lock = false; }, 300);
   };
-  // クリック/タッチ/ポインタの全部で拾う（重複発火は stopPropagation 済み）
+
   ['pointerup','touchend','click'].forEach(ev=>{
     ok.addEventListener(ev, fire, {passive:false});
   });
@@ -884,7 +889,7 @@ document.querySelectorAll('.keypad .key').forEach(k=>{
     ensureAudio();
 
     // 先に「OK」判定（見た目オーバーレイに関係なく動かす）
-    if (k.id === 'okKey') { safeCheck(); return; }
+    if (k.id === 'okKey') { check(); return; }
 
     // テキストから判定（⌫ と ✖ の両対応）
     const v = k.textContent.trim();
@@ -1141,17 +1146,7 @@ function openStart(n){
     }
     setTimeout(()=>box.remove(),2600);
   }
-// --- 安全ラッパー：check() が失敗しても次へ進める ---
-function safeCheck(){
-  try {
-    check();
-  } catch (e) {
-    try { console.error(e); } catch(_) {}
-    // フォールバック：統計だけ更新して次の問題へ
-    try { updateStats(); } catch(_){}
-    setTimeout(()=>{ try{ newProblem(true); }catch(_){} }, 450);
-  }
-}
+  
   function check(){
     const t=i18n[appLang]; const val=parseInt(ans.value,10);
     if(isNaN(val)){ showMsg(appLang==='ja'?'数字を入れてね':'Enter numbers', false); buzz(); return; }
