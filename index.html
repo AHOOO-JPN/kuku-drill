@@ -470,6 +470,12 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 </div></div>
 
 <script>
+function newProblem(skipFocus){
+  console.log('newProblem: start');
+  ...
+  console.log('newProblem: state a,b =', state.a, state.b, 'mode=', state.mode);
+  ...
+}
 // ==== Safe localStorage shim (iPhone HTML Viewer / Private mode 対策) ====
 (function(){
   var ok = true;
