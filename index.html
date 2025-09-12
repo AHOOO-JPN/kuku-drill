@@ -154,20 +154,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
   padding:16px;
   backdrop-filter:blur(14px);
 }
-
-/* テーブルを親で横スクロール許可（小画面でのはみ出し防止） */
-.table-wrap{
-  margin-top:8px;
-  overflow-x:auto;         /* ← 追加 */
-  -webkit-overflow-scrolling: touch;
-}
-.history-table{
-  min-width: 560px;        /* 列が潰れすぎないよう最低幅を確保 */
-  width: 100%;
-  border-collapse:separate; border-spacing:0; font-size:14px;
-  border:1px solid var(--border); border-radius:12px; overflow:hidden;
-  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-}
+  
 .modal .h{font-weight:900;font-size:18px;margin-bottom:6px}
 .btnrow{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px}
 .btn{min-width:120px; padding:12px 14px; border-radius:14px; font-weight:900; cursor:pointer; border:1px solid var(--border); background:transparent; color:#fff}
@@ -272,16 +259,6 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
   color: #0b0416 !important;
   font-weight: 800 !important;
 }
-/* 物理キーボードを閉じてもテンキーは常に押せる */
-.keypad[aria-hidden="true"] { pointer-events: auto; }
-  /* OKキーは最前面＆必ずクリック可 */
-#okKey { position: relative; z-index: 3; pointer-events: auto; }
-/* 光沢の疑似要素はクリックをブロックしない */
-.key.ok::before { pointer-events: none; }
-  /* OKキーは常にクリック可。光沢レイヤはクリックをブロックしない */
-#okKey { position: relative; z-index: 3; pointer-events: auto; }
-.key.ok::before{ pointer-events: none; }
-  .key.ok{ position: relative; }
 </style>
 </head>
 <body class="theme-mix">
@@ -299,10 +276,10 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
     <div id="problem" class="problem" aria-live="assertive" aria-atomic="true">— × — = ?</div>
     <input id="answer" class="kuku-input" type="text" inputmode="none" placeholder="こたえ" readonly aria-labelledby="problem">
     <div class="keypad">
-      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
-      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
-      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
-      <div class="key">0</div><div class="key">⌫</div><div class="key ok" id="okKey">OK</div>
+      <button type="button"class="key">7</div><button type="button"class="key">8</div><button type="button"class="key">9</div>
+      <button type="button"class="key">4</div><button type="button"class="key">5</div><button type="button"class="key">6</div>
+      <button type="button"class="key">1</div><button type="button"class="key">2</div><button type="button"class="key">3</div>
+      <button type="button"class="key">0</div><button type="button"class="key">⌫</div><buttub type="button"class="key ok" id="okKey">OK</div>
     </div>
 
     <div id="result" class="result"></div>
@@ -942,7 +919,6 @@ function beginRun(n){
     : `left ${run.left} (no miss)`;
   newProblem(true);
 }
-  function beginUnlimited(){ const t=i18n[appLang]; run={target:Infinity,left:Infinity,isUnlimited:true,hasMiss:false,startAt:performance.now(),scoreStart:state.score}; timerStatus.textContent=(appLang==='ja'?'無制限モード中':'Unlimited'); }
 
 function finishRun(){
   const t=i18n[appLang];
