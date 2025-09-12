@@ -267,7 +267,36 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 /* 顔カメラをミラー表示（プレビュー用のみ） */
 #cam.mirror { transform: scaleX(-1); 
 }
-
+/* 履歴ボタンをOKボタン風のグラデに */
+.pill.grad{
+  position: relative;
+  border: 0;
+  font-weight: 900;
+  color: #0b0416;
+  background: linear-gradient(90deg, var(--accentA), var(--accentB));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.25),
+    0 6px 18px color-mix(in oklab, var(--accentB) 35%, transparent);
+}
+/* OKボタンと同じ“艶”のオーバーレイ */
+.pill.grad::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accentA) 92%, transparent),
+    color-mix(in oklab, var(--accentB) 92%, transparent)
+  );
+  mask: linear-gradient(#000, #000);
+  opacity: .85;
+  pointer-events: none;
+}
+/* 押下時のちょい押し込み感 */
+.pill.grad:active{
+  transform: translateY(1px) scale(.99);
+}
 </style>
 </head>
 <body class="theme-mix">
@@ -327,7 +356,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
           <button class="pill" id="timer60">60問</button><span class="pill small" id="best60" style="opacity:.65">Best: —</span>
           <button class="pill" id="timer81">99(81問)ランダム</button><span class="pill small" id="best81" style="opacity:.65">Best: —</span>
           <button class="pill" id="timerFree">無制限</button>
-          <button class="pill" id="openHistory">履歴</button>
+          <button class="pill　grad" id="openHistory">履歴</button>
         </div>
       </div>
     </details>
