@@ -822,23 +822,23 @@ function buildProblemQueue(n){
 
   // 読み上げ（モード別）
   if (state.mode === 'product') {
-    // A × B = ?（ふつうの読み上げ）
+    // A × B = ?（通常）
     speakText(i18n[appLang].speakProb(state.a, state.b));
 
   } else if (state.mode === 'missingB') {
-    // □ × B = ? ・・・？（チッ → かけるB → チッ の順でヒント音）
+    // □ × B = ? ・・・チッ → かけるB → チッ
     questionChirp();
     setTimeout(() => {
       speakText(appLang === 'ja' ? `かける ${state.b}` : `times ${state.b}`);
-    }, 100);
-    setTimeout(() => questionChirp(), 180);
+    }, 300); // ← 少し遅らせる
+    setTimeout(() => questionChirp(), 600);
 
   } else if (state.mode === 'missingA') {
-    // A × □ = ? ・・・Aかける？（Aを読んでから？音）
+    // A × □ = ? ・・・Aを読んでからチッ
     speakText(appLang === 'ja' ? `${state.a} かける` : `${state.a} times`);
-    setTimeout(() => questionChirp(), 180);
-  }
-} // ← ここは中括弧だけ。セミコロン付きの「});」にしない！
+    setTimeout(() => questionChirp(), 400); // ← A の後に鳴らす
+  }　// ★ここで newProblem 関数を閉じる
+} // ← これでOK。余分な「});」は不要
   
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
