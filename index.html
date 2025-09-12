@@ -347,7 +347,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
     </details>
   </div>
 
-  <footer>&copy: KuKuドリル</footer>
+  <footer>&copy; KuKuドリル</footer>
 </div>
 
 <!-- 詳細設定 -->
@@ -961,7 +961,7 @@ function finishRun(){
 
   // 今回の獲得点（= 正解数×10）
   const gained = state.score - run.scoreStart;
-  const solved = Math.max(0, Math.round(gained/10)); // 正解数
+  const solved = gained;
   const total  = run.isUnlimited ? solved : run.target;
 
   // ▼全問正解のフラグ（無制限は false）
@@ -1078,7 +1078,6 @@ function openStart(n){
           // カウントダウン完了 → モーダルを閉じ、ラン開始＆最初の問題生成
           close();
           if(n===Infinity) beginUnlimited(); else beginRun(n);
-          newProblem(true);
         }, 650);
       }
     };
