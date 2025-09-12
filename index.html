@@ -302,6 +302,17 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 .pill.grad:active{
   transform: translateY(1px) scale(.99);
 }
+  /* 押したときの“押し込み”強化＋微発光 */
+  #openHistory.pill:active {
+    transform: translateY(1px) scale(.99);
+    filter: saturate(110%) brightness(1.02);
+  }
+  /* キーボード操作のフォーカスリング */
+  #openHistory.pill:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accentB) 60%, white 0%);
+    outline-offset: 3px;
+    border-radius: 999px;
+  }
 </style>
 </head>
 <body class="theme-mix">
