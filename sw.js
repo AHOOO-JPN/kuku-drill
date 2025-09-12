@@ -1,6 +1,6 @@
 // KuKu Drill simple service worker
 // 例：キャッシュ名を上げて更新を強制
-const CACHE = 'kuku-v4';
+const CACHE = 'kuku-v5';
 const ASSETS = [
   './',
   './index.html',
