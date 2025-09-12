@@ -586,25 +586,7 @@ if (resetBtn) {
     const t=e.target.closest('button'); if(!t) return;
     appLang=t.dataset.lang; updateLangUI();
   });
-// --- OK専用ハンドラ（iOSでの拾い漏れ対策） ---
-(function(){
-  const ok = document.getElementById('okKey');
-  if(!ok) return;
 
-  let lock = false;
-  const fire = (e)=>{
-    try { e.preventDefault(); e.stopPropagation(); } catch(_){}
-    if (lock) return;
-    lock = true;
-    try { ensureAudio(); pop(); } catch(_){}
-    check();                    // ← safeCheck() ではなく check() を呼ぶ
-    setTimeout(()=>{ lock = false; }, 300);
-  };
-
-  ['pointerup','touchend','click'].forEach(ev=>{
-    ok.addEventListener(ev, fire, {passive:false});
-  });
-})();
   /* ========== 背景の既定SVG（デフォルト） ========= */
   function injectDefaultNeon(){
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 220 220'>
@@ -886,30 +868,11 @@ function questionChirp(){
 document.querySelectorAll('.keypad .key').forEach(k=>{
   k.onclick = () => {
     ensureAudio();
-    if (k.id === 'okKey'){ check(); return; }            // ← OK は check を呼ぶ
     const v = k.textContent.trim();
     if (v === '⌫' || v === '✖'){ ans.value = ans.value.slice(0,-1); pop(); return; }
     ans.value += v; pop();
   };
 });
-  
-  // ---- OK専用の保険（pointerup/touchend/click を全部捕まえて check を強制）----
-(function(){
-  const ok = document.getElementById('okKey');
-  if(!ok) return;
-  let lock = false;
-  const fire = (e)=>{
-    try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
-    if (lock) return;
-    lock = true;
-    try{ ensureAudio(); pop(); }catch(_){}
-    check();                         // ← ここは必ず check()
-    setTimeout(()=>{ lock = false; }, 300);
-  };
-  ['pointerup','touchend','click'].forEach(ev=>{
-    ok.addEventListener(ev, fire, {passive:false});
-  });
-})();
   
   // --- OK専用ハンドラ（iOSでの拾い漏れ/伝播問題の保険） ---
 (function () {
