@@ -657,14 +657,12 @@ bgFile.onchange = (e)=>{
   function buzz(){ ensureAudio(); tone(120,.32,'sawtooth',.7); setTimeout(()=>tone(110,.22,'square',.6),80); }
   function pinpon(){ ensureAudio(); tone(1319,.12,'sine'); setTimeout(()=>tone(1760,.16,'sine'),120); }
   function questionChirp(){
-  // SFXがOFFなら鳴らさない（←ここが肝）
-  if(!audio || !getFlag('sfx')) return;
+  if(!audio || (!getFlag('sfx') && !getFlag('speak'))) return;
   ensureAudio();
-  // ↑上がる→下がる の3音で「はてな？」っぽく
   tone(700, .08, 'sine', 0.9);
-  setTimeout(()=>tone(980, .08, 'sine', 0.9), 90);
-  setTimeout(()=>tone(620, .10, 'triangle', 0.8), 200);
-}
+  setTimeout(()=> tone(980, .08, 'sine', 0.9), 90);
+  setTimeout(()=> tone(620, .10, 'triangle', 0.8), 200);
+  }
   /* ========== TTS（女性優先） ========== */
   let preferredVoice=null, FEMALE=/Kyoko|Mizuki|Nanami|Nozomi|Samantha|Victoria|Allison|Zira|Amy|Emma|Joanna|Female|女/i;
   function pickVoice(lang){
@@ -797,7 +795,8 @@ function buildProblemQueue(n){
   });
 
   function randFrom(set){ const a=Array.from(set); return a.length?a[Math.floor(Math.random()*a.length)]:1; }
-function newProblem(skipFocus){
+
+  function newProblem(skipFocus){
   // ── 出題元（ラン中はキュー、通常はランダム） ──
   if (run && Array.isArray(run.queue) && run.queue.length){
     const idx  = run.isUnlimited ? 0 : (run.target - run.left);
@@ -823,25 +822,25 @@ function newProblem(skipFocus){
   ans.value = '';
   if (!skipFocus) ans.blur();
 
-  // ── 読み上げ：□は読ませず「チッ」で表現 ──
-  if (m === 'product') {
-    // A × B = ?
-    speakText(i18n[appLang].speakProb(state.a, state.b));
+// ── 読み上げ（モード別で“チッ”を挟んで順番に） ──
+if (m === 'product') {
+  // A × B ＝ ?   … そのまま
+  speakText(i18n[appLang].speakProb(state.a, state.b));
 
-  } else if (m === 'missingB') {
-    // □ × B = ?
-    questionChirp();
-    setTimeout(() => {
-      speakText(appLang === 'ja' ? `かける ${state.b}` : `times ${state.b}`);
-    }, 300);
-    setTimeout(() => { questionChirp(); }, 600);
+} else if (m === 'missingB') {
+  // □ × B ＝ ?   … 先に「？」音 → 少し待ってから「B」
+  questionChirp();
+  setTimeout(() => {
+    speakText(appLang === 'ja' ? `かける ${state.b}` : `times ${state.b}`);
+  }, 300);
+  setTimeout(() => questionChirp(), 600);
 
-  } else if (m === 'missingA') {
-    // A × □ = ?
-    speakText(appLang === 'ja' ? `${state.a} かける` : `${state.a} times`);
-    setTimeout(() => { questionChirp(); }, 400);
-  }
-} // ←←← このカッコが必須！
+} else if (m === 'missingA') {
+  // A × □ ＝ ?   … 先に「A」 → 少し待って「？」音
+  speakText(appLang === 'ja' ? `${state.a} かける` : `${state.a} times`);
+  setTimeout(() => questionChirp(), 400);
+}
+// ここで関数 newProblem(skipFocus) が閉じる
   
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
