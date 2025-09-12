@@ -848,23 +848,12 @@ state.a = pair[0]; state.b = pair[1];
   } else if (m === 'missingB'){
     // □ × B = A×B
     // 先に？音、その後に文章
-    questionChirp();
     setTimeout(()=>{
       const txt = (appLang==='ja')
         ? `はてな  かける  ${state.b}`
         : `blank  times  ${state.b}`;
       speakText(txt);
     }, 320);
-  } else { // m === 'missingA'
-    // A × □ = A×B
-    // 先に A の読み上げ、少し遅れて？音
-    setTimeout(()=>{
-      const txt = (appLang==='ja')
-        ? `${state.a}  かける  はてな`
-        : `${state.a}  times  blank`;
-      speakText(txt);
-    }, 120);
-    setTimeout(()=>{ questionChirp(); }, 460);
   }
 }
 
