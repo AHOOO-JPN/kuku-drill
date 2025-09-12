@@ -36,10 +36,12 @@ body{
     radial-gradient(1100px 700px at 120% 10%, rgba(59,199,255,.26), var(--bg) 60%),
     linear-gradient(180deg, var(--grad1) 0%, var(--bg) 100%);
   overflow-x:hidden;
-}
+} 
 .wall{ position:fixed; inset:0; z-index:-2; opacity:var(--wallOpacity);
   background-image: var(--neon-wall);
-  background-size:260px 260px; filter:saturate(120%) contrast(110%);
+  background-size: var(--wallSize, cover); /* ←【変更】CSS変数を使う */
+  background-position: center center;
+  filter:saturate(120%) contrast(110%);
 }
 .beams{ position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.9;
   background:
@@ -181,6 +183,10 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
   animation: tear-fall 1.2s ease-out forwards;
   animation-delay: 0.2s; /* 顔が揺れ始めてから少し遅れて涙が出る */
 }
+  /* 【追加】涙を左右に配置するためのスタイル */
+.tear.right { left: 65%; }
+.tear.left { left: 35%; }
+
     /* 【新規追加】涙が溜まって流れ落ちるアニメーション */
 @keyframes tear-fall {
   0% {
@@ -439,6 +445,8 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
     <div class="label" id="secBright">明るさ</div>
     <input type="range" id="bgBright" min="0" max="100" value="36" style="width:100%">
 
+    <div class="label" id="secSize" style="margin-top:12px">背景サイズ</div>
+    <input type="range" id="bgSize" min="100" max="200" value="100" style="width:100%">
     <div class="row" style="justify-content:center;margin-top:12px">
       <button class="btn" id="closeSettings">閉じる</button>
     </div>
@@ -655,6 +663,7 @@ function scrollToInput() {
 
   /* ========== 背景ユーザー画像 ========= */
   const bgPick=$('bgPick'), bgReset=$('bgReset'), bgFile=$('bgFile'), bgBright=$('bgBright');
+  const bgSize=$('bgSize');
 function setWallBackground(uri){
   document.documentElement.style.setProperty('--neon-wall', uri);
   const wall = document.querySelector('.wall');
@@ -688,24 +697,29 @@ bgReset.onclick = ()=>{
   applySavedOrDefaultWall();
   alert(appLang==='ja'?'背景をリセットしました':'Background reset');
 };
+  
+  // 明るさスライダーの処理
   bgBright.oninput=()=>{ const v=Math.max(0,Math.min(100,parseInt(bgBright.value||'36',10)))/100; document.documentElement.style.setProperty('--wallOpacity', String(v)); localStorage.setItem('neonWallOpacity', String(v)); };
-  // ▼ 画像選択のハンドラが消えていたので復活
-bgPick.onclick = ()=> bgFile.click();
-
-bgFile.onchange = (e)=>{
-  const f = e.target.files && e.target.files[0];
-  if(!f) return;
-  const r = new FileReader();
-  r.onload = ()=>{
-    // DataURL を保存 & すぐ反映
-    try{
-      localStorage.setItem('neonWallData', r.result);
-    }catch(_){}
-    setWallBackground("url('"+r.result+"')");
+  
+  // ▼▼▼【ここから追加】▼▼▼
+  // サイズスライダーの処理
+  bgSize.oninput=()=>{
+    const v = bgSize.value;
+    document.documentElement.style.setProperty('--wallSize', v + '%');
+    localStorage.setItem('neonWallSize', v);
   };
-  r.readAsDataURL(f);
-};
+
+  // ページ読み込み時に保存したサイズを適用
+  function applySavedWallSize() {
+    const savedSize = localStorage.getItem('neonWallSize');
+    if (savedSize) {
+      document.documentElement.style.setProperty('--wallSize', savedSize + '%');
+      bgSize.value = savedSize;
+    }
+  }
+  // ▲▲▲【ここまで追加】▲▲▲
   applySavedOrDefaultWall();
+  applySavedWallSize(); // ←【追加】読み込み処理を呼び出す
 
   /* ========== SFX / TTS ========= */
   const AudioCtx=window.AudioContext||window.webkitAudioContext; const audio=AudioCtx?new AudioCtx():null;
@@ -906,10 +920,17 @@ state.a = pair[0]; state.b = pair[1];
     // 先に？音、その後に文章
     setTimeout(()=>{
       const txt = (appLang==='ja')
-        ? `はてな  かける  ${state.b}`
+        ? `しかく  かける  ${state.b}`
         : `blank  times  ${state.b}`;
       speakText(txt);
     }, 320);
+    // A × □ = A×B
+    setTimeout(()=>{
+      const txt = (appLang==='ja')
+        ? `${state.a}  かける  しかく`
+        : `${state.a}  times  blank`;
+      speakText(txt);
+    }, 120);
   }
 }
 
@@ -923,7 +944,7 @@ function questionChirp(){
 }
 
 // ===== テンキーのイベント紐づけ（OKだけは別口でも叩く） =====
-document.querySelectorAll('.keypad .key').forEach(k=>{
+document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{ // ←【変更】「.ok」クラスを持つ要素を除外
   k.onclick = () => {
     ensureAudio();
     const v = k.textContent.trim();
