@@ -1114,20 +1114,32 @@ function openStart(n){
 
   /* ========== チェック ========= */
     function showMascot(kind){
-    if(!getFlag('cheer')) return;
-    const shotData=localStorage.getItem('kukuFaceData'); if(!shotData) return;
-    const box=document.createElement('div'); box.className='mascot '+(kind==='cry'?'cry':'cheer');
-    const img=new Image(); img.src=shotData; box.appendChild(img); document.body.appendChild(box);
-    if(kind==='cry'){
-      // ... 泣き顔のロジックはそのまま ...
-    } else { // ▼【追加】正解時の吹き出しアニメーション
-      const bubble = document.createElement('div');
-      bubble.className = 'mascot-bubble';
-      bubble.textContent = (appLang === 'ja' ? 'すごい👍' : 'Great!👍'); // 言語によってテキストを切り替え
-      box.appendChild(bubble);
-    }
-    setTimeout(()=>box.remove(),2600);
+  if(!getFlag('cheer')) return;
+  const shotData=localStorage.getItem('kukuFaceData'); if(!shotData) return;
+  
+  const box=document.createElement('div');
+  box.className='mascot'; // まず基本クラスだけ設定
+  
+  if (kind === 'cry') {
+    box.classList.add('cry'); // cryクラスを追加
+    const t1=document.createElement('div'); t1.className='tear left';
+    const t2=document.createElement('div'); t2.className='tear right';
+    box.appendChild(t1); box.appendChild(t2);
+    setTimeout(()=>{ t1.style.top='70px'; t2.style.top='70px'; t1.style.transition=t2.style.transition='top 600ms ease'; },10);
+  
+  } else { // kind === 'cheer' の場合
+    box.classList.add('cheer'); // cheerクラスを追加
+    const bubble = document.createElement('div');
+    bubble.className = 'mascot-bubble';
+    bubble.textContent = (appLang === 'ja' ? 'すごい👍' : 'Great!👍');
+    box.appendChild(bubble);
   }
+
+  const img=new Image(); img.src=shotData; box.appendChild(img);
+  document.body.appendChild(box);
+
+  setTimeout(()=>box.remove(),2600);
+}
   
   function answerText(){
   // 今のモードに対する“正しい入力値”
