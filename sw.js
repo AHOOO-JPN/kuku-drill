@@ -1,11 +1,12 @@
 // KuKu Drill simple service worker
-const CACHE = 'kuku-v1';
+// 例：キャッシュ名を上げて更新を強制
+const CACHE = 'kuku-v2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icon/icon-192.png',
+  './icon/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
