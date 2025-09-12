@@ -1137,6 +1137,8 @@ function check(){
     state.streak = 0;
     showMsg((appLang==='ja'?'ざんねん… 正解は ':'Answer: ') + answerText(), false);
     buzz();
+    if (getFlag('cheer'))
+    showMascot('cry');
   }
   state.times.push(sec); if(state.times.length > 40) state.times.shift();
   updateStats();
