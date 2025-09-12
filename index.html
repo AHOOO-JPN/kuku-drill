@@ -797,49 +797,55 @@ function buildProblemQueue(n){
   });
 
   function randFrom(set){ const a=Array.from(set); return a.length?a[Math.floor(Math.random()*a.length)]:1; }
-  function newProblem(skipFocus){
-  // タイムトライアル中でキューがあるならそこから出す
-  if(run && Array.isArray(run.queue) && run.queue.length){
-    const idx = run.isUnlimited ? 0 : (run.target - run.left); // 0始まりの現在インデックス
+function newProblem(skipFocus){
+  // ── 出題元（ラン中はキュー、通常はランダム） ──
+  if (run && Array.isArray(run.queue) && run.queue.length){
+    const idx = run.isUnlimited ? 0 : (run.target - run.left);
     const pair = run.queue[idx] || run.queue[0];
-    state.a = pair[0]; state.b = pair[1];
+    state.a = pair[0];
+    state.b = pair[1];
   }else{
-    // 通常出題：選択範囲からランダム
     state.a = randFrom(allowedA);
     state.b = randFrom(allowedB);
   }
 
+  // 正答・表示
   state.correct = state.a * state.b;
   const m = state.mode;
-  problem.textContent = (m==='product')
+  problem.textContent = (m === 'product')
     ? `${state.a} × ${state.b} = ?`
-    : (m==='missingB') ? `□ × ${state.b} = ${state.correct}`
-    : `${state.a} × □ = ${state.correct}`;
+    : (m === 'missingB')
+        ? `□ × ${state.b} = ${state.correct}`
+        : `${state.a} × □ = ${state.correct}`;
 
+  // 計測・入力欄初期化
   state.start = performance.now();
   ans.value = '';
-  if(!skipFocus) ans.blur();
+  if (!skipFocus) ans.blur();
 
-  // 読み上げ（モード別）
-  if (state.mode === 'product') {
-    // A × B = ?（通常）
+  // ── 読み上げ（□は TTS で読ませず「チッ」音で表現） ──
+  if (m === 'product') {
+    // A × B = ?
     speakText(i18n[appLang].speakProb(state.a, state.b));
 
-  } else if (state.mode === 'missingB') {
-    // □ × B = ? ・・・チッ → かけるB → チッ
+  } else if (m === 'missingB') {
+    // □ × B = ?  … チッ → 「かけるB / times B」→ チッ
     questionChirp();
     setTimeout(() => {
-      speakText(appLang === 'ja' ? `かける ${state.b}` : `times ${state.b}`);
+      speakText(appLang === 'ja'
+        ? `かける ${state.b}`
+        : `times ${state.b}`);
     }, 300);
     setTimeout(() => questionChirp(), 600);
 
-  } else if (state.mode === 'missingA') {
-    // A × □ = ? ・・・「A かける」を読んでからチッ
-    speakText(appLang === 'ja' ? `${state.a} かける` : `${state.a} times`);
+  } else if (m === 'missingA') {
+    // A × □ = ?  … 「A かける / A times」→ 少し遅れてチッ
+    speakText(appLang === 'ja'
+      ? `${state.a} かける`
+      : `${state.a} times`);
     setTimeout(() => questionChirp(), 400);
   }
-
-} // ★ ← これを必ず入れて newProblem(skipFocus) を閉じる
+} // ← この閉じカッコが絶対に必要
   
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
