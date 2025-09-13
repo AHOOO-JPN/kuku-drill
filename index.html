@@ -36,6 +36,12 @@ body{
     radial-gradient(1100px 700px at 120% 10%, rgba(59,199,255,.26), var(--bg) 60%),
     linear-gradient(180deg, var(--grad1) 0%, var(--bg) 100%);
   overflow-x:hidden;
+    /* ▼【ここから追加】iPhoneセーフエリア対応 */
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
+  /* ▲【ここまで追加】 */
 } 
 .wall{ position:fixed; inset:0; z-index:-2; opacity:var(--wallOpacity);
   background-image: var(--neon-wall);
@@ -79,7 +85,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin:2px 
   background:rgba(255,255,255,.1); color:#fff; outline:none; }
 
 .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px }
-.key{ font-size:24px; padding:16px 10px; text-align:center; border-radius:14px; border:1px solid var(--border);
+.key{ font-size:30px; padding:16px 10px; text-align:center; border-radius:14px; border:1px solid var(--border);
   background:linear-gradient(180deg,var(--panel),var(--panel2)); color:#f2efff; cursor:pointer; user-select:none; }
 .key:active{ transform:translateY(1px) scale(.99); }
 
