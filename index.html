@@ -942,7 +942,7 @@ state.a = pair[0]; state.b = pair[1];
   } else { // m === 'missingA'
     // A × □ = ?
     setTimeout(()=>{
-      const txt = (appLang==='ja') ? `${state.a}  かける  ${state.a}` : `${state.a}  times  blank`;
+      const txt = (appLang==='ja') ? `${state.a}  かける  しかく` : `${state.a}  times  blank`;
       speakText(txt);
     }, 120);
   }
@@ -1031,7 +1031,6 @@ function beginRun(n){
   timerStatus.textContent = (appLang==='ja')
     ? `のこり ${run.left} 問（ミスなし）`
     : `left ${run.left} (no miss)`;
-  newProblem(true);
 }
 
 function finishRun(){
