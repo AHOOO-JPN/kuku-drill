@@ -969,10 +969,19 @@ function questionChirp(){
 // ===== テンキーのイベント紐づけ（OKだけは別口でも叩く） =====
 document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{
   k.onclick = () => {
-    if (navigator.vibrate) navigator.vibrate(50); // ←【追加】
+    if (navigator.vibrate) navigator.vibrate(50); // ←【振動フィードバックを追加】
     ensureAudio();
     const v = k.textContent.trim();
-    //...
+    const ansEl = $('answer'); // answer要素を取得
+
+    if (v === '⌫') { // Backspaceキー
+      ansEl.value = ansEl.value.slice(0, -1);
+    } else { // 数字キー
+      // 入力値が2桁を超えないように制限 (必要であれば)
+      if (ansEl.value.length < 2) { // 2桁まで入力可能とする例
+        ansEl.value += v;
+      }
+    }
   };
 });
   
