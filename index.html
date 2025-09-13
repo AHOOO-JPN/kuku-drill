@@ -637,7 +637,7 @@ if (resetBtn) {
     localStorage.setItem('kukuLang', appLang);
     initVoices();
     buildPills(danSet,'A');
-    buildPills(KuSet,'B');
+    buildPills(kuSet,'B');
   }
   $('langSet').addEventListener('click', e=>{
     const t=e.target.closest('button'); if(!t) return;
@@ -877,11 +877,10 @@ function buildProblemQueue(n){
   }
   return q;
 }
-  function pillLabel(i,type){if (type==='A') { return (appLang==='ja' ? (i+'段') : (i+'×'));
- } else {
-   return String(i);
+  function pillLabel(i,type){
+    return (type==='A') ? (appLang==='ja' ? (i+'段') : (i+'×')) : String(i);
   }
-}
+
   function buildPills(container,type){
     container.innerHTML=''; for(let i=1;i<=9;i++){ const btn=document.createElement('button'); btn.className='pill'+(((type==='A'?allowedA:allowedB).has(i))?' active':''); btn.textContent=pillLabel(i,type);
       btn.onclick=()=>{ const set=(type==='A'?allowedA:allowedB); if(set.has(i)) set.delete(i); else set.add(i); btn.classList.toggle('active'); localStorage.setItem(type==='A'?'allowedA':'allowedB', JSON.stringify(Array.from(set))); pop(); newProblem(); };
@@ -939,17 +938,20 @@ state.a = pair[0]; state.b = pair[1];
     speakText(i18n[appLang].speakProb(state.a, state.b));
   
   } else if (m === 'missingB'){
-    // □ × B = ?
+    // □ × B = A×B を読み上げる
     setTimeout(()=>{
-      const txt = (appLang==='ja') ? `しかく  かける  ${state.b} は　${state.correct}` // 『しかく　かける　B は　こたえ』
-      : `blank  times  ${state.b} equals ${state.correct}`; // "blank times B equals Answer"
+      const txt = (appLang==='ja')
+        ? `しかく  かける  ${state.b}  は  ${state.correct}` // 「しかく かける B は 答え」
+        : `blank  times  ${state.b}  equals  ${state.correct}`; // "blank times B equals Answer"
       speakText(txt);
     }, 320);
   
   } else { // m === 'missingA'
-    // A × □ = ?
+    // A × □ = A×B を読み上げる
     setTimeout(()=>{
-      const txt = (appLang==='ja') ? `${state.a}  かける  しかく は　${state.correct}` : `${state.a}  times  blank equals ${state.correct}`;
+      const txt = (appLang==='ja')
+        ? `${state.a}  かける  しかく  は  ${state.correct}` // 「A かける しかく は 答え」
+        : `${state.a}  times  blank  equals  ${state.correct}`; // "A times blank equals Answer"
       speakText(txt);
     }, 120);
   }
@@ -1424,7 +1426,7 @@ function handleHardReset(){
   try{ location.reload(); }catch(_){}
   try{ window.location.href = window.location.href; }catch(_){}
 }
-onTap(hardResetBtn, handleHardReset);
+hardResetBtn.onclick = handleHardReset; // ← この行を追加
 
   /* ========== 顔（応援） ========= */
   let stream=null;
