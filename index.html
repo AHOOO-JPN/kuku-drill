@@ -1031,6 +1031,7 @@ function beginRun(n){
   timerStatus.textContent = (appLang==='ja')
     ? `のこり ${run.left} 問（ミスなし）`
     : `left ${run.left} (no miss)`;
+    setTimeout(() => {newProblem();}, 50); //50ミリ秒（0.05秒）後に実行
 }
 
 function finishRun(){
@@ -1093,6 +1094,7 @@ function finishRun(){
   $('rpTitle').textContent=title;
   $('rpBody').textContent=body;
   $('resultModal').classList.add('show');
+  $('answer').value = ''; //←【追加】ここで入力欄をクリアします
 
   const close=()=>$('resultModal').classList.remove('show');
   $('rpClose').onclick=close;
@@ -1129,6 +1131,7 @@ function openStart(n){
 
   const close = ()=>{ startM.classList.remove('show'); };
   $('startCancel').onclick = close;
+  $('answer').value = '';
   startM.querySelector('.back').onclick = close;
 
   $('startGo').onclick = ()=>{
