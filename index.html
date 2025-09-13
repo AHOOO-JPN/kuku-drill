@@ -561,7 +561,7 @@ if (resetBtn) {
       faceTitle:'応援の顔を撮影', faceHint:'丸枠に顔を入れてね。ローカル保存のみ。', faceSet:'顔を設定', faceDel:'顔を削除',
       correct:t=>`正解！ ${t.toFixed(1)}秒`, wrong:ans=>`ざんねん… 正解は ${ans}`,
       remainOk:n=>`のこり ${n} 問（ミスなし）`, remainNg:n=>`のこり ${n} 問（ミスあり：記録外）`,
-      runDone:n=>`${n}問 完走！`, runInvalid:`途中でまちがいがありました。ざんねん😢`,
+      runDone:n=>`${n}問 完走！`, runInvalid:`途中でまちがいがありました🤯ざんねん😢`,
       runFree:`無制限モード結果`, runFreeBody:(q,sec,pt)=>`解いた数: ${q}問 / 所要 ${sec.toFixed(1)}秒 / ${pt}点（記録対象外）`,
       bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}秒 / ${score}点（${date}）`,
       speakProb:(a,b)=>`${a} かける ${b}`, speakStart:'スタート',
@@ -708,7 +708,9 @@ bgReset.onclick = ()=>{
 };
   
   // 明るさスライダーの処理
-  bgBright.oninput=()=>{ const v=Math.max(0,Math.min(100,parseInt(bgBright.value||'36',10)))/100; document.documentElement.style.setProperty('--wallOpacity', String(v)); localStorage.setItem('neonWallOpacity', String(v)); };
+bgBright.oninput=()=>{ const v=Math.max(0,Math.min(100,parseInt(bgBright.value||'36',10)))/100; 
+  document.documentElement.style.setProperty('--wallOpacity', String(v)); 
+  localStorage.setItem('neonWallOpacity', String(v)); };
   
   // ▼▼▼【ここから追加】▼▼▼
   // サイズスライダーの処理
