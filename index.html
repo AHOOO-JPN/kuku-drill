@@ -709,6 +709,22 @@ bgReset.onclick = ()=>{
     localStorage.setItem('neonWallSize', v);
   };
 
+  bgPick.onclick = ()=> bgFile.click();
+
+  bgFile.onchange = (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        localStorage.setItem('neonWallData', r.result);
+      }catch(_){}
+      setWallBackground("url('"+r.result+"')");
+    };
+    r.readAsDataURL(f);
+  };
+  // ▲▲▲【ここまで追加】▲▲▲
+
   // ページ読み込み時に保存したサイズを適用
   function applySavedWallSize() {
     const savedSize = localStorage.getItem('neonWallSize');
@@ -915,20 +931,18 @@ state.a = pair[0]; state.b = pair[1];
   if (m === 'product'){
     // A × B = ?
     speakText(i18n[appLang].speakProb(state.a, state.b));
+  
   } else if (m === 'missingB'){
-    // □ × B = A×B
-    // 先に？音、その後に文章
+    // □ × B = ?
     setTimeout(()=>{
-      const txt = (appLang==='ja')
-        ? `しかく  かける  ${state.b}`
-        : `blank  times  ${state.b}`;
+      const txt = (appLang==='ja') ? `しかく  かける  ${state.b}` : `blank  times  ${state.b}`;
       speakText(txt);
     }, 320);
-    // A × □ = A×B
+  
+  } else { // m === 'missingA'
+    // A × □ = ?
     setTimeout(()=>{
-      const txt = (appLang==='ja')
-        ? `${state.a}  かける  しかく`
-        : `${state.a}  times  blank`;
+      const txt = (appLang==='ja') ? `${state.a}  かける  ${state.a}` : `${state.a}  times  blank`;
       speakText(txt);
     }, 120);
   }
