@@ -622,6 +622,7 @@ if (resetBtn) {
     // settings & buttons
     txt(el.openSettings, t.settings); txt(el.closeSettings, t.close);
     txt(el.secSound, t.sound); txt(el.secLang, t.lang); txt(el.secTog, t.tog); txt(el.secBg, t.bg); txt(el.secBright, t.bright);
+    txt($('secSize'), appLang === 'ja' ? '背景サイズ' : 'Background size'); // 背景サイズラベル
     txt(el.bgPick, t.pickBg); txt(el.bgReset, t.resetBg);
     if(resetBtn) txt(resetBtn, appLang==='ja'?'リセット':'Reset');
      if (el.hardResetBtn) txt(el.hardResetBtn, t.hardReset);   // ← 追加
