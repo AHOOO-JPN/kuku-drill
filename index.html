@@ -636,6 +636,8 @@ if (resetBtn) {
     document.querySelectorAll('#langSet .pill').forEach(b=>b.classList.toggle('active', b.dataset.lang===appLang));
     localStorage.setItem('kukuLang', appLang);
     initVoices();
+    buildPills(danSet,'A');
+    buildPills(KuSet,'B');
   }
   $('langSet').addEventListener('click', e=>{
     const t=e.target.closest('button'); if(!t) return;
@@ -875,7 +877,11 @@ function buildProblemQueue(n){
   }
   return q;
 }
-  function pillLabel(i,type){ return (type==='A') ? (appLang==='ja' ? (i+'段') : (i+'×')) : String(i); }
+  function pillLabel(i,type){if (type==='A') { return (appLang==='ja' ? (i+'段') : (i+'×'));
+ } else {
+   return String(i);
+  }
+}
   function buildPills(container,type){
     container.innerHTML=''; for(let i=1;i<=9;i++){ const btn=document.createElement('button'); btn.className='pill'+(((type==='A'?allowedA:allowedB).has(i))?' active':''); btn.textContent=pillLabel(i,type);
       btn.onclick=()=>{ const set=(type==='A'?allowedA:allowedB); if(set.has(i)) set.delete(i); else set.add(i); btn.classList.toggle('active'); localStorage.setItem(type==='A'?'allowedA':'allowedB', JSON.stringify(Array.from(set))); pop(); newProblem(); };
@@ -935,14 +941,15 @@ state.a = pair[0]; state.b = pair[1];
   } else if (m === 'missingB'){
     // □ × B = ?
     setTimeout(()=>{
-      const txt = (appLang==='ja') ? `しかく  かける  ${state.b}` : `blank  times  ${state.b}`;
+      const txt = (appLang==='ja') ? `しかく  かける  ${state.b} は　${state.correct}` // 『しかく　かける　B は　こたえ』
+      : `blank  times  ${state.b} equals ${state.correct}`; // "blank times B equals Answer"
       speakText(txt);
     }, 320);
   
   } else { // m === 'missingA'
     // A × □ = ?
     setTimeout(()=>{
-      const txt = (appLang==='ja') ? `${state.a}  かける  しかく` : `${state.a}  times  blank`;
+      const txt = (appLang==='ja') ? `${state.a}  かける  しかく は　${state.correct}` : `${state.a}  times  blank equals ${state.correct}`;
       speakText(txt);
     }, 120);
   }
