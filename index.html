@@ -967,12 +967,12 @@ function questionChirp(){
 }
 
 // ===== テンキーのイベント紐づけ（OKだけは別口でも叩く） =====
-document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{ // ←【変更】「.ok」クラスを持つ要素を除外
+document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{
   k.onclick = () => {
+    if (navigator.vibrate) navigator.vibrate(50); // ←【追加】
     ensureAudio();
     const v = k.textContent.trim();
-    if (v === '⌫' || v === '✖'){ ans.value = ans.value.slice(0,-1); pop(); return; }
-    ans.value += v; pop();
+    //...
   };
 });
   
@@ -987,7 +987,7 @@ document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{ // ←【変更�
     try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
     if (lock) return;
     lock = true;
-
+    if (navigator.vibrate) navigator.vibrate(50); //
     // 触った感（任意）
     try { ensureAudio(); pop(); } catch (_) {}
 
@@ -1003,6 +1003,7 @@ document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{ // ←【変更�
     ok.addEventListener(ev, fire, { passive: false });
   });
 })();
+  
   /* ========== タイムトライアル ========= */
   const timerStatus=$('timerStatus'), bestEls={15:$('best15'),30:$('best30'),60:$('best60'),81:$('best81')};
   function rHist(n){ try{return JSON.parse(localStorage.getItem('historyRun'+n)||'[]')}catch(e){return[]} }
@@ -1612,6 +1613,35 @@ hardResetBtn.onclick = handleHardReset; // ← この行を追加
   updateLangUI();
   newProblem(true);
 })();
+    /* ========== 物理キーボード対応 ========== */
+  document.addEventListener('keydown', (e) => {
+    const key = e.key;
+
+    // 数字キー (0-9)
+    if (key >= '0' && key <= '9') {
+      if (navigator.vibrate) navigator.vibrate(50);
+      pop();
+      $('answer').value += key;
+      return;
+    }
+
+    // Enterキー
+    if (key === 'Enter') {
+      if (navigator.vibrate) navigator.vibrate(50);
+      pop();
+      check();
+      return;
+    }
+
+    // Backspaceキー
+    if (key === 'Backspace') {
+      if (navigator.vibrate) navigator.vibrate(50);
+      pop();
+      const ans = $('answer');
+      ans.value = ans.value.slice(0, -1);
+      return;
+    }
+  });
 </script>
 <script>
 if ('serviceWorker' in navigator) {
