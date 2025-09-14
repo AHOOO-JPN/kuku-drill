@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
-<meta charset="utf-8">
 <head>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>KuKuドリル</title>
-<meta name="theme-color" content="#9c2cff">
+  <meta charset="utf-8">
+  <title>KuKuドリル</title>
+  
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#9c2cff">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
 <style>
 :root{
   --bg:#0a0714; --grad1:#2b115a; --grad2:#091a3a;
@@ -341,6 +344,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
 }
 </style>
 </head>
+  
 <body class="theme-mix">
 <div class="wall"></div><div class="beams"></div>
 
@@ -1422,7 +1426,7 @@ function askConfirm(msg){
 }
 
 /* ─────────── 履歴クリア ─────────── */
-var clearBtn = document.getElementById('clearHistory');
+const clearBtn = document.getElementById('clearHistory');
 
 function handleClearHistory(e){
   try{ e && e.preventDefault(); e && e.stopPropagation(); }catch(_){}
