@@ -444,7 +444,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
       <button class="pill" id="bgReset">背景リセット</button>
       <input type="file" id="bgFile" accept="image/*" style="display:none">
     </div>
-    <div class="label" style="margin-top:12px">データ</div>
+    <div class="label" id="dataLabel" style="margin-top:12px">データ</div>
 <div class="pillset">
   <button class="pill" id="hardResetBtn" type="button">すべてのデータをリセット</button>
 </div>
@@ -639,6 +639,10 @@ if (resetBtn) {
     txt(el.togSpeak, t.speak);
     txt(el.togSfx,   t.sfx);
     txt(el.togCheer, t.cheer);
+       // ▼▼▼【ここから追加】▼▼▼
+    txt($('secCheer'), appLang === 'ja' ? '応援' : 'Cheer'); // 応援ラベル
+    txt($('dataLabel'), appLang === 'ja' ? 'データ' : 'Data'); // データラベル
+    // ▲▲▲【ここまで追加】▲▲▲
     // lang pills active
     document.querySelectorAll('#langSet .pill').forEach(b=>b.classList.toggle('active', b.dataset.lang===appLang));
     localStorage.setItem('kukuLang', appLang);
