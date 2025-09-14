@@ -1638,6 +1638,7 @@ hardResetBtn.onclick = handleHardReset; // ← この行を追加
 
   /* ========== 初期化 ========= */
   updateLangUI();
+  resetState(); // ←【追加】ここで状態をリセット
   newProblem(true);
 })();
     /* ========== 物理キーボード対応 ========== */
