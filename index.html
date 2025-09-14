@@ -1327,7 +1327,7 @@ function renderHistory(){
   function readHistory(n){
     try{ return JSON.parse(localStorage.getItem('historyRun'+n))||[]; }catch(e){ return []; }
     
-  }function section(n){
+function section(n){
   const list = readHistory(n).slice(0, 10);
   const best = (function(){
     const a = readHistory(n).filter(x => x.valid);
