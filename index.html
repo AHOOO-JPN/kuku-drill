@@ -1317,16 +1317,7 @@ function resetState() {
 
 // ==== 履歴モーダル一式（見出し/本文・ボタンラベル・クリックハンドラ） ====
 
-function renderHistory(){
-  const t = i18n[appLang];
-  function z(n){ return String(n).padStart(2,'0'); }
-  function fmt(iso){
-    const d = new Date(iso);
-    return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
-  }
-  function readHistory(n){
-    try{ return JSON.parse(localStorage.getItem('historyRun'+n))||[]; }catch(e){ return []; }
-    
+// ▼▼▼【ここに section() 関数を移動】▼▼▼
 function section(n){
   const list = readHistory(n).slice(0, 10);
   const best = (function(){
@@ -1379,6 +1370,15 @@ function section(n){
       </table>
     </div>`;
 }
+// ▲▲▲【ここまで section() 関数】▲▲▲
+  
+function renderHistory(){
+  const t = i18n[appLang];
+  function z(n){ return String(n).padStart(2,'0'); }
+  function fmt(iso){
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+  }
 
 // 見出しと本文
   $('histTitle').textContent = (appLang==='ja'?'履歴（直近10件）':'History (last 10)');
