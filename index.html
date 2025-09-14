@@ -1045,18 +1045,21 @@ function beginRun(n){
       target:81, left:81, isUnlimited:false, isAllKuku:true,
       queue: buildProblemQueue(81), hasMiss:false,
       startAt: performance.now(), scoreStart: state.score
+      problemMode: state.mode // ←【追加】
     };
   } else if(n===Infinity){
     run = {
       target:Infinity, left:Infinity, isUnlimited:true, isAllKuku:false,
       queue: buildProblemQueue(Infinity), hasMiss:false,
       startAt: performance.now(), scoreStart: state.score, pos:0
+      problemMode: state.mode // ←【追加】
     };
   } else {
     run = {
       target:n, left:n, isUnlimited:false, isAllKuku:false,
       queue: buildProblemQueue(n), hasMiss:false,
       startAt: performance.now(), scoreStart: state.score
+      problemMode: state.mode // ←【追加】
     };
   }
   // UI更新＆最初の出題
@@ -1091,6 +1094,7 @@ function finishRun(){
       correct: solved,
       total: total,
       valid: allOk,                 // ベスト算出対象は「全問正解のみ」
+      mode: run.problemMode, // ←【追加】
       date: new Date().toISOString()
     };
     addHistory(run.target, rec);
@@ -1334,6 +1338,14 @@ function section(n){
   const rows = list.map(h=>{
     const okRatio = (h.correct!=null && h.total!=null) ? `${h.correct}/${h.total}` : '';
     const isBest = !!best && h.valid && h.sec === best.sec && h.score === best.score && h.date === best.date;
+        // ▼【追加】問題形式の表示テキストを生成
+    let modeText = '';
+    if (h.mode) { // 古い履歴データにはmodeがないためチェック
+      if (h.mode === 'product') modeText = '標準';
+      else if (h.mode === 'missingB') modeText = '□×B';
+      else if (h.mode === 'missingA') modeText = 'A×□';
+    }
+    
     return `
       <tr class="${isBest?'best-row':''} ${(!h.valid?'miss-row':'')}">
         <td>${fmt(h.date)}</td>
@@ -1346,7 +1358,13 @@ function section(n){
 
   const empty = `<tr><td colspan="5" class="small">${appLang==='ja'?'まだ記録がありません':'No records yet'}</td></tr>`;
   const title = (appLang==='ja') ? `${n}問` : `${n}Q`;
-
+     // ▼【変更】問題形式の表示テキストをi18n対応に
+  let modeText = (appLang === 'ja' ? '標準' : 'Std'); // 古い履歴用のデフォルト
+    if (h.mode) {
+      if (h.mode === 'product') modeText = (appLang === 'ja' ? '標準' : 'Std');
+      else if (h.mode === 'missingB') modeText = '□×B';
+      else if (h.mode === 'missingA') modeText = 'A×□';
+    }
   return `
     <div class="table-wrap">
       <h4 class="small hist-section-title" style="margin:10px 0 6px">${title}</h4>
