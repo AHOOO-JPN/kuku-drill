@@ -1044,21 +1044,21 @@ function beginRun(n){
     run = {
       target:81, left:81, isUnlimited:false, isAllKuku:true,
       queue: buildProblemQueue(81), hasMiss:false,
-      startAt: performance.now(), scoreStart: state.score
+      startAt: performance.now(), scoreStart: state.score,
       problemMode: state.mode // ←【追加】
     };
   } else if(n===Infinity){
     run = {
       target:Infinity, left:Infinity, isUnlimited:true, isAllKuku:false,
       queue: buildProblemQueue(Infinity), hasMiss:false,
-      startAt: performance.now(), scoreStart: state.score, pos:0
+      startAt: performance.now(), scoreStart: state.score, pos:0,
       problemMode: state.mode // ←【追加】
     };
   } else {
     run = {
       target:n, left:n, isUnlimited:false, isAllKuku:false,
       queue: buildProblemQueue(n), hasMiss:false,
-      startAt: performance.now(), scoreStart: state.score
+      startAt: performance.now(), scoreStart: state.score,
       problemMode: state.mode // ←【追加】
     };
   }
