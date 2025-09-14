@@ -1298,7 +1298,12 @@ function check(){
   // 次の問題へ
   setTimeout(()=>{ newProblem(true); }, 600);
 }
-
+function resetState() {
+  state.score = 0;
+  state.streak = 0;
+  state.times = [];
+  updateStats();
+}
   // ========== 履歴モーダル ==========
   // 履歴の読み出し（安全に）
   function readHistory(n){
