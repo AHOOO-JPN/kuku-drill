@@ -1326,8 +1326,8 @@ function renderHistory(){
   }
   function readHistory(n){
     try{ return JSON.parse(localStorage.getItem('historyRun'+n))||[]; }catch(e){ return []; }
-  }
-function section(n){
+    
+  }function section(n){
   const list = readHistory(n).slice(0, 10);
   const best = (function(){
     const a = readHistory(n).filter(x => x.valid);
@@ -1338,10 +1338,11 @@ function section(n){
   const rows = list.map(h=>{
     const okRatio = (h.correct!=null && h.total!=null) ? `${h.correct}/${h.total}` : '';
     const isBest = !!best && h.valid && h.sec === best.sec && h.score === best.score && h.date === best.date;
-        // ▼【追加】問題形式の表示テキストを生成
-    let modeText = '';
-    if (h.mode) { // 古い履歴データにはmodeがないためチェック
-      if (h.mode === 'product') modeText = '標準';
+    
+    // ▼【変更】問題形式の表示テキストを生成（rowsの中で使うため）
+    let modeText = (appLang === 'ja' ? '標準' : 'Std'); // 古い履歴用のデフォルト
+    if (h.mode) { // h.mode が定義されている場合のみ上書き
+      if (h.mode === 'product') modeText = (appLang === 'ja' ? '標準' : 'Std');
       else if (h.mode === 'missingB') modeText = '□×B';
       else if (h.mode === 'missingA') modeText = 'A×□';
     }
@@ -1352,19 +1353,22 @@ function section(n){
         <td>${(h.sec!=null)?h.sec.toFixed(1):''}</td>
         <td>${h.score!=null?h.score:''}</td>
         <td>${okRatio}</td>
-        <td>${isBest?'<span class="best-badge">⭐️</span>':''}</td>
+        <td>${modeText}</td> <td>${isBest?'<span class="best-badge">⭐️</span>':''}</td>
       </tr>`;
   }).join('');
 
-  const empty = `<tr><td colspan="5" class="small">${appLang==='ja'?'まだ記録がありません':'No records yet'}</td></tr>`;
+  // ▼【変更】colspanを6に修正
+  const empty = `<tr><td colspan="6" class="small">${appLang==='ja'?'まだ記録がありません':'No records yet'}</td></tr>`;
   const title = (appLang==='ja') ? `${n}問` : `${n}Q`;
-     // ▼【変更】問題形式の表示テキストをi18n対応に
-  let modeText = (appLang === 'ja' ? '標準' : 'Std'); // 古い履歴用のデフォルト
-    if (h.mode) {
-      if (h.mode === 'product') modeText = (appLang === 'ja' ? '標準' : 'Std');
-      else if (h.mode === 'missingB') modeText = '□×B';
-      else if (h.mode === 'missingA') modeText = 'A×□';
-    }
+  
+  // ▼【削除】このmodeTextの定義は不要です。削除してください。
+  // let modeText = (appLang === 'ja' ? '標準' : 'Std'); 
+  //   if (h.mode) {
+  //     if (h.mode === 'product') modeText = (appLang === 'ja' ? '標準' : 'Std');
+  //     else if (h.mode === 'missingB') modeText = '□×B';
+  //     else if (h.mode === 'missingA') modeText = 'A×□';
+  //   }
+    
   return `
     <div class="table-wrap">
       <h4 class="small hist-section-title" style="margin:10px 0 6px">${title}</h4>
@@ -1375,13 +1379,14 @@ function section(n){
             <th>${appLang==='ja'?'秒':'Sec'}</th>
             <th>${appLang==='ja'?'点':'Pts'}</th>
             <th>${appLang==='ja'?'正解数/全':'Solved/Total'}</th>
-            <th></th>
+            <th>${appLang==='ja'?'形式':'Mode'}</th> <th></th>
           </tr>
         </thead>
         <tbody>${rows || empty}</tbody>
       </table>
     </div>`;
-} 
+}
+
 // 見出しと本文
   $('histTitle').textContent = (appLang==='ja'?'履歴（直近10件）':'History (last 10)');
   $('historyContent').innerHTML = section(15)+section(30)+section(60)+section(81);
