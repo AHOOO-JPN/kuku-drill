@@ -1021,7 +1021,7 @@ document.querySelectorAll('.keypad .key:not(.ok)').forEach(k=>{
     try { check(); } catch (_) {}
 
     // ほんの少し後にロック解除
-    setTimeout(() => { lock = false; }, 300);
+    setTimeout(() => { lock = false; }, 50);
   };
 
   // 3種類すべてで拾う（どれかは必ず通る）
@@ -1413,7 +1413,7 @@ function onTap(el, handler){
     lock = true;
     try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
     handler(e);
-    setTimeout(()=>{ lock = false; }, 300); // 二重発火防止
+    setTimeout(()=>{ lock = false; }, 50); // 二重発火防止
   };
   ['pointerup','touchend','click'].forEach(ev=>{
     el.addEventListener(ev, wrap, {passive:false});
