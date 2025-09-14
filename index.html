@@ -1339,9 +1339,9 @@ function section(n){
     const okRatio = (h.correct!=null && h.total!=null) ? `${h.correct}/${h.total}` : '';
     const isBest = !!best && h.valid && h.sec === best.sec && h.score === best.score && h.date === best.date;
     
-    // ▼【変更】問題形式の表示テキストを生成（rowsの中で使うため）
+    // 問題形式の表示テキストを生成
     let modeText = (appLang === 'ja' ? '標準' : 'Std'); // 古い履歴用のデフォルト
-    if (h.mode) { // h.mode が定義されている場合のみ上書き
+    if (h.mode) {
       if (h.mode === 'product') modeText = (appLang === 'ja' ? '標準' : 'Std');
       else if (h.mode === 'missingB') modeText = '□×B';
       else if (h.mode === 'missingA') modeText = 'A×□';
@@ -1353,21 +1353,13 @@ function section(n){
         <td>${(h.sec!=null)?h.sec.toFixed(1):''}</td>
         <td>${h.score!=null?h.score:''}</td>
         <td>${okRatio}</td>
-        <td>${modeText}</td> <td>${isBest?'<span class="best-badge">⭐️</span>':''}</td>
+        <td>${modeText}</td>
+        <td>${isBest?'<span class="best-badge">⭐️</span>':''}</td>
       </tr>`;
   }).join('');
 
-  // ▼【変更】colspanを6に修正
   const empty = `<tr><td colspan="6" class="small">${appLang==='ja'?'まだ記録がありません':'No records yet'}</td></tr>`;
   const title = (appLang==='ja') ? `${n}問` : `${n}Q`;
-  
-  // ▼【削除】このmodeTextの定義は不要です。削除してください。
-  // let modeText = (appLang === 'ja' ? '標準' : 'Std'); 
-  //   if (h.mode) {
-  //     if (h.mode === 'product') modeText = (appLang === 'ja' ? '標準' : 'Std');
-  //     else if (h.mode === 'missingB') modeText = '□×B';
-  //     else if (h.mode === 'missingA') modeText = 'A×□';
-  //   }
     
   return `
     <div class="table-wrap">
@@ -1379,7 +1371,8 @@ function section(n){
             <th>${appLang==='ja'?'秒':'Sec'}</th>
             <th>${appLang==='ja'?'点':'Pts'}</th>
             <th>${appLang==='ja'?'正解数/全':'Solved/Total'}</th>
-            <th>${appLang==='ja'?'形式':'Mode'}</th> <th></th>
+            <th>${appLang==='ja'?'形式':'Mode'}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>${rows || empty}</tbody>
