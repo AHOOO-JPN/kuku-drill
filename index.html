@@ -400,7 +400,7 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
           <button class="pill" id="timer15">15問</button><span class="pill small" id="best15" style="opacity:.65">Best: —</span>
           <button class="pill" id="timer30">30問</button><span class="pill small" id="best30" style="opacity:.65">Best: —</span>
           <button class="pill" id="timer60">60問</button><span class="pill small" id="best60" style="opacity:.65">Best: —</span>
-          <button class="pill" id="timer81">99(81問)ランダム</button><span class="pill small" id="best81" style="opacity:.65">Best: —</span>
+          <button class="pill" id="timer81">九九(81問)ランダム</button><span class="pill small" id="best81" style="opacity:.65">Best: —</span>
           <button class="pill" id="timerFree">無制限</button>
           <button class="pill grad" id="openHistory">履歴</button>
         </div>
@@ -558,7 +558,7 @@ if (resetBtn) {
       mode:'モード', modeP:'答えを入力（標準）', modeMB:'□ × B = ?（左を入力）', modeMA:'A × □ = ?（右を入力）',
       timer:'タイムアタック', notStarted:'未開始', startQ:'スタートしますか？', startDesc:'選択した本数で開始します。',
       ok:'OK', cancel:'キャンセル', score:'スコア', streak:'れんさ', avg:'平均タイム', history:'履歴',
-      q15:'15問', q30:'30問', q60:'60問', q81:'99(81問)ランダム', qFree:'無制限', best:'Best: —',
+      q15:'15問', q30:'30問', q60:'60問', q81:'九九(81問)ランダム', qFree:'無制限', best:'Best: —',
       speak:'読み上げ', sfx:'効果音', cheer:'応援', settings:'詳細設定', close:'閉じる',
       sound:'サウンド', lang:'言語設定', tog:'読み上げ / 効果音 / 応援', bg:'背景画像', bright:'明るさ', hardReset:'すべてのデータをリセット',
       pickBg:'背景画像', resetBg:'背景リセット', footer:'© KuKuドリル',
@@ -1161,7 +1161,7 @@ function openStart(n){
   // 説明文（日本語/英語と本数で出し分け）
   const desc = (appLang==='ja')
     ? (n===Infinity ? '無制限でスタートします。'
-       : (n===81 ? '99(81問)ランダムでスタートします。' : (n+'問でスタートします。')))
+       : (n===81 ? '九九(81問)ランダムでスタートします。' : (n+'問でスタートします。')))
     : (n===Infinity ? 'Start Unlimited.'
        : (n===81 ? 'Start All 9×9 Random.' : ('Start with '+n+' questions.')));
   descEl.textContent = desc;
