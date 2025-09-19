@@ -342,6 +342,26 @@ footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
   color: #0b0416 !important;
   font-weight: 800 !important;
 }
+
+/* --- ▼ 履歴モーダルのスクロール対応 ここから ▼ --- */
+.modal .panel {
+  /* パネルが画面より大きくならないように高さを制限 */
+  max-height: 85vh; 
+  /* 中身を縦に並べて柔軟に伸縮させる設定 */
+  display: flex;
+  flex-direction: column;
+}
+
+#historyModal #historyContent {
+  /* 履歴エリアが余ったスペースを埋めるように伸びる */
+  flex-grow: 1;
+  /* 履歴エリアの中身がはみ出したら、縦スクロールバーを表示 */
+  overflow-y: auto;
+  /* スクロールしやすいように少し余白を追加 */
+  padding-right: 8px; 
+}
+/* --- ▲ 履歴モーダルのスクロール対応 ここまで ▲ --- */
+  
 </style>
 </head>
   
