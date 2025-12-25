@@ -2355,201 +2355,206 @@ function debounce(fn, ms) {
             }, 300);
         }
 
-        function finishRun(){
-          if(!run) return;
+function finishRun(){
+    if(!run) return;
 
-          $('orderToggle').classList.remove('disabled');
-          const lang=localStorage.getItem('kukuLang')||appLang||'ja';
-          const T=i18n[lang];
-          const elapsed=(performance.now()-run.startAt)/1000;
-          const gained=state.score-run.scoreStart;
-          const solved=gained;
-          const total=run.isUnlimited?solved:run.target;
-          const allOk=(!run.isUnlimited)&&(!run.hasMiss)&&(solved===total);
+    $('orderToggle').classList.remove('disabled');
+    const lang=localStorage.getItem('kukuLang')||appLang||'ja';
+    const T=i18n[lang];
+    const elapsed=(performance.now()-run.startAt)/1000;
+    const gained=state.score-run.scoreStart;
+    const solved=gained;
+    const total=run.isUnlimited?solved:run.target;
+    const allOk=(!run.isUnlimited)&&(!run.hasMiss)&&(solved===total);
 
-          let title,body,shareText;
+    let title,body,shareText;
 
-          if(run.isUnlimited){
-            title=T.runDone('∞');
-            body=T.unlimitedLine(solved, elapsed.toFixed(1), gained);
-            shareText=T.shareUnlimited(Math.round(gained/10), elapsed.toFixed(1), gained);
-          }else{
-            const rec={ sec:elapsed, score:gained, correct:solved, total:total, valid:allOk, mode:run.problemMode, dan:run.dan||null, date:new Date().toISOString() };
-            const historyKey = run.dan ? `dan${run.dan}` : run.target;
-            addHistory(historyKey, rec);
+    if(run.isUnlimited){
+        title=T.runDone('∞');
+        body=T.unlimitedLine(solved, elapsed.toFixed(1), gained);
+        shareText=T.shareUnlimited(Math.round(gained/10), elapsed.toFixed(1), gained);
+    }else{
+        const rec={ sec:elapsed, score:gained, correct:solved, total:total, valid:allOk, mode:run.problemMode, dan:run.dan||null, date:new Date().toISOString() };
+        const historyKey = run.dan ? `dan${run.dan}` : run.target;
+        addHistory(historyKey, rec);
 
-            title=T.runDone(run.target);
-            const lineThis=`${T.thisTime}: ${rec.sec.toFixed(1)}${T.secUnit} / ${rec.score}${T.ptsUnit} / ${rec.correct}/${rec.total}（${fmt(rec.date)}）`;
+        title=T.runDone(run.target);
+        const lineThis=`${T.thisTime}: ${rec.sec.toFixed(1)}${T.secUnit} / ${rec.score}${T.ptsUnit} / ${rec.correct}/${rec.total}（${fmt(rec.date)}）`;
 
-            if(allOk){
-              pinpon();
-              confettiBurst();
-              body=lineThis;
-              shareText=T.shareAllOk(run.target, rec.sec.toFixed(1), rec.score);
-            }else{
-              body=`${lineThis}\n${T.runInvalid}`;
-              shareText=T.shareGeneric(run.target, rec.sec.toFixed(1), rec.score, rec.correct, rec.total);
-            }
-          }
+        if(allOk){
+            pinpon();
+            confettiBurst();
+            body=lineThis;
+            shareText=T.shareAllOk(run.target, rec.sec.toFixed(1), rec.score);
+        }else{
+            body=`${lineThis}\n${T.runInvalid}`;
+            shareText=T.shareGeneric(run.target, rec.sec.toFixed(1), rec.score, rec.correct, rec.total);
+        }
+    }
 
-          $('rpTitle').textContent=title;
-          $('rpBody').textContent=body;
-// ========================================
-// ✅ ここに追加！IndexedDBに記録を保存
-// ========================================
-saveRecord({
-  questionCount: total,
-  timeTaken: elapsed.toFixed(1),
-  score: gained,
-  danNumber: run.dan || null,
-  mode: run.problemMode || 'timeattack'
-}).then(() => {
-  console.log('✅ Record saved to IndexedDB');
-}).catch(err => {
-  console.error('❌ Failed to save record:', err);
-});
-// ========================================
-          $('resultModal').classList.add('show');
-          setOverlayLock(true);
+    $('rpTitle').textContent=title;
+    $('rpBody').textContent=body;
+    
+    // ========================================
+    // IndexedDBに記録を保存
+    // ========================================
+    saveRecord({
+        questionCount: total,
+        timeTaken: elapsed.toFixed(1),
+        score: gained,
+        danNumber: run.dan || null,
+        mode: run.problemMode || 'timeattack'
+    }).then(() => {
+        console.log('✅ Record saved to IndexedDB');
+    }).catch(err => {
+        console.error('❌ Failed to save record:', err);
+    });
+    // ========================================
+    
+    $('resultModal').classList.add('show');
+    setOverlayLock(true);
 
-          const closeResultModal = () => {
-            $('resultModal').classList.remove('show');
-            setOverlayLock(false);
-            setTimeout(()=>{ try{ scrollToInput(); }catch(_){} }, 400);
-          };
-          $('rpClose').onclick = closeResultModal;
-          $('resultModal').querySelector('.back').onclick = closeResultModal;
-          $('rpCopy').onclick=()=>navigator.clipboard?.writeText(shareText||body).catch(()=>{});
-          
-          // ========================================
-          // 共有ボタン (アイコン画像 + テキスト)
-          // ========================================
-          $('rpShare').onclick = async () => {
-            if (!navigator.share) {
-              $('rpCopy').click();
-              return;
-            }
-            
-            try {
-              // アイコン画像を取得
-              const response = await fetch('icon/icon-180.png');
-              const blob = await response.blob();
-              const file = new File([blob], 'kuku-drill-icon.png', { type: 'image/png' });
-              
-              // テキスト + 小さいアイコン画像を共有
-              await navigator.share({
-                text: shareText || body,
-                files: [file]
-              });
-              
-              console.log('✅ 共有成功');
-            } catch (err) {
-              // 画像付き共有が失敗した場合はテキストのみ
-              if (err.name !== 'AbortError') {
-                try {
-                  await navigator.share({
-                    text: shareText || body
-                  });
-                } catch (err2) {
-                  if (err2.name !== 'AbortError') {
-                    $('rpCopy').click();
-                  }
-                }
-              }
-            }
-          };
-
-          document.body.classList.remove('ta-on');
-          $('taStopFab').style.display='none';
-          run=null;
-          clearTimerStatus();
-          $('answer').value='';
-          $('orderToggle').classList.remove('disabled');
+    const closeResultModal = () => {
+        $('resultModal').classList.remove('show');
+        setOverlayLock(false);
+        setTimeout(()=>{ try{ scrollToInput(); }catch(_){} }, 400);
+    };
+    $('rpClose').onclick = closeResultModal;
+    $('resultModal').querySelector('.back').onclick = closeResultModal;
+    $('rpCopy').onclick=()=>navigator.clipboard?.writeText(shareText||body).catch(()=>{});
+    
+    // ========================================
+    // 共有ボタン (アイコン画像 + テキスト)
+    // ========================================
+    $('rpShare').onclick = async () => {
+        if (!navigator.share) {
+            $('rpCopy').click();
+            return;
         }
         
-        newProblem(true);
-    }
+        try {
+            const response = await fetch('icon/icon-180.png');
+            const blob = await response.blob();
+            const file = new File([blob], 'kuku-drill-icon.png', { type: 'image/png' });
+            
+            await navigator.share({
+                text: shareText || body,
+                files: [file]
+            });
+            
+            console.log('✅ 共有成功');
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                try {
+                    await navigator.share({
+                        text: shareText || body
+                    });
+                } catch (err2) {
+                    if (err2.name !== 'AbortError') {
+                        $('rpCopy').click();
+                    }
+                }
+            }
+        }
+    };
+
+    document.body.classList.remove('ta-on');
+    $('taStopFab').style.display='none';
+    run=null;
+    clearTimerStatus();
+    $('answer').value='';
+    $('orderToggle').classList.remove('disabled');
+    
+    newProblem(true);
+    
+} // ← ここで finishRun() が終わる（この閉じ括弧1つだけ！）
 
 // ========================================
 // 統計画面の表示・非表示
 // ========================================
 
-// 統計画面を表示
 async function showStats() {
-  try {
-    const allRecords = await getAllRecords();
-    
-    if (allRecords.length === 0) {
-      alert('まだ記録がありません！タイムアタックを完了させてください。');
-      return;
-    }
-    
-    // 全体統計を計算
-    const totalQuestions = allRecords.reduce((sum, r) => sum + r.questionCount, 0);
-    const avgScore = (allRecords.reduce((sum, r) => sum + r.score, 0) / allRecords.length).toFixed(1);
-    const avgTime = (allRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0) / allRecords.length).toFixed(1);
-    const bestScore = Math.max(...allRecords.map(r => r.score));
-    const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
-    
-    // 全体統計を表示
-    document.getElementById('totalQuestions').innerText = totalQuestions;
-    document.getElementById('avgScore').innerText = avgScore;
-    document.getElementById('avgTime').innerText = avgTime;
-    document.getElementById('bestScore').innerText = bestScore;
-    document.getElementById('bestTime').innerText = bestTime;
-    
-    // 段別統計を表示
-    const danStatsDiv = document.getElementById('danStats');
-    danStatsDiv.innerHTML = '';
-    
-    for (let i = 1; i <= 12; i++) {
-      const stats = await getStatsByDan(i);
-      if (stats) {
-        const danDiv = document.createElement('div');
-        danDiv.style.cssText = 'margin:10px 0; padding:15px; background:#2a2a3e; border-radius:8px; border-left:4px solid #9c2cff;';
-        danDiv.innerHTML = `
-          <strong style="color:#9c2cff; font-size:18px;">${i}の段</strong><br>
-          <span style="color:#aaa; font-size:14px;">挑戦回数: ${stats.totalAttempts}回</span><br>
-          <span style="font-size:14px;">平均スコア: <strong>${stats.avgScore}点</strong> | 最高: <strong style="color:#4caf50;">${stats.bestScore}点</strong></span><br>
-          <span style="font-size:14px;">平均タイム: <strong>${stats.avgTime}秒</strong> | 最速: <strong style="color:#2196f3;">${stats.bestTime}秒</strong></span>
-        `;
-        danStatsDiv.appendChild(danDiv);
-      }
-    }
-    
-    // 統計画面とオーバーレイを表示
-    document.getElementById('statsScreen').style.display = 'block';
-    document.getElementById('statsOverlay').style.display = 'block';
-    
-    console.log('📊 統計画面を表示しました');
-    
-  } catch (err) {
-    console.error('❌ 統計表示エラー:', err);
-    alert('統計の表示に失敗しました: ' + err.message);
-  }
-}
-
-// 統計画面を閉じる
-function closeStats() {
-  document.getElementById('statsScreen').style.display = 'none';
-  document.getElementById('statsOverlay').style.display = 'none';
-  console.log('📊 統計画面を閉じました');
-}
-
-        function confettiBurst(){
-            const colors=['#ff4dc4','#3bc7ff','#ffe066','#35ffa1','#ff8af2','#a1a8ff']; const n=90;
-            for(let i=0;i<n;i++){
-                const d=document.createElement('div');
-                d.style.position='fixed'; d.style.top='-10px'; d.style.width='8px'; d.style.height='14px'; d.style.opacity='.9'; d.style.zIndex='1000'; d.style.borderRadius='2px';
-                d.style.left=(Math.random()*100)+'vw'; d.style.background=colors[(Math.random()*colors.length)|0]; d.style.transform='rotate('+(Math.random()*360)+'deg)';
-                const dur=900+Math.random()*1200;
-                d.style.transition=`transform ${dur}ms ease-out, top ${dur}ms ease-out, opacity ${dur}ms ease`;
-                document.body.appendChild(d);
-                requestAnimationFrame(()=>{ d.style.top='110vh'; d.style.transform+=` translateY(90vh) rotate(${360+Math.random()*360}deg)`; });
-                setTimeout(()=>d.remove(), dur+500);
+    try {
+        const allRecords = await getAllRecords();
+        
+        if (allRecords.length === 0) {
+            alert('まだ記録がありません！タイムアタックを完了させてください。');
+            return;
+        }
+        
+        const totalQuestions = allRecords.reduce((sum, r) => sum + r.questionCount, 0);
+        const avgScore = (allRecords.reduce((sum, r) => sum + r.score, 0) / allRecords.length).toFixed(1);
+        const avgTime = (allRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0) / allRecords.length).toFixed(1);
+        const bestScore = Math.max(...allRecords.map(r => r.score));
+        const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
+        
+        document.getElementById('totalQuestions').innerText = totalQuestions;
+        document.getElementById('avgScore').innerText = avgScore;
+        document.getElementById('avgTime').innerText = avgTime;
+        document.getElementById('bestScore').innerText = bestScore;
+        document.getElementById('bestTime').innerText = bestTime;
+        
+        const danStatsDiv = document.getElementById('danStats');
+        danStatsDiv.innerHTML = '';
+        
+        for (let i = 1; i <= 12; i++) {
+            const stats = await getStatsByDan(i);
+            if (stats) {
+                const danDiv = document.createElement('div');
+                danDiv.style.cssText = 'margin:10px 0; padding:15px; background:#2a2a3e; border-radius:8px; border-left:4px solid #9c2cff;';
+                danDiv.innerHTML = `
+                    <strong style="color:#9c2cff; font-size:18px;">${i}の段</strong><br>
+                    <span style="color:#aaa; font-size:14px;">挑戦回数: ${stats.totalAttempts}回</span><br>
+                    <span style="font-size:14px;">平均スコア: <strong>${stats.avgScore}点</strong> | 最高: <strong style="color:#4caf50;">${stats.bestScore}点</strong></span><br>
+                    <span style="font-size:14px;">平均タイム: <strong>${stats.avgTime}秒</strong> | 最速: <strong style="color:#2196f3;">${stats.bestTime}秒</strong></span>
+                `;
+                danStatsDiv.appendChild(danDiv);
             }
         }
-            
+        
+        document.getElementById('statsScreen').style.display = 'block';
+        document.getElementById('statsOverlay').style.display = 'block';
+        
+        console.log('📊 統計画面を表示しました');
+        
+    } catch (err) {
+        console.error('❌ 統計表示エラー:', err);
+        alert('統計の表示に失敗しました: ' + err.message);
+    }
+}
+
+function closeStats() {
+    document.getElementById('statsScreen').style.display = 'none';
+    document.getElementById('statsOverlay').style.display = 'none';
+    console.log('📊 統計画面を閉じました');
+}
+
+function confettiBurst(){
+    const colors=['#ff4dc4','#3bc7ff','#ffe066','#35ffa1','#ff8af2','#a1a8ff']; 
+    const n=90;
+    for(let i=0;i<n;i++){
+        const d=document.createElement('div');
+        d.style.position='fixed'; 
+        d.style.top='-10px'; 
+        d.style.width='8px'; 
+        d.style.height='14px'; 
+        d.style.opacity='.9'; 
+        d.style.zIndex='1000'; 
+        d.style.borderRadius='2px';
+        d.style.left=(Math.random()*100)+'vw'; 
+        d.style.background=colors[(Math.random()*colors.length)|0]; 
+        d.style.transform='rotate('+(Math.random()*360)+'deg)';
+        const dur=900+Math.random()*1200;
+        d.style.transition=`transform ${dur}ms ease-out, top ${dur}ms ease-out, opacity ${dur}ms ease`;
+        document.body.appendChild(d);
+        requestAnimationFrame(()=>{ 
+            d.style.top='110vh'; 
+            d.style.transform+=` translateY(90vh) rotate(${360+Math.random()*360}deg)`; 
+        });
+        setTimeout(()=>d.remove(), dur+500);
+    }
+}
+
         function openStart(n, dan){
             const m = $('startModal'), desc = $('startDesc'), count = $('countNum');
             m.classList.add('show'); setOverlayLock(true);
