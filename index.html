@@ -1275,6 +1275,104 @@ button.pill.grad,
     </div>
   </div></div>
 
+// ========================================
+// IndexedDB による永続化（KuKu Drill+）
+// ========================================
+
+// データベースの初期化
+let db;
+const DB_NAME = 'KuKuDrillDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'records';
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+    
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+        objectStore.createIndex('danNumber', 'danNumber', { unique: false });
+      }
+    };
+  });
+}
+
+// 記録を保存
+async function saveRecord(record) {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const objectStore = transaction.objectStore(STORE_NAME);
+    const request = objectStore.add({
+      timestamp: Date.now(),
+      questionCount: record.questionCount,
+      timeTaken: record.timeTaken,
+      score: record.score,
+      danNumber: record.danNumber || null,
+      mode: record.mode || 'normal'
+    });
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// すべての記録を取得
+async function getAllRecords() {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const objectStore = transaction.objectStore(STORE_NAME);
+    const request = objectStore.getAll();
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// 直近N件の記録を取得
+async function getRecentRecords(limit = 10) {
+  const allRecords = await getAllRecords();
+  return allRecords.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+}
+
+// 段別の統計を取得
+async function getStatsByDan(danNumber) {
+  const allRecords = await getAllRecords();
+  const danRecords = allRecords.filter(r => r.danNumber === danNumber);
+  
+  if (danRecords.length === 0) return null;
+  
+  const totalScore = danRecords.reduce((sum, r) => sum + r.score, 0);
+  const totalTime = danRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0);
+  const avgScore = totalScore / danRecords.length;
+  const avgTime = totalTime / danRecords.length;
+  
+  return {
+    totalAttempts: danRecords.length,
+    avgScore: avgScore.toFixed(1),
+    avgTime: avgTime.toFixed(1),
+    bestScore: Math.max(...danRecords.map(r => r.score)),
+    bestTime: Math.min(...danRecords.map(r => parseFloat(r.timeTaken))).toFixed(1)
+  };
+}
+
+// アプリ起動時にDBを初期化
+initDB().then(() => {
+  console.log('IndexedDB initialized');
+}).catch(err => {
+  console.error('IndexedDB initialization failed:', err);
+});
+    
 <script>
 /* ========= 0) 初期ユーティリティ ========= */
     // ユーザーインタラクションフラグ（即座に有効化）
@@ -2273,6 +2371,21 @@ function debounce(fn, ms) {
 
           $('rpTitle').textContent=title;
           $('rpBody').textContent=body;
+// ========================================
+// ✅ ここに追加！IndexedDBに記録を保存
+// ========================================
+saveRecord({
+  questionCount: total,
+  timeTaken: elapsed.toFixed(1),
+  score: gained,
+  danNumber: run.dan || null,
+  mode: run.problemMode || 'timeattack'
+}).then(() => {
+  console.log('✅ Record saved to IndexedDB');
+}).catch(err => {
+  console.error('❌ Failed to save record:', err);
+});
+// ========================================
           $('resultModal').classList.add('show');
           setOverlayLock(true);
 
