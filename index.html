@@ -1029,6 +1029,7 @@ button.pill.grad,
       <div class="title" id="titleTxt">KuKuドリル</div>
       <div class="row">
         <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
+        <button id="showStatsBtn" class="badge" onclick="showStats()">📊 統計</button>
         <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
           <button id="orderSeqBtn" class="ot-btn" aria-pressed="false" title="順番"><span>🔢</span></button>
           <button id="orderRndBtn" class="ot-btn" aria-pressed="true"  title="ランダム"><span>🔀</span></button>
@@ -1266,43 +1267,75 @@ button.pill.grad,
     </div>
   </div></div>
 
-    <!-- ========================================
-     ✅ ここに追加！統計画面のHTML
+<!-- ========================================
+     統計画面モーダル（既存のモーダルスタイルに統一）
      ======================================== -->
-<div id="statsScreen" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:600px; max-height:80vh; overflow-y:auto; padding:20px; background:#1a1a2e; color:#eee; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.5); z-index:10000;">
-  <h2 style="text-align:center; color:#9c2cff; margin-bottom:20px;">📊 統計</h2>
-  
-  <div id="statsContent" style="background:#2a2a3e; padding:15px; border-radius:8px; margin-bottom:20px;">
-    <p style="margin:8px 0;">総問題数: <span id="totalQuestions" style="color:#9c2cff; font-weight:bold;">0</span>問</p>
-    <p style="margin:8px 0;">平均スコア: <span id="avgScore" style="color:#9c2cff; font-weight:bold;">0</span>点</p>
-    <p style="margin:8px 0;">平均タイム: <span id="avgTime" style="color:#9c2cff; font-weight:bold;">0</span>秒</p>
-    <p style="margin:8px 0;">最高スコア: <span id="bestScore" style="color:#9c2cff; font-weight:bold;">0</span>点</p>
-    <p style="margin:8px 0;">最速タイム: <span id="bestTime" style="color:#9c2cff; font-weight:bold;">0</span>秒</p>
+<div class="modal" id="statsModal">
+  <div class="back" onclick="closeStats()"></div>
+  <div class="panel" style="display:flex; flex-direction:column; max-height:85vh;">
+    <button class="sheet-close" onclick="closeStats()" aria-label="閉じる"></button>
+    
+    <div class="h" style="text-align:center; margin-bottom:16px;">📊 統計</div>
+    
+    <!-- 全体統計 -->
+    <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                padding:16px; 
+                border-radius:12px; 
+                border:1px solid var(--border); 
+                margin-bottom:16px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">総問題数</div>
+          <div style="font-size:20px; font-weight:900; color:var(--accentA);">
+            <span id="totalQuestions">0</span>問
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">平均スコア</div>
+          <div style="font-size:20px; font-weight:900; color:var(--accentB);">
+            <span id="avgScore">0</span>点
+          </div>
+        </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
+          <div style="font-size:16px; font-weight:800;">
+            <span id="avgTime">0</span>秒
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">最高スコア</div>
+          <div style="font-size:16px; font-weight:800; color:var(--ok);">
+            <span id="bestScore">0</span>点
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
+          <div style="font-size:16px; font-weight:800; color:var(--accentB);">
+            <span id="bestTime">0</span>秒
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 段別成績 -->
+    <div class="h" style="font-size:16px; margin-bottom:12px;">段別成績</div>
+    <div id="danStats" style="flex-grow:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;"></div>
+    
+    <!-- 閉じるボタン -->
+    <div class="btnrow" style="margin-top:16px;">
+      <button class="btn grad" onclick="closeStats()">閉じる</button>
+    </div>
   </div>
-  
-  <h3 style="margin-top:20px; margin-bottom:10px; color:#9c2cff;">段別成績</h3>
-  <div id="danStats" style="max-height:300px; overflow-y:auto;"></div>
-  
-  <button onclick="closeStats()" style="margin-top:20px; padding:12px 24px; background:#9c2cff; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:16px; width:100%;">閉じる</button>
 </div>
 
-<!-- 統計画面の背景オーバーレイ -->
-<div id="statsOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999;" onclick="closeStats()"></div>
-
-<!-- 統計ボタン（メイン画面に追加） -->
-<button id="showStatsBtn" onclick="showStats()" style="position:fixed; top:20px; right:20px; padding:12px 20px; background:#9c2cff; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:16px; box-shadow:0 2px 10px rgba(156,44,255,0.3); z-index:1000; display:flex; align-items:center; gap:8px;">
+<!-- 統計ボタン（ヘッダーに配置） -->
+<button id="showStatsBtn" class="badge" onclick="showStats()">
   📊 統計
 </button>
 
-  <div class="modal" id="historyModal"><div class="back"></div><div class="panel" style="display:flex;flex-direction:column;max-height:85vh">
-    <div class="h" id="histTitle">履歴（直近10件）</div>
-    <div id="historyContent" class="small" style="flex-grow:1;overflow:auto">—</div>
-    <div class="btnrow">
-      <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
-      <button class="btn grad" id="historyClose">閉じる</button>
-    </div>
-  </div></div>
-    
 <script>
 
 'use strict';
@@ -1311,7 +1344,6 @@ button.pill.grad,
 // ========================================
 // IndexedDB 初期化
 // ========================================
-
 
 // ========================================
 // IndexedDB による永続化（KuKu Drill+）
@@ -1372,28 +1404,40 @@ async function showStats() {
     document.getElementById('bestScore').innerText = bestScore;
     document.getElementById('bestTime').innerText = bestTime;
     
-    // 段別統計を表示
-    const danStatsDiv = document.getElementById('danStats');
-    danStatsDiv.innerHTML = '';
+// 段別統計を表示
+const danStatsDiv = document.getElementById('danStats');
+danStatsDiv.innerHTML = '';
+
+for (let i = 1; i <= 12; i++) {
+  const stats = await getStatsByDan(i);
+  if (stats) {
+    const danDiv = document.createElement('div');
+    danDiv.style.cssText = `
+      margin:0 0 10px 0; 
+      padding:14px; 
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+      border-radius:12px; 
+      border:1px solid var(--border);
+      border-left:4px solid var(--accentA);
+    `;
+    danDiv.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${i}の段</strong>
+        <span style="color:var(--muted); font-size:13px;">挑戦回数: ${stats.totalAttempts}回</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+        <div>平均: <strong style="color:var(--text);">${stats.avgScore}点</strong></div>
+        <div>最高: <strong style="color:var(--ok);">${stats.bestScore}点</strong></div>
+        <div>平均: <strong style="color:var(--text);">${stats.avgTime}秒</strong></div>
+        <div>最速: <strong style="color:var(--accentB);">${stats.bestTime}秒</strong></div>
+      </div>
+    `;
+    danStatsDiv.appendChild(danDiv);
+  }
+}
     
-    for (let i = 1; i <= 12; i++) {
-      const stats = await getStatsByDan(i);
-      if (stats) {
-        const danDiv = document.createElement('div');
-        danDiv.style.cssText = 'margin:10px 0; padding:15px; background:#2a2a3e; border-radius:8px; border-left:4px solid #9c2cff;';
-        danDiv.innerHTML = `
-          <strong style="color:#9c2cff; font-size:18px;">${i}の段</strong><br>
-          <span style="color:#aaa; font-size:14px;">挑戦回数: ${stats.totalAttempts}回</span><br>
-          <span style="font-size:14px;">平均スコア: <strong>${stats.avgScore}点</strong> | 最高: <strong style="color:#4caf50;">${stats.bestScore}点</strong></span><br>
-          <span style="font-size:14px;">平均タイム: <strong>${stats.avgTime}秒</strong> | 最速: <strong style="color:#2196f3;">${stats.bestTime}秒</strong></span>
-        `;
-        danStatsDiv.appendChild(danDiv);
-      }
-    }
-    
-    // 統計画面とオーバーレイを表示
-    document.getElementById('statsScreen').style.display = 'block';
-    document.getElementById('statsOverlay').style.display = 'block';
+// 統計画面とオーバーレイを表示
+    document.getElementById('statsModal').classList.add('show');
     
     console.log('📊 統計画面を表示しました');
     
@@ -1405,8 +1449,7 @@ async function showStats() {
 
 // 統計画面を閉じる
 function closeStats() {
-  document.getElementById('statsScreen').style.display = 'none';
-  document.getElementById('statsOverlay').style.display = 'none';
+  document.getElementById('statsModal').classList.remove('show');
   console.log('📊 統計画面を閉じました');
 }
 
