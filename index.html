@@ -2473,12 +2473,15 @@ function finishRun(){
     $('answer').value='';
     $('orderToggle').classList.remove('disabled');
     
-    newProblem(true);
-    
-} // ← ここで finishRun() が終わる（この閉じ括弧1つだけ！）
-        
-// 統計画面を表示
+      newProblem(true);
+}
+
+// ========================================
+// 統計画面の表示・非表示
+// ========================================
+
 async function showStats() {
+
   try {
     const allRecords = await getAllRecords();
     
@@ -2538,6 +2541,7 @@ function closeStats() {
   document.getElementById('statsOverlay').style.display = 'none';
   console.log('📊 統計画面を閉じました');
 }
+        
 function confettiBurst(){
     const colors=['#ff4dc4','#3bc7ff','#ffe066','#35ffa1','#ff8af2','#a1a8ff']; 
     const n=90;
