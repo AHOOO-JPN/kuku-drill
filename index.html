@@ -1029,7 +1029,7 @@ button.pill.grad,
       <div class="title" id="titleTxt">KuKuドリル</div>
       <div class="row">
         <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
-        <button id="showStatsBtn" class="badge" onclick="showStats()">📊 統計</button>
+        <button id="showStatsBtn" class="badge" onclick="showStats()">📊統計</button>
         <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
           <button id="orderSeqBtn" class="ot-btn" aria-pressed="false" title="順番"><span>🔢</span></button>
           <button id="orderRndBtn" class="ot-btn" aria-pressed="true"  title="ランダム"><span>🔀</span></button>
@@ -1330,11 +1330,6 @@ button.pill.grad,
     </div>
   </div>
 </div>
-
-<!-- 統計ボタン（ヘッダーに配置） -->
-<button id="showStatsBtn" class="badge" onclick="showStats()">
-  📊 統計
-</button>
 
 <script>
 
@@ -3278,7 +3273,15 @@ function confettiBurst(){
         $('openHistory').onclick=()=>{ renderHistory(); refreshClearHistoryState(); setOverlayLock(true); $('historyModal').classList.add('show'); };
         $('historyClose').onclick=()=>{ $('historyModal').classList.remove('show'); setOverlayLock(false); };
         $('historyModal').querySelector('.back').onclick=()=>{ $('historyModal').classList.remove('show'); setOverlayLock(false); };
-        
+
+        // 履歴モーダルのクローズボタン（存在確認）
+const historyCloseBtn = $('historyClose');
+if (historyCloseBtn) {
+  historyCloseBtn.onclick=()=>{ 
+    $('historyModal').classList.remove('show'); 
+    setOverlayLock(false); 
+  }
+}       
         async function handleClearHistory(){
             const ja=(appLang==='ja');
             const ok=await confirmAsync(ja?'履歴をすべて削除しますか？':'Clear all history?');
