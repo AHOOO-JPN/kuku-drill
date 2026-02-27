@@ -3268,19 +3268,45 @@ function confettiBurst(){
         const faceModal=$('faceModal'); if(faceModal){ const bk=faceModal.querySelector('.back'); if(bk){ bk.onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeFace(); }; } }
         const faceDelBtn=$('faceDel'); if(faceDelBtn){ faceDelBtn.onclick=async()=>{ const ja=(appLang==='ja'); const ok=await confirmAsync(ja?'顔画像を削除しますか？':'Delete face image?'); if(!ok) return; try{ localStorage.removeItem('kukuFaceData'); }catch(_){}
             stopCamera(); showLivePreview(true); alert(ja?'顔画像を削除しました':'Face image deleted'); }; }
-        
-        /* 履歴モーダル */
-        $('openHistory').onclick=()=>{ renderHistory(); refreshClearHistoryState(); setOverlayLock(true); $('historyModal').classList.add('show'); };
-        $('historyClose').onclick=()=>{ $('historyModal').classList.remove('show'); setOverlayLock(false); };
-        $('historyModal').querySelector('.back').onclick=()=>{ $('historyModal').classList.remove('show'); setOverlayLock(false); };
+/* 履歴モーダル：結線（1か所に集約・null安全） */
+function wireHistoryModal() {
+  const openBtn = $('openHistory');
+  const modal  = $('historyModal');
 
-        // 履歴モーダルのクローズボタン（存在確認）
-const historyCloseBtn = $('historyClose');
-if (historyCloseBtn) {
-  historyCloseBtn.onclick=()=>{ 
-    $('historyModal').classList.remove('show'); 
-    setOverlayLock(false); 
+  if (!modal) {
+    console.warn('[history] historyModal not found');
+    return;
   }
+
+  const close = () => {
+    modal.classList.remove('show');
+    try { setOverlayLock(false); } catch(_) {}
+  };
+
+  if (openBtn) {
+    openBtn.onclick = () => {
+      try { renderHistory(); } catch(_) {}
+      try { refreshClearHistoryState(); } catch(_) {}
+      try { setOverlayLock(true); } catch(_) {}
+      modal.classList.add('show');
+    };
+  } else {
+    console.warn('[history] openHistory not found');
+  }
+
+  const closeBtn = $('historyClose');
+  if (closeBtn) {
+    closeBtn.onclick = close;
+  } else {
+    console.warn('[history] historyClose not found (button missing in HTML)');
+  }
+
+  const back = modal.querySelector('.back');
+  if (back) back.onclick = close;
+}
+
+// DOMができてから結線（重要）
+window.addEventListener('DOMContentLoaded', wireHistoryModal);
 }       
         async function handleClearHistory(){
             const ja=(appLang==='ja');
