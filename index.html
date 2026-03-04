@@ -3265,46 +3265,76 @@ function confettiBurst(){
         const faceModal=$('faceModal'); if(faceModal){ const bk=faceModal.querySelector('.back'); if(bk){ bk.onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeFace(); }; } }
         const faceDelBtn=$('faceDel'); if(faceDelBtn){ faceDelBtn.onclick=async()=>{ const ja=(appLang==='ja'); const ok=await confirmAsync(ja?'顔画像を削除しますか？':'Delete face image?'); if(!ok) return; try{ localStorage.removeItem('kukuFaceData'); }catch(_){}
             stopCamera(); showLivePreview(true); alert(ja?'顔画像を削除しました':'Face image deleted'); }; }
-/* 履歴モーダル：結線（1か所に集約・null安全） */
-function wireHistoryModal() {
-  const openBtn = $('openHistory');
-  const modal  = $('historyModal');
 
+// id取得のショートカット（既にあるなら不要）
+const $ = (id) => document.getElementById(id);
+
+/* ============================
+   履歴モーダル（安全版）
+   ============================ */
+function wireHistoryModal() {
+  const modal = $('historyModal');
   if (!modal) {
     console.warn('[history] historyModal not found');
     return;
   }
 
+  const openBtn  = $('openHistory');
+  const closeBtn = $('historyClose'); // ← HTMLに無いなら無くても落ちない
+  const back     = modal.querySelector('.back');
+
   const close = () => {
     modal.classList.remove('show');
-    try { setOverlayLock(false); } catch(_) {}
+    try { setOverlayLock(false); } catch (_) {}
   };
 
-  if (openBtn) {
-    openBtn.onclick = () => {
-      try { renderHistory(); } catch(_) {}
-      try { refreshClearHistoryState(); } catch(_) {}
-      try { setOverlayLock(true); } catch(_) {}
-      modal.classList.add('show');
-    };
-  } else {
-    console.warn('[history] openHistory not found');
-  }
+  const open = () => {
+    try { renderHistory(); } catch (_) {}
+    try { refreshClearHistoryState(); } catch (_) {}
+    try { setOverlayLock(true); } catch (_) {}
+    modal.classList.add('show');
+  };
 
-  const closeBtn = $('historyClose');
-  if (closeBtn) {
-    closeBtn.onclick = close;
-  } else {
-    console.warn('[history] historyClose not found (button missing in HTML)');
-  }
-
-  const back = modal.querySelector('.back');
-  if (back) back.onclick = close;
+  if (openBtn)  openBtn.onclick = open;
+  if (closeBtn) closeBtn.onclick = close;
+  if (back)     back.onclick = close;
 }
 
-// DOMができてから結線（重要）
-window.addEventListener('DOMContentLoaded', wireHistoryModal);
-}       
+/* ============================
+   履歴を全削除（ボタンがあれば）
+   ============================ */
+async function handleClearHistory(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  const ja = (typeof appLang !== 'undefined' ? appLang : (localStorage.getItem('kukuLang') || 'ja')) === 'ja';
+  const ok = await confirmAsync(ja ? '履歴をすべて削除しますか？' : 'Clear all history?');
+  if (!ok) return;
+
+  // ここはあなたの実装に合わせてキーを削除（例）
+  try {
+    localStorage.removeItem('kukuHistory');
+    [20, 30, 60, 81, 100, 144].forEach(n => localStorage.removeItem('historyRun' + n));
+    for (let d = 1; d <= 12; d++) localStorage.removeItem('historyRunDan' + d);
+  } catch (err) {
+    console.warn('[history] remove failed:', err);
+  }
+
+  try { renderHistory(); } catch (_) {}
+  try { refreshClearHistoryState(); } catch (_) {}
+  alert(ja ? '履歴を削除しました' : 'History cleared');
+}
+
+function wireClearHistoryButton() {
+  const btn = $('clearHistory');
+  if (!btn) return;
+  btn.addEventListener('click', handleClearHistory);
+}
+
+// DOMができてから結線（ここだけ）
+window.addEventListener('DOMContentLoaded', () => {
+  wireHistoryModal();
+  wireClearHistoryButton();
+});     
         async function handleClearHistory(){
             const ja=(appLang==='ja');
             const ok=await confirmAsync(ja?'履歴をすべて削除しますか？':'Clear all history?');
