@@ -1,0 +1,3866 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+    <meta charset="utf-8">
+    <title>KuKuドリル</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    
+    <!-- iOS PWA 設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KuKuドリル">
+    <meta name="theme-color" content="#9c2cff">
+    
+    <!-- Manifest（相対パスでOK） -->
+    <link rel="manifest" href="manifest.webmanifest">
+    
+    <!-- アイコン（相対パスでOK） -->
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+    <link rel="shortcut icon" href="icon/favicon.ico">
+    
+    <!-- Open Graph タグ（絶対URLに変更） -->
+    <meta property="og:title" content="KuKuドリル">
+    <meta property="og:description" content="お子様が楽しく九九を学習できる教育アプリ">
+    <meta property="og:image" content="https://ahooo-jpn.github.io/kuku-drill/icon/icon-512.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ahooo-jpn.github.io/kuku-drill/">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="KuKuドリル">
+    <meta name="twitter:description" content="お子様が楽しく九九を学習できる教育アプリ">
+    <meta name="twitter:image" content="https://ahooo-jpn.github.io/kuku-drill/icon/icon-512.png">
+            
+    <style>
+    :root{
+  --bg:#0a0714; --grad1:#2b115a; --grad2:#091a3a;
+  --panel: rgba(255,255,255,.08); --panel2: rgba(255,255,255,.05);
+  --border: rgba(255,255,255,.14);
+  --text:#f7f6ff; --muted:#c7c2e6; --ok:#35ffa1; --ng:#ff6a6a;
+  --accentA:#ff4dc4; --accentB:#3bc7ff; --radius:18px;
+  --wallOpacity:.36;
+  transition: --accentA 0.5s ease, --accentB 0.5s ease;
+}
+body.theme-mix{ --accentA:#ff4dc4; --accentB:#3bc7ff; }
+body.theme-pink{ --accentA:#ff7adf; --accentB:#ff5ea6; }
+body.theme-blue{ --accentA:#7ad3ff; --accentB:#3bc7ff; }
+
+*{box-sizing:border-box}
+
+/* ★追加: グローバルタッチ最適化 */
+button, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+}
+
+/* ★追加: 300msタップ遅延を完全削除 */
+a, button, input, select, textarea, [role="button"] {
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+
+/* ========== ★追加2: 300msタップ遅延を完全削除 ========== */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+
+
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: auto;  /* ✅ スクロールを許可 */
+  -webkit-overflow-scrolling: touch;  /* ✅ iOS向けスムーズスクロール */
+}
+    /* ========== シンプルなスクロール制御 ========== */
+    html, body {
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      height: 100%;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 50px 16px 16px 16px;  /* ★追加: 元のpaddingを復元 */
+      margin: 0;
+      color: var(--text);
+      font-family: system-ui,-apple-system,"Inter","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      background:
+        radial-gradient(1200px 700px at 10% -10%, rgba(156,44,255,.32), #0a0714 60%),
+        radial-gradient(1100px 700px at 120% 10%, rgba(59,199,255,.26), #0a0714 60%),
+        linear-gradient(180deg, #2b115a 0%, #0a0714 100%);
+      background-color: #0a0714;
+      background-attachment: fixed;
+    }
+
+    /* テンキーのみスクロール無効 */
+    .keypad {
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      overscroll-behavior: contain;
+    }
+
+    .keypad button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* 問題表示エリアはスクロール無効 */
+    .problem {
+      touch-action: none;
+      overscroll-behavior: contain;
+    }
+
+    /* スクロール可能な要素は明示的に許可 */
+    .sheet .inner,
+    #historyContent,
+    #privacyContent,
+    #termsContent,
+    .modal .panel {
+      touch-action: auto;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+.wall{
+  position:fixed; inset:0; z-index:0; opacity:var(--wallOpacity);
+  background-image: var(--neon-wall); background-size: var(--wallSize, cover);
+  background-position:center; filter:saturate(120%) contrast(110%); pointer-events:none;
+}
+    /* ★修正: ビームの色をテーマに連動 */
+    .beams{
+      position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.9;
+      filter: blur(44px) saturate(120%);
+      animation: spin 18s linear infinite;
+      background:
+        conic-gradient(from 0deg at 20% 0%, color-mix(in oklab, var(--accentA) 45%, transparent), transparent 30%),
+        conic-gradient(from 180deg at 80% 10%, color-mix(in oklab, var(--accentB) 45%, transparent), transparent 35%);
+      /* ★追加: テーマ変更時にスムーズに色が変わる */
+      transition: background 0.6s ease;
+    }
+
+@keyframes spin{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
+
+.app{ width:100%; max-width:720px; margin:0 auto; position:relative; z-index:2; }
+
+/* ========== ヘッダー修正 ========== */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: 8px;
+  min-height: 44px;
+  /* ★修正: flex-wrapを許可して折り返せるように */
+  flex-wrap: wrap;
+  /* ヘッダー全体を2行に分けても良い場合は wrap を使う */
+}
+    
+    /* カラーバッジセット */
+    #colorSet {
+      display: flex;
+      gap: 6px;
+      /* ★修正: 最小幅を設定し、必要に応じて折り返し */
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .badge {
+      min-height: 36px;
+      padding: 6px 12px;
+      font-size: 13px;
+      /* ★修正: 幅を自動調整 */
+      flex: 0 0 auto;
+    }
+
+    /* 順序/ランダムトグル */
+    .order-toggle {
+      min-height: 36px;
+      padding: 0 10px;
+      font-size: 13px;
+      /* ★修正: 幅を自動調整 */
+      flex: 0 0 auto;
+    }
+    
+.title{font-weight:900;font-size:28px;letter-spacing:.5px}
+.row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:nowrap; /* ★修正: 改行させない */
+}
+
+/* ★修正: バッジの高さを統一 */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  /* 高さを統一 */
+  min-height:36px;
+  padding:6px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  background:linear-gradient(90deg,var(--accentA),var(--accentB));
+  color:#0b0416;
+  font-weight:800;
+  border:0;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);
+  /* ★追加: 改行防止 */
+  white-space:nowrap;
+}
+
+/* ★修正: 順番/ランダムボタンの高さを統一 */
+.order-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--border);
+  /* 高さを統一 */
+  min-height:36px;
+}
+    .order-toggle .ot-btn {
+      min-height: 32px;
+      padding: 4px 10px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      font-weight: 700;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      /* ★追加: タッチ最適化 */
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(255,255,255,0.2);
+      -webkit-touch-callout: none;
+      user-select: none;
+    }
+.order-toggle .ot-btn[aria-pressed="true"] {
+  background: linear-gradient(90deg, var(--accentA), var(--accentB));
+  color: #0b0416;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+}
+.order-toggle.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.card{background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));border:1px solid var(--border);border-radius:18px;padding:14px;backdrop-filter:blur(14px);box-shadow:0 12px 30px rgba(12,4,40,.5)}
+.problem{ text-align:center; font-size:56px; font-weight:900; letter-spacing:1px; padding:16px 10px; border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04)); border:1px solid var(--border);
+  text-shadow:0 0 14px color-mix(in oklab, var(--accentB) 55%, transparent), 0 0 10px color-mix(in oklab, var(--accentA) 45%, transparent);
+  margin-bottom:12px;
+}
+    .kuku-input{
+      text-align:right;
+      width:100%;
+      font-size:40px;
+      font-weight:900;
+      padding:14px 16px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      outline:none;
+      /* ★追加: タッチ最適化 */
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      /* ★追加: iOSのズーム防止 */
+      font-size: max(16px, 40px);
+    }
+.kuku-input::placeholder{ color: rgba(255,255,255,.85) }
+.keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px }
+.key{
+  font-size:30px;
+  padding:16px 10px;
+  text-align:center;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  color:#f2efff;
+  cursor:pointer;
+  user-select:none;
+  /* ★追加: タッチ最適化 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.15);
+  -webkit-touch-callout: none;
+  /* ★追加: ハードウェアアクセラレーション */
+  transform: translateZ(0);
+  will-change: transform;
+}
+.key:active{
+  transform:translateY(1px) scale(.99) translateZ(0);
+}
+.key.ok{ position:relative; font-weight:900; background:linear-gradient(90deg,var(--accentA),var(--accentB));
+  color:#0b0416; border:0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25), 0 6px 18px color-mix(in oklab,var(--accentB) 35%, transparent);}
+.key.ok::before{content:""; position:absolute; inset:0; border-radius:14px; background:linear-gradient(90deg,color-mix(in oklab,var(--accentA) 92%, transparent), color-mix(in oklab,var(--accentB) 92%, transparent)); mask:linear-gradient(#000,#000); opacity:.85; pointer-events:none}
+.statrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+.stat{ background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--border); border-radius:14px; padding:10px; text-align:center }
+.stat small{color:var(--muted)} .stat b{display:block;font-size:18px}
+.result{text-align:center;margin-top:10px;font-weight:900;min-height:28px}
+.result.ok{color:var(--ok)} .result.ng{color:var(--ng)}
+details{ margin-top:12px }
+summary{ list-style:none; cursor:pointer; padding:10px 12px; border-radius:12px; border:1px solid var(--border);
+  background:linear-gradient(90deg, color-mix(in oklab, var(--accentA) 25%, transparent), color-mix(in oklab, var(--accentB) 25%, transparent)),
+             linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  color:#fff; font-weight:800;}
+summary::-webkit-details-marker{ display:none }
+.section-body{ margin-top:10px; padding:10px; border-radius:12px; border:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); }
+    .pill{
+      padding:10px 18px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:linear-gradient(90deg, color-mix(in oklab, var(--accentA) 22%, transparent), color-mix(in oklab, var(--accentB) 22%, transparent));
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:#eae7ff;
+      cursor:pointer;
+      font-size:14px;
+      user-select:none;
+      letter-spacing:.02em;
+      /* ★追加: タッチ最適化 */
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(255,255,255,0.2);
+      -webkit-touch-callout: none;
+    }
+.pillset{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:6px }
+.label{ font-size:12px; color:var(--muted); margin:12px 0 8px }
+.pill.active{ outline:2px solid color-mix(in oklab, var(--accentA) 55%, transparent); box-shadow:0 0 20px color-mix(in oklab, var(--accentA) 35%, transparent)}
+footer{margin:16px 0 6px;text-align:center;color:#bcb6da;font-size:12px}
+
+.ta-on .card{ outline:2px solid color-mix(in oklab,var(--accentB) 70%,transparent);
+  box-shadow:0 0 24px color-mix(in oklab,var(--accentB) 40%, transparent); }
+
+    #best20, #best30, #best60, #best81, #best100, #best144 { display:none !important; }
+
+.table-wrap{ margin-top:8px }
+.history-table{ width:100%; border-collapse:collapse; margin-bottom:12px; font-size:12px }
+.history-table th,.history-table td{ padding:6px 4px; border-bottom:1px solid rgba(255,255,255,.18); text-align:left }
+.history-table thead th{ border-bottom:1px solid rgba(255,255,255,.35); font-weight:600 }
+.history-table .best-row{ background:rgba(255,255,255,.08) }
+.history-table .miss-row{ opacity:.7 }
+.history-table .best-badge{ font-size:14px }
+
+.iconbtn{
+  min-width:44px; min-height:44px; border-radius:12px; border:1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel), var(--panel2)); color:#fff; font-weight:900; cursor:pointer;
+}
+.iconbtn:active{ transform: translateY(1px) scale(.98) }
+
+/* ========== 停止ボタン(左下・テーマカラー連動) ========== */
+.ta-stop-fab {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: 20px;
+  z-index: 1200;
+  display: none;
+  /* 大きな円形ボタン */
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  /* 濃い背景 */
+  background: linear-gradient(135deg, rgba(30, 20, 60, 0.95), rgba(20, 15, 50, 0.95));
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  /* ★修正: テーマカラーに連動したネオン効果 */
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--accentA) 70%, transparent),
+    0 0 20px color-mix(in oklab, var(--accentA) 50%, transparent),
+    0 0 35px color-mix(in oklab, var(--accentB) 35%, transparent),
+    0 4px 16px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  /* パルスアニメーション */
+  animation: stopPulseThemed 2s ease-in-out infinite;
+  /* 中央揃え */
+  align-items: center;
+  justify-content: center;
+}
+
+/* ★修正: テーマカラー連動のパルスアニメーション */
+@keyframes stopPulseThemed {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, var(--accentA) 70%, transparent),
+      0 0 20px color-mix(in oklab, var(--accentA) 50%, transparent),
+      0 0 35px color-mix(in oklab, var(--accentB) 35%, transparent),
+      0 4px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px color-mix(in oklab, var(--accentA) 85%, transparent),
+      0 0 30px color-mix(in oklab, var(--accentA) 70%, transparent),
+      0 0 50px color-mix(in oklab, var(--accentB) 55%, transparent),
+      0 6px 20px rgba(0, 0, 0, 0.5);
+    transform: scale(1.05);
+  }
+}
+
+.ta-stop-fab:active {
+  transform: scale(0.92);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--accentA) 80%, transparent),
+    0 0 15px color-mix(in oklab, var(--accentA) 60%, transparent),
+    0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* 小さい画面での調整 */
+@media (max-width: 480px) {
+  .ta-stop-fab {
+    width: 64px;
+    height: 64px;
+    font-size: 14px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 16px;
+  }
+}
+
+@media (max-height: 700px) {
+  .ta-stop-fab {
+    width: 60px;
+    height: 60px;
+    font-size: 13px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+  }
+}
+    
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:1000;
+  transform: translateY(110%); transition: transform .28s ease;
+  background: rgba(10,7,20,.6); backdrop-filter: blur(18px);
+  border-top:1px solid var(--border); border-radius:18px 18px 0 0;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+.sheet-close{
+  position:absolute; top:6px; right:calc(8px + env(safe-area-inset-right)); z-index:3;
+  width:44px; height:44px; padding:0; border:0 !important; background:transparent !important;
+  appearance:none; -webkit-appearance:none; -webkit-tap-highlight-color:transparent;
+  border-radius:12px; outline:none; box-shadow:none; color:transparent; font-size:0; line-height:0;
+}
+.sheet-close::before,.sheet-close::after{
+  content:""; position:absolute; left:50%; top:50%; width:16px; height:2px; margin:-1px 0 0 -8px;
+  background:rgba(255,255,255,.92); border-radius:2px;
+}
+.sheet-close::before{ transform:rotate(45deg) } .sheet-close::after{ transform:rotate(-45deg) }
+.sheet-close:focus-visible{ box-shadow:0 0 0 2px color-mix(in oklab, var(--accentB) 45%, transparent) }
+.sheet-close:active{ transform:translateY(1px) scale(.98) }
+
+.sheet.show{ transform: translateY(0) }
+.sheet .grab{ width:50px; height:5px; border-radius:999px; background:rgba(255,255,255,.35); margin:8px auto }
+.sheet .inner{ padding:10px 14px 18px; height:calc(70vh); overflow:auto }
+
+@media (max-width:390px){
+  header{ flex-wrap:nowrap; gap:8px }
+  .title{ font-size:24px }
+  .badge{ padding:6px 10px; font-size:14px }
+}
+
+#paletteLabel{ display:inline } body.theme-mix #paletteLabel{ display:none }
+
+body.overlay-open{ overflow:hidden!important; touch-action:none!important; overscroll-behavior:none!important; -webkit-overflow-scrolling:auto!important }
+
+body.perf-lite .beams{ display:none }
+body.perf-lite .card, body.perf-lite .stat, body.perf-lite .problem, body.perf-lite .key{ backdrop-filter:none; box-shadow:none; text-shadow:none }
+
+body.theme-mix{ --accentA:#ff4dc4; --accentB:#3bc7ff; }
+body.theme-pink{ --accentA:#ff7adf; --accentB:#ff5ea6; }
+body.theme-blue{ --accentA:#7ad3ff; --accentB:#3bc7ff; }
+
+#timerFree{ display:none !important }
+
+.modal{
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: none;
+}
+.modal.show{ display:block; }
+.modal .back{
+  position: absolute; inset: 0;
+  background: rgba(6,4,20,.60);
+  backdrop-filter: blur(10px);
+}
+.modal .panel{
+  position: absolute; left:50%; top:50%;
+  transform: translate(-50%,-50%);
+  width: min(92vw, 560px);
+  max-height: min(84vh, 720px);
+  overflow: auto;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 48px rgba(12,4,40,.55);
+  padding: 14px;
+}
+    
+    /* ★追加: 初回起動モーダル専用スタイル */
+    #firstLaunchModal .panel {
+      max-height: min(90vh, 720px);
+      padding: 20px 14px;
+    }
+
+    #firstLaunchModal .small {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #firstLaunchModal a {
+      transition: opacity 0.2s ease;
+    }
+
+    #firstLaunchModal a:active {
+      opacity: 0.7;
+    }
+
+#faceBox{
+  width: clamp(220px, 72vw, 340px) !important;
+  height: clamp(220px, 72vw, 340px) !important;
+  margin: 16px auto !important;
+}
+
+/* ★修正4: ポップアップのボタンサイズとカラー統一 */
+    .btn{
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 20px;
+      min-width: 100px;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      /* ★追加: タッチ最適化 */
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(255,255,255,0.2);
+      -webkit-touch-callout: none;
+      user-select: none;
+    }
+    .btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+    .btn.grad{
+      background: linear-gradient(90deg, var(--accentA), var(--accentB));
+      color: #0b0416;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.25),
+                  0 6px 18px color-mix(in oklab,var(--accentB) 35%, transparent);
+    }
+
+.btnrow{ display:flex; gap:10px; justify-content:center; margin-top:10px; }
+.small{ color:var(--muted); font-size:13px; }
+.h{ font-weight:900; font-size:20px; margin:4px 0 8px; }
+
+/* ★修正: 応援マスコット（顔）のスタイル - 中央固定、バウンスのみ */
+.mascot {
+  position: fixed;
+  /* 中央固定 */
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  /* 最初から中央に配置 */
+  transform: translateX(-50%);
+  z-index: 999;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: visible;
+  /* バウンスのみのアニメーション */
+  animation: mascotBounce 0.6s ease-out;
+  pointer-events: none;
+}
+    
+    /* 画面が小さい場合はさらに小さく */
+    @media (max-height: 700px) {
+      .mascot {
+        width: 80px;
+        height: 80px;
+        bottom: calc(8px + env(safe-area-inset-bottom));
+      }
+    }
+
+    .mascot img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      border: 3px solid rgba(255,255,255,0.3);
+    }
+    /* ★修正: 正解時の吹き出し - 白のみ、枠なし、顔に近づける */
+    .mascot-bubble {
+      position: absolute;
+      /* 顔のすぐ上に配置 */
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      /* 顔との距離を縮める */
+      margin-bottom: 8px;
+      padding: 8px 14px;
+      /* 白背景のみ */
+      background: #ffffff;
+      /* テキストを濃い色に変更 */
+      color: #2d1b69;
+      font-weight: 900;
+      font-size: 15px;
+      border-radius: 16px;
+      white-space: nowrap;
+      /* シンプルな影のみ */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      animation: bubblePop 0.4s ease-out;
+    }
+    /* 吹き出しの矢印 */
+    .mascot-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      /* 白色の吹き出し矢印 */
+      border-top: 8px solid #ffffff;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+    }
+
+    /* ★修正: バウンスアニメーション - 中央固定、上下のみ */
+    @keyframes mascotBounce {
+      0% {
+        /* 下から */
+        transform: translateX(-50%) translateY(50px) scale(0.3);
+        opacity: 0;
+      }
+      50% {
+        /* 少し跳ね上がる */
+        transform: translateX(-50%) translateY(-15px) scale(1.1);
+        opacity: 1;
+      }
+      70% {
+        /* 少し下がる */
+        transform: translateX(-50%) translateY(5px) scale(0.95);
+      }
+      100% {
+        /* 元の位置 */
+        transform: translateX(-50%) translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+
+    /* ★修正: 吹き出しポップアニメーション - 中央固定 */
+    @keyframes bubblePop {
+      0% {
+        transform: translateX(-50%) scale(0);
+        opacity: 0;
+      }
+      70% {
+        transform: translateX(-50%) scale(1.1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* 涙のアニメーション（ミス時） */
+    .mascot .tear {
+      position: absolute;
+      top: 40%;
+      width: 8px;
+      height: 12px;
+      background: linear-gradient(180deg, rgba(59,199,255,0.9), rgba(59,199,255,0.3));
+      border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+      animation: tearDrop 1.2s ease-in-out infinite;
+    }
+    .mascot .tear.left { left: 25%; }
+    .mascot .tear.right { right: 25%; }
+
+    @keyframes tearDrop {
+      0%, 100% {
+        transform: translateY(0);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      80% {
+        transform: translateY(60px);
+        opacity: 0.5;
+      }
+    }
+
+/* カウントダウンアニメーション */
+@keyframes pop-grow {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pop-grow {
+  animation: pop-grow 0.4s ease-out;
+}
+
+button.pill.grad,
+#openHistory.pill.grad{
+  background: linear-gradient(90deg, var(--accentA), var(--accentB)) !important;
+  border: 0 !important; color:#0b0416 !important; font-weight:900;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25),
+              0 6px 18px color-mix(in oklab,var(--accentB) 35%, transparent);
+}
+.order-toggle .ot-btn[aria-pressed="true"]{
+  background: linear-gradient(90deg, var(--accentA), var(--accentB)) !important;
+  border:0 !important; color:#0b0416 !important; font-weight:900;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25),
+              0 6px 18px color-mix(in oklab,var(--accentB) 35%, transparent);
+}
+.key.ok, .btn.grad{
+  background: linear-gradient(90deg, var(--accentA), var(--accentB)) !important;
+  border:0 !important; color:#0b0416 !important; font-weight:900;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25),
+              0 6px 18px color-mix(in oklab,var(--accentB) 35%, transparent);
+}
+
+    /* ========== 詳細設定ボタン(右下・ピル型) ========== */
+    .fab {
+      position: fixed;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      right: 20px;
+      z-index: 100;
+    }
+
+    .fab button {
+      /* ★修正: ピル型（両端が円形の細長い形） */
+      min-width: 84px;
+      height: 40px;
+      padding: 0 16px;
+      background: linear-gradient(135deg, var(--accentA) 0%, var(--accentB) 100%);
+      color: white;
+      border: none;
+      border-radius: 999px;  /* ★修正: 完全な円形の両端 */
+      /* ★修正: 文字を小さく */
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow:
+        0 0 12px color-mix(in oklab, var(--accentA) 50%, transparent),
+        0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .fab button:hover {
+      transform: scale(1.05);
+      box-shadow:
+        0 0 20px color-mix(in oklab, var(--accentA) 70%, transparent),
+        0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .fab button:active {
+      transform: scale(0.98);
+    }
+
+    /* モバイル対応 */
+    @media (max-height: 700px) {
+      .fab {
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        right: 12px;
+      }
+      
+      .fab button {
+        min-width: 76px;
+        height: 36px;
+        font-size: 12px;
+        padding: 0 14px;
+      }
+    }
+    
+    /* ========== ポップアップ内のテキスト中央揃え ========== */
+    /* 完走ポップアップ */
+    #resultModal .panel {
+      text-align: center;
+    }
+
+    #resultModal .h {
+      text-align: center;
+      margin: 4px 0 12px;
+    }
+
+    #resultModal .small {
+      text-align: center;
+      white-space: pre-line;
+      line-height: 1.6;
+    }
+
+    /* 確認ダイアログ（confirmAsync） */
+    .modal .panel .h {
+      text-align: center;
+      white-space: pre-line;
+      line-height: 1.7;
+      margin: 8px 0 16px;
+    }
+
+    /* スタートモーダルも中央揃え */
+    #startModal .panel {
+      text-align: center;
+    }
+
+    #startModal .h {
+      text-align: center;
+      margin: 4px 0 8px;
+    }
+
+    #startModal .small {
+      text-align: center;
+      white-space: pre-line;
+      line-height: 1.6;
+    }
+
+    /* 履歴モーダルのタイトルも中央揃え */
+    #historyModal .h {
+      text-align: center;
+      margin: 4px 0 12px;
+    }
+
+    /* ========== プライバシーポリシー・利用規約モーダル ========== */
+    #privacyModal .panel,
+    #termsModal .panel {
+      text-align: left;
+      padding: 20px;
+    }
+
+    #privacyContent,
+    #termsContent {
+      text-align: left;
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 13px;
+      color: var(--text);
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 12px 0;
+    }
+
+    #privacyTitle,
+    #termsTitle {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    /* スクロールバーのスタイル */
+    #privacyContent::-webkit-scrollbar,
+    #termsContent::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #privacyContent::-webkit-scrollbar-track,
+    #termsContent::-webkit-scrollbar-track {
+      background: rgba(255,255,255,.05);
+      border-radius: 4px;
+    }
+
+    #privacyContent::-webkit-scrollbar-thumb,
+    #termsContent::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.2);
+      border-radius: 4px;
+    }
+
+    #privacyContent::-webkit-scrollbar-thumb:hover,
+    #termsContent::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,.3);
+    }
+
+    /* ========== カメラ説明モーダル ========== */
+    #cameraExplainModal .panel,
+    #cameraDeniedModal .panel {
+      padding: 24px 20px;
+    }
+
+    #cameraExplainBody,
+    #cameraDeniedBody {
+      font-size: 14px;
+      color: var(--text);
+      margin: 16px 0;
+    }
+
+    #cameraExplainBody ul,
+    #cameraDeniedBody ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    #cameraExplainBody li,
+    #cameraDeniedBody li {
+      margin: 6px 0;
+    }
+
+    #cameraExplainPrivacy {
+      font-size: 12px;
+    }
+
+    #cameraExplainDontShow {
+      cursor: pointer;
+    }
+    
+    /* ========== テンキーのスクロール防止 ========== */
+    .numpad button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+    }
+    
+    /* 3. 問題表示エリアの制御 - スクロール無効 */
+    #question-area,
+    .problem {
+      touch-action: none; /* スクロール完全無効 */
+      overscroll-behavior: contain;
+    }
+
+    /* 4. 答え表示エリアの制御 - スクロール無効 */
+    .answer,
+    #answer {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #answer-display {
+      touch-action: pan-y pinch-zoom; /* 縦スクロールとピンチズームのみ許可 */
+    }
+        /* 2. テンキー領域のタッチ制御 - スクロール無効 */
+        .numpad {
+            touch-action: manipulation; /* タップのみ許可、スクロール無効 */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: contain;
+        }
+        
+        /* 9. アプリコンテナは通常のスクロールを許可 */
+        .app {
+            touch-action: auto;
+            overflow: visible;
+        }
+        
+        /* 10. ヘッダーとフッターは固定（スクロール不要） */
+        header,
+        footer {
+            touch-action: none;
+        }
+        }
+        
+        /* iOS専用タッチ最適化 */
+        @supports (-webkit-touch-callout: none) {
+          /* iOSのみ */
+          * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+          }
+          
+          input, textarea {
+            -webkit-user-select: auto;
+          }
+          
+          button, .key, .pill, .btn {
+            cursor: pointer;
+            -webkit-tap-highlight-color: rgba(255,255,255,0.15);
+          }
+        }
+
+      /* ============================
+   App Store Lite: 応援(カメラ/写真)を完全非表示
+   ============================ */
+body.appstore-lite #secCheer,
+body.appstore-lite #faceBtn,
+body.appstore-lite #faceDel,
+body.appstore-lite #faceModal,
+body.appstore-lite #cameraExplainModal,
+body.appstore-lite #cameraDeniedModal,
+body.appstore-lite #facePickFile,
+body.appstore-lite #faceFileInput,
+body.appstore-lite #cam,
+body.appstore-lite #shot {
+  display: none !important;
+}
+        
+</style>
+</head>
+
+<body class="theme-mix appstore-lite">
+    <!-- ★追加: スクリーンリーダー用（非表示） -->
+    <div id="ariaLive" aria-live="polite" aria-atomic="true" style="position:absolute; left:-9999px; width:1px; height:1px;"></div>
+  <div class="wall"></div>
+  <div class="beams"></div>
+
+  <div class="app">
+    <header>
+      <div class="title" id="titleTxt">KuKuドリル</div>
+      <div class="row">
+        <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
+        <button id="showStatsBtn" class="badge" onclick="showStats()">📊統計</button>
+        <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
+          <button id="orderSeqBtn" class="ot-btn" aria-pressed="false" title="順番"><span>🔢</span></button>
+          <button id="orderRndBtn" class="ot-btn" aria-pressed="true"  title="ランダム"><span>🔀</span></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="card">
+      <div id="problem" class="problem" aria-live="assertive" aria-atomic="true">— × — = ?</div>
+      <input id="answer" class="kuku-input" type="text" inputmode="none" placeholder="こたえ" readonly aria-labelledby="problem">
+
+      <div class="keypad">
+        <button type="button" class="key">7</button><button type="button" class="key">8</button><button type="button" class="key">9</button>
+        <button type="button" class="key">4</button><button type="button" class="key">5</button><button type="button" class="key">6</button>
+        <button type="button" class="key">1</button><button type="button" class="key">2</button><button type="button" class="key">3</button>
+        <button type="button" class="key">0</button><button type="button" class="key">⌫</button><button type="button" class="key ok" id="okKey">OK</button>
+      </div>
+
+      <div id="result" class="result"></div>
+      <div class="statrow">
+        <div class="stat"><small id="labScore">スコア</small><b id="score">0</b></div>
+        <div class="stat"><small id="labStreak">れんさ</small><b id="streak">0</b></div>
+        <div class="stat"><small id="labAvg">平均タイム</small><b id="avgTime">—</b></div>
+      </div>
+
+      <details id="rangeD">
+        <summary id="rngTitle">出題範囲（かけられる数 × かける数）</summary>
+        <div class="section-body">
+          <div class="label" id="labA">かけられる数（段）</div>
+          <div id="danSet" class="pillset"></div>
+          <div class="label" id="labB" style="margin-top:10px">かける数（1〜10）</div>
+          <div id="kuSet" class="pillset"></div>
+        </div>
+      </details>
+
+      <details id="modeD">
+        <summary id="labMode">モード</summary>
+        <div class="section-body pillset" id="modeSet">
+          <button class="pill active" data-mode="product" id="modeP">答えを入力（標準）</button>
+          <button class="pill" data-mode="missingB" id="modeMB">□ × B = ?（左を入力）</button>
+          <button class="pill" data-mode="missingA" id="modeMA">A × □ = ?（右を入力）</button>
+        </div>
+      </details>
+
+      <details id="ttD">
+        <summary id="timerLabel">タイムアタック</summary>
+        <div class="section-body">
+            <div class="pillset">
+              <button class="pill" id="timer20">20問</button><span class="pill small" id="best20" style="opacity:.65">Best: —</span>
+              <button class="pill" id="timer30">30問</button><span class="pill small" id="best30" style="opacity:.65">Best: —</span>
+              <button class="pill" id="timer60">60問</button><span class="pill small" id="best60" style="opacity:.65">Best: —</span>
+              <button class="pill" id="timer81">九九(81問)</button><span class="pill small" id="best81" style="opacity:.65">Best: —</span>
+              <button class="pill" id="timer100">10×10(100問)</button><span class="pill small" id="best100" style="opacity:.65">Best: —</span>
+              <!-- ★追加: 144問ボタン -->
+              <button class="pill" id="timer144">12×12(144問)</button><span class="pill small" id="best144" style="opacity:.65">Best: —</span>
+              <button class="pill" id="timerFree">無制限</button>
+              <button class="pill grad" id="openHistory">履歴</button>
+            </div>
+
+          <div class="label" id="labDanTT" style="margin-top:10px">段タイムアタック</div>
+          <div class="pillset" id="danTTSet">
+            <button class="pill" id="timerDan1">1段</button>
+            <button class="pill" id="timerDan2">2段</button>
+            <button class="pill" id="timerDan3">3段</button>
+            <button class="pill" id="timerDan4">4段</button>
+            <button class="pill" id="timerDan5">5段</button>
+            <button class="pill" id="timerDan6">6段</button>
+            <button class="pill" id="timerDan7">7段</button>
+            <button class="pill" id="timerDan8">8段</button>
+            <button class="pill" id="timerDan9">9段</button>
+            <button class="pill" id="timerDan10">10段</button>
+            <!-- ★追加: 11段、12段 -->
+            <button class="pill" id="timerDan11">11段</button>
+            <button class="pill" id="timerDan12">12段</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <footer>&copy; KuKuドリル</footer>
+  </div>
+
+  <button id="taStopFab" class="ta-stop-fab" type="button" aria-label="タイムアタックを停止" style="display:none">停止</button>
+
+  <div class="fab"><button id="openSettings">⚙️詳細設定</button></div>
+
+  <div class="sheet" id="sheet" aria-hidden="true">
+    <div class="grab"></div>
+    <button class="iconbtn sheet-close" id="closeSettingsTop" aria-label="閉じる" title="閉じる">✕</button>
+    <div class="inner">
+      <div class="label" id="secSound">サウンド</div>
+      <div class="pillset" id="soundPack">
+        <div class="opt pill" data-pack="synth">Synth Pop</div>
+        <div class="opt pill" data-pack="edm">EDM</div>
+        <div class="opt pill" data-pack="cute">Cute</div>
+      </div>
+
+      <div class="label" id="secLang">言語設定</div>
+      <div class="pillset" id="langSet">
+        <button class="pill" data-lang="ja">日本語 | JP</button>
+        <button class="pill" data-lang="en">英語 | EN</button>
+      </div>
+
+      <div class="label" id="secTog">読み上げ / 効果音 / 応援</div>
+      <div class="pillset" id="toggles">
+        <button class="pill toggle" data-flag="speak" id="togSpeak">読み上げ</button>
+        <button class="pill toggle" data-flag="sfx"   id="togSfx">効果音</button>
+        <button class="pill toggle" data-flag="cheer" id="togCheer">応援</button>
+      </div>
+      
+      <div class="label" id="secPerf">パフォーマンス</div>
+      <div class="pillset">
+        <button class="pill toggle" id="togLite" data-flag="lite">軽量モード</button>
+      </div>
+
+      <div class="label" id="secCheer">応援</div>
+      <div class="pillset">
+        <button class="pill" id="faceBtn">顔を設定</button>
+        <button class="pill" id="faceDel">顔を削除</button>
+      </div>
+
+      <div class="label" id="secBg">背景画像</div>
+      <div class="pillset">
+        <button class="pill" id="bgPick">背景を選択</button>
+        <button class="pill" id="bgReset">背景リセット</button>
+        <input type="file" id="bgFile" accept="image/*" style="display:none">
+      </div>
+
+      <div class="label" id="secBright">明るさ</div>
+      <input type="range" id="bgBright" min="0" max="100" value="36" style="width:100%">
+
+      <div class="label" id="secSize" style="margin-top:12px">背景サイズ</div>
+      <input type="range" id="bgSize" min="100" max="200" value="100" style="width:100%">
+
+      <div class="label" id="dataLabel" style="margin-top:12px">データ</div>
+      <div class="pillset">
+        <button class="pill" id="hardResetBtn" type="button">すべてのデータを削除</button>
+      </div>
+      
+      <div class="label" id="secPrivacy" style="margin-top:12px">法的情報</div>
+      <div class="pillset">
+        <button class="pill" id="privacyBtn">プライバシーポリシー</button>
+        <button class="pill" id="termsBtn">利用規約</button>
+      </div>
+
+
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button class="btn grad" id="closeSettings">閉じる</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- カメラ使用説明モーダル -->
+  <div class="modal" id="cameraExplainModal">
+    <div class="back"></div>
+    <div class="panel" style="text-align:center; max-width:480px;">
+      <div style="font-size:48px; margin:16px 0;">📸</div>
+      <div class="h" id="cameraExplainTitle">カメラの使用について</div>
+      <div class="small" id="cameraExplainBody" style="text-align:left; line-height:1.8; padding:0 8px;">
+  <!-- JavaScriptで挿入 -->
+      </div>
+      <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                  border:1px solid var(--border); border-radius:12px; padding:12px; margin:16px 0; text-align:left;">
+        <div style="font-size:13px; color:var(--muted); line-height:1.6;" id="cameraExplainPrivacy">
+  <!-- JavaScriptで挿入 -->
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="cameraExplainCancel">キャンセル</button>
+        <button class="btn grad" id="cameraExplainOk">カメラを起動</button>
+      </div>
+      <div style="margin-top:12px;">
+        <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--muted);">
+          <input type="checkbox" id="cameraExplainDontShow" style="width:16px; height:16px;">
+          <span id="cameraExplainDontShowLabel">次回から表示しない</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- カメラアクセス拒否モーダル -->
+  <div class="modal" id="cameraDeniedModal">
+    <div class="back"></div>
+    <div class="panel" style="text-align:center; max-width:480px;">
+      <div style="font-size:48px; margin:16px 0;">🚫</div>
+      <div class="h" id="cameraDeniedTitle">カメラへのアクセスが拒否されました</div>
+      <div class="small" id="cameraDeniedBody" style="text-align:left; line-height:1.8; padding:0 8px;">
+  <!-- JavaScriptで挿入 -->
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="cameraDeniedUseFile">ファイルから選択</button>
+        <button class="btn grad" id="cameraDeniedSettings">設定を開く</button>
+      </div>
+      <div class="btnrow" style="margin-top:8px;">
+        <button class="btn" id="cameraDeniedClose" style="width:100%;">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="faceModal"><div class="back"></div><div class="panel" style="text-align:center">
+    <div class="h" id="faceTitle">応援の顔を撮影</div>
+    <div class="small" id="faceHint">丸枠に顔を入れてね。<br><strong>※カメラ映像はデバイス内のみで処理され、外部に送信されません。</strong></div>
+    <div id="faceBox" style="position:relative; width:min(70vw,320px); height:min(70vw,320px); margin:16px auto;">
+      <video id="cam" autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#000"></video>
+      <canvas id="shot" width="320" height="320" style="position:absolute;inset:0;width:100%;height:100%;border-radius:50%;display:none"></canvas>
+      <div style="position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 6px rgba(255,255,255,.9);pointer-events:none"></div>
+    </div>
+    <button class="btn" id="facePickFile" style="margin-bottom: 10px;">撮影 | ファイルから選択</button>
+    <input type="file" id="faceFileInput" accept="image/*" style="display:none">
+    <div class="btnrow">
+      <button class="btn" id="faceCancel">キャンセル</button>
+      <button class="btn grad" id="faceTake">撮影</button>
+      <button class="btn grad" id="faceSave" disabled>保存</button>
+    </div>
+  </div></div>
+
+  <div class="modal" id="startModal"><div class="back"></div><div class="panel" style="text-align:center">
+    <div class="h" id="startTitle">スタートしますか？</div>
+    <div class="small" id="startDesc">選択した本数で開始します。</div>
+    <div id="countNum" style="font-size:46px;font-weight:900;margin:8px 0">⏱</div>
+    <div class="btnrow">
+      <button class="btn" id="startCancel">キャンセル</button>
+      <button class="btn grad" id="startGo">OK</button>
+    </div>
+  </div></div>
+
+  <div class="modal" id="resultModal"><div class="back"></div><div class="panel">
+    <div class="h" id="rpTitle">結果</div>
+    <div class="small" id="rpBody" style="white-space:pre-line">—</div>
+    <div class="btnrow">
+      <button class="btn grad" id="rpShare">共有</button>
+      <button class="btn" id="rpCopy">コピー</button>
+      <button class="btn grad" id="rpClose">OK</button>
+    </div>
+  </div></div>
+
+    <!-- 履歴モーダル -->
+<div class="modal" id="historyModal">
+  <div class="back"></div>
+  <div class="panel">
+    <div class="h" id="histTitle">履歴（直近10件）</div>
+
+    <div id="historyContent" class="small"
+         style="text-align:left; line-height:1.6; white-space:normal;"></div>
+
+    <div class="btnrow">
+      <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
+      <button class="btn grad" id="historyClose" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+    
+<!-- ========================================
+     統計画面モーダル（既存のモーダルスタイルに統一）
+     ======================================== -->
+<div class="modal" id="statsModal">
+  <div class="back" onclick="closeStats()"></div>
+  <div class="panel" style="display:flex; flex-direction:column; max-height:85vh;">
+    <button class="sheet-close" onclick="closeStats()" aria-label="閉じる"></button>
+    
+    <div class="h" style="text-align:center; margin-bottom:16px;">📊 統計</div>
+    
+    <!-- 全体統計 -->
+    <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                padding:16px; 
+                border-radius:12px; 
+                border:1px solid var(--border); 
+                margin-bottom:16px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">総問題数</div>
+          <div style="font-size:20px; font-weight:900; color:var(--accentA);">
+            <span id="totalQuestions">0</span>問
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">平均スコア</div>
+          <div style="font-size:20px; font-weight:900; color:var(--accentB);">
+            <span id="avgScore">0</span>点
+          </div>
+        </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
+          <div style="font-size:16px; font-weight:800;">
+            <span id="avgTime">0</span>秒
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">最高スコア</div>
+          <div style="font-size:16px; font-weight:800; color:var(--ok);">
+            <span id="bestScore">0</span>点
+          </div>
+        </div>
+        <div>
+          <div class="small" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
+          <div style="font-size:16px; font-weight:800; color:var(--accentB);">
+            <span id="bestTime">0</span>秒
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 段別成績 -->
+    <div class="h" style="font-size:16px; margin-bottom:12px;">段別成績</div>
+    <div id="danStats" style="flex-grow:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;"></div>
+    
+    <!-- 閉じるボタン -->
+    <div class="btnrow" style="margin-top:16px;">
+      <button class="btn grad" onclick="closeStats()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+'use strict';
+// 🔄 Cache Buster: 2025-12-26 11:38 (現在の日時を入力)
+
+// ========================================
+// IndexedDB 初期化
+// ========================================
+
+// ========================================
+// IndexedDB による永続化（KuKu Drill+）
+// ========================================
+
+// データベースの初期化
+let db;
+const DB_NAME = 'KuKuDrillDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'records';
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+    
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+        objectStore.createIndex('danNumber', 'danNumber', { unique: false });
+      }
+    };
+  });
+}
+
+// ========================================
+// 統計画面の表示・非表示
+// ========================================
+
+async function showStats() {
+
+  try {
+    const allRecords = await getAllRecords();
+    
+    if (allRecords.length === 0) {
+      alert('まだ記録がありません！タイムアタックを完了させてください。');
+      return;
+    }
+    
+    // 全体統計を計算
+    const totalQuestions = allRecords.reduce((sum, r) => sum + r.questionCount, 0);
+    const avgScore = (allRecords.reduce((sum, r) => sum + r.score, 0) / allRecords.length).toFixed(1);
+    const avgTime = (allRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0) / allRecords.length).toFixed(1);
+    const bestScore = Math.max(...allRecords.map(r => r.score));
+    const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
+    
+    // 全体統計を表示
+    document.getElementById('totalQuestions').innerText = totalQuestions;
+    document.getElementById('avgScore').innerText = avgScore;
+    document.getElementById('avgTime').innerText = avgTime;
+    document.getElementById('bestScore').innerText = bestScore;
+    document.getElementById('bestTime').innerText = bestTime;
+    
+// 段別統計を表示
+// 段別統計を表示
+const danStatsDiv = document.getElementById('danStats');
+danStatsDiv.innerHTML = '';
+
+for (let i = 1; i <= 12; i++) {
+  const stats = await getStatsByDan(i);
+  if (stats) {
+    const danDiv = document.createElement('div');
+    danDiv.style.cssText = `
+      margin:0 0 10px 0; 
+      padding:14px; 
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+      border-radius:12px; 
+      border:1px solid var(--border);
+      border-left:4px solid var(--accentA);
+    `;
+    danDiv.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${i}の段</strong>
+        <span style="color:var(--muted); font-size:13px;">挑戦回数: ${stats.totalAttempts}回</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+        <div>平均: <strong style="color:var(--text);">${stats.avgScore}点</strong></div>
+        <div>最高: <strong style="color:var(--ok);">${stats.bestScore}点</strong></div>
+        <div>平均: <strong style="color:var(--text);">${stats.avgTime}秒</strong></div>
+        <div>最速: <strong style="color:var(--accentB);">${stats.bestTime}秒</strong></div>
+      </div>
+    `;
+    danStatsDiv.appendChild(danDiv);
+  }
+}
+    
+// 統計画面とオーバーレイを表示
+    document.getElementById('statsModal').classList.add('show');
+    
+    console.log('📊 統計画面を表示しました');
+    
+  } catch (err) {
+    console.error('❌ 統計表示エラー:', err);
+    alert('統計の表示に失敗しました: ' + err.message);
+  }
+}
+
+// 統計画面を閉じる
+function closeStats() {
+  document.getElementById('statsModal').classList.remove('show');
+  console.log('📊 統計画面を閉じました');
+}
+
+// 記録を保存
+async function saveRecord(record) {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const objectStore = transaction.objectStore(STORE_NAME);
+    const request = objectStore.add({
+      timestamp: Date.now(),
+      questionCount: record.questionCount,
+      timeTaken: record.timeTaken,
+      score: record.score,
+      danNumber: record.danNumber || null,
+      mode: record.mode || 'normal'
+    });
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// すべての記録を取得
+async function getAllRecords() {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const objectStore = transaction.objectStore(STORE_NAME);
+    const request = objectStore.getAll();
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// 段別の統計を取得
+async function getStatsByDan(danNumber) {
+  const allRecords = await getAllRecords();
+  const danRecords = allRecords.filter(r => r.danNumber === danNumber);
+  
+  if (danRecords.length === 0) return null;
+  
+  const totalScore = danRecords.reduce((sum, r) => sum + r.score, 0);
+  const totalTime = danRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0);
+  const avgScore = totalScore / danRecords.length;
+  const avgTime = totalTime / danRecords.length;
+  
+  return {
+    totalAttempts: danRecords.length,
+    avgScore: avgScore.toFixed(1),
+    avgTime: avgTime.toFixed(1),
+    bestScore: Math.max(...danRecords.map(r => r.score)),
+    bestTime: Math.min(...danRecords.map(r => parseFloat(r.timeTaken))).toFixed(1)
+  };
+}
+
+// アプリ起動時にDBを初期化
+initDB().then(() => {
+  console.log('✅ IndexedDB initialized');
+}).catch(err => {
+  console.error('❌ IndexedDB initialization failed:', err);
+});
+
+/* ========= 0) 初期ユーティリティ ========= */
+    // ユーザーインタラクションフラグ（即座に有効化）
+    let userInteracted = true;  // ★修正: 最初からtrueに設定（待機時間をゼロに）
+    
+function measureFps(n=10){return new Promise(r=>{let f=0,s;function step(t){if(!s)s=t;if(++f<n)requestAnimationFrame(step);else r(1000*f/(t-s));}requestAnimationFrame(step);});}
+function applyLite(v){ document.body.classList.toggle('perf-lite', !!v); localStorage.setItem('kukuLite', v?'1':'0'); }
+(()=>{ applyLite(false); localStorage.setItem('kukuLite','0'); })();
+
+function debounce(fn, ms) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, ms);
+  };
+}
+
+/* ========= 1) localStorage safe shim ========= */
+(function(){
+  let ok=true; try{const k='__ls__'; localStorage.setItem(k,'1'); localStorage.removeItem(k);}catch(e){ok=false}
+  if(!ok){
+    let mem={};
+    window.localStorage = {
+      getItem:k=>Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null,
+      setItem:(k,v)=>{mem[k]=String(v)}, removeItem:k=>{delete mem[k]}, clear:()=>{mem={}},
+      key:i=>Object.keys(mem)[i]||null, get length(){return Object.keys(mem).length}
+    };
+    try{ alert('このビューアではデータ保存が無効です。履歴や設定は次回起動時に残りません。'); }catch(_){}
+  }
+})();
+
+/* ========= 2) アプリ本体(IIFE) ========= */
+    (function(){
+        const $=id=>document.getElementById(id);
+
+      const APPSTORE_LITE = document.body.classList.contains('appstore-lite');
+if (APPSTORE_LITE) {
+  // 応援を強制OFF（設定が残っていてもOFFに寄せる）
+  try { localStorage.setItem('kukuFlag_cheer', '0'); } catch (_) {}
+}
+        /* ========= 初回起動時のプライバシー同意画面 ========= */
+        async function showFirstLaunchPrivacy(){
+          console.log('🔴 showFirstLaunchPrivacy 開始');
+          
+          // 既に同意済みかチェック
+          const agreed = localStorage.getItem('privacyAgreed');
+          console.log('🔴 privacyAgreed:', agreed);
+          
+          if(agreed === '1'){
+            console.log('🔴 既に同意済みのためreturn');
+            return;
+          }
+
+          const firstModal = $('firstLaunchModal');  // ★ modal → firstModal に変更
+          console.log('🔴 firstLaunchModal:', firstModal);
+          
+          if(!firstModal) {  // ★ modal → firstModal
+            console.error('🔴 firstLaunchModal が見つかりません！');
+            return;
+          }
+
+          console.log('🔴 モーダルを表示します');
+          
+          // 言語取得
+          const currentLang = localStorage.getItem('kukuLang') || 'ja';
+          console.log('🔴 currentLang:', currentLang);
+          
+          // 言語に応じたテキストを設定
+          const title = $('firstLaunchTitle');
+          const body = $('firstLaunchBody');
+          const agreeBtn = $('firstLaunchAgree');
+
+          if(currentLang === 'en'){
+            if(title) title.innerHTML = 'Privacy & Data Handling';
+            
+            if(body){
+              body.innerHTML = `
+                <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                            border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+                  <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--text);">
+                    ✨ About This App
+                  </div>
+                  <div class="small" style="line-height:1.7; color:var(--muted);">
+                    KuKu Drill is an educational app for learning multiplication tables.<br>
+                    All data is stored only on your device and never transmitted externally.
+                  </div>
+                </div>
+
+                <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                            border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+                  <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--text);">
+                    🔒 Privacy Protection
+                  </div>
+                  <ul class="small" style="line-height:1.7; color:var(--muted); margin:0; padding-left:20px;">
+                    <li>Learning data stored on device only</li>
+                    <li>No internet required (fully offline)</li>
+                    <li>No personal information collected</li>
+                    <li>No ads or tracking</li>
+                  </ul>
+                </div>
+
+                <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                            border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+                  <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--text);">
+                    📸 Camera Feature (Optional)
+                  </div>
+                  <div class="small" style="line-height:1.7; color:var(--muted);">
+                    Cheer character feature can use camera.<br>
+                    • Camera use is <strong>completely optional</strong><br>
+                    • Photos stored on device only<br>
+                    • Never transmitted externally<br>
+                    • Can be deleted anytime
+                  </div>
+                </div>
+
+                <div style="background:linear-gradient(180deg, rgba(59,199,255,.12), rgba(59,199,255,.04)); 
+                            border:1px solid rgba(59,199,255,.3); border-radius:12px; padding:14px; margin-bottom:16px;">
+                  <div class="small" style="line-height:1.7; color:var(--text); text-align:center;">
+                    See
+                    <button id="privacyLinkFromFirst" 
+                            style="background:none; border:0; color:var(--accentB); 
+                                   text-decoration:underline; cursor:pointer; font-size:inherit; padding:0;">
+                      Privacy Policy
+                    </button>
+                    and
+                    <button id="termsLinkFromFirst"
+                            style="background:none; border:0; color:var(--accentB); 
+                                   text-decoration:underline; cursor:pointer; font-size:inherit; padding:0;">
+                      Terms of Use
+                    </button>
+                    for details
+                  </div>
+                </div>
+              `;
+            }
+
+            if(agreeBtn) agreeBtn.textContent = 'Agree & Start';
+          }
+
+          // モーダル表示
+          firstModal.classList.add('show');
+          setOverlayLock(true);
+
+          // 同意ボタンのイベント
+          const agreeButton = $('firstLaunchAgree');
+          if(agreeButton){
+            agreeButton.onclick = ()=>{
+              try{
+                localStorage.setItem('privacyAgreed', '1');
+                console.log('✅ Privacy agreed and saved');
+              }catch(e){
+                console.error('❌ Failed to save privacy agreement:', e);
+              }
+              
+              firstModal.classList.remove('show');
+              setOverlayLock(false);
+            };
+          }
+
+          // プライバシーポリシーリンク
+          const privacyLink = $('privacyLinkFromFirst');
+          if(privacyLink){
+            privacyLink.onclick = (e)=>{
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // 同意画面を閉じる
+              firstModal.classList.remove('show');
+              setOverlayLock(false);
+              
+              // 少し待ってからプライバシーポリシーを開く
+              setTimeout(()=>{
+                const privacyModal = $('privacyModal');
+                const privacyContent = $('privacyContent');
+                
+                if(privacyModal && privacyContent){
+                  // 日本語/英語に応じた内容を設定
+                  setupPrivacyContent();
+                  
+                  privacyModal.classList.add('show');
+                  setOverlayLock(true);
+                  
+                  // ★追加: 閉じるボタンのイベント
+                  const privacyClose = $('privacyClose');
+                  if(privacyClose){
+                    privacyClose.onclick = ()=>{
+                      privacyModal.classList.remove('show');
+                      setOverlayLock(false);
+                      
+                      // 初回起動画面に戻る
+                      setTimeout(()=>{
+                        firstModal.classList.add('show');
+                        setOverlayLock(true);
+                      }, 300);
+                    };
+                  }
+                  
+                  // ★追加: 背景クリックで閉じる
+                  const privacyBack = privacyModal.querySelector('.back');
+                  if(privacyBack){
+                    privacyBack.onclick = ()=>{
+                      privacyModal.classList.remove('show');
+                      setOverlayLock(false);
+                      
+                      // 初回起動画面に戻る
+                      setTimeout(()=>{
+                        firstModal.classList.add('show');
+                        setOverlayLock(true);
+                      }, 300);
+                    };
+                  }
+                }
+              }, 300);
+            };
+          }
+
+          // 利用規約リンク
+          const termsLink = $('termsLinkFromFirst');
+          if(termsLink){
+            termsLink.onclick = (e)=>{
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // 同意画面を閉じる
+              firstModal.classList.remove('show');
+              setOverlayLock(false);
+              
+              // 少し待ってから利用規約を開く
+              setTimeout(()=>{
+                const termsModal = $('termsModal');
+                const termsContent = $('termsContent');
+                
+                if(termsModal && termsContent){
+                  // 日本語/英語に応じた内容を設定
+                  setupTermsContent();
+                  
+                  termsModal.classList.add('show');
+                  setOverlayLock(true);
+                  
+                  // ★追加: 閉じるボタンのイベント
+                  const termsClose = $('termsClose');
+                  if(termsClose){
+                    termsClose.onclick = ()=>{
+                      termsModal.classList.remove('show');
+                      setOverlayLock(false);
+                      
+                      // 初回起動画面に戻る
+                      setTimeout(()=>{
+                        firstModal.classList.add('show');
+                        setOverlayLock(true);
+                      }, 300);
+                    };
+                  }
+                  
+                  // ★追加: 背景クリックで閉じる
+                  const termsBack = termsModal.querySelector('.back');
+                  if(termsBack){
+                    termsBack.onclick = ()=>{
+                      termsModal.classList.remove('show');
+                      setOverlayLock(false);
+                      
+                      // 初回起動画面に戻る
+                      setTimeout(()=>{
+                        firstModal.classList.add('show');
+                        setOverlayLock(true);
+                      }, 300);
+                    };
+                  }
+                }
+              }, 300);
+            };
+          }
+          }
+
+
+        const on=(el,ev,fn)=>el&&el.addEventListener(ev,fn);
+        const isiOS=/iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        /* 背面スクロール制御 */
+        function setOverlayLock(onLock){
+            const body=document.body;
+            body.classList.toggle('overlay-open',!!onLock);
+            if(onLock){
+                body.dataset.scrollY=String(window.scrollY);
+                body.style.position='fixed'; body.style.top=`-${window.scrollY}px`; body.style.width='100%';
+            }else{
+                const y=body.dataset.scrollY;
+                body.style.position=''; body.style.top=''; body.style.width='';
+                if(y) window.scrollTo(0,parseInt(y,10));
+            }
+        }
+        
+        async function confirmAsync(message){
+            return new Promise(resolve=>{
+                const m=document.createElement('div');
+                m.className='modal show';
+                m.innerHTML=`<div class="back"></div><div class="panel" style="text-align:center">
+        <div class="h">${message}</div>
+        <div class="btnrow">
+          <button class="btn" id="cfNo">${(appLang==='ja')?'キャンセル':'Cancel'}</button>
+          <button class="btn grad" id="cfYes">OK</button>
+        </div></div>`;
+        document.body.appendChild(m);
+        setOverlayLock(true);
+        const done=ok=>{ m.remove(); setOverlayLock(false); resolve(ok); };
+        m.querySelector('.back').onclick = ()=>done(false);
+        m.querySelector('#cfNo').onclick  = ()=>done(false);
+        m.querySelector('#cfYes').onclick = ()=>done(true);
+            });
+        }
+        
+        function scrollToInput(){
+          const a = $('answer');
+          if(!a) return;
+
+          // モーダル/ロック中は何もしない
+          if(document.querySelectorAll('.modal.show').length>0) return;
+          if(document.body.classList.contains('overlay-open')) return;
+
+          // まず要素へ寄せる（iOSで強い）
+          try{
+            a.scrollIntoView({ block:'center', inline:'nearest', behavior:'smooth' });
+          }catch(_){
+            // 古い環境フォールバック
+            const rect=a.getBoundingClientRect();
+            window.scrollTo(0, rect.top + window.pageYOffset - window.innerHeight/3);
+          }
+
+          // フォーカスでキーボードを出したい場合（スクロールはさせない）
+          setTimeout(()=>{
+            try{ a.focus({ preventScroll:true }); }catch(_){ a.focus(); }
+          }, 50);
+        }
+        
+        /* テーマ */
+        const paletteBtn=$('paletteBtn'), paletteLabel=$('paletteLabel'), paletteEmoji=$('paletteEmoji');
+        function setTheme(t){
+            document.body.classList.remove('theme-mix','theme-pink','theme-blue');
+            if(t==='pink'){
+                document.body.classList.add('theme-pink');
+                paletteLabel.textContent='PINK';
+                paletteEmoji.textContent='💖';
+            }
+            else if(t==='blue'){
+                document.body.classList.add('theme-blue');
+                paletteLabel.textContent='BLUE';
+                paletteEmoji.textContent='💙';
+            }
+            else{
+                document.body.classList.add('theme-mix');
+                paletteLabel.textContent='MIX';
+                paletteEmoji.textContent='💙×💖';
+                t='mix';
+            }
+            localStorage.setItem('kukuTheme', t);
+            
+            // ★追加: ビームを再描画してスムーズに色変更
+            const beams = document.querySelector('.beams');
+            if(beams){
+                beams.style.opacity = '0';
+                setTimeout(()=>{
+                    beams.style.opacity = '.9';
+                }, 50);
+            }
+        }
+        
+        setTheme(localStorage.getItem('kukuTheme')||'mix');
+        paletteBtn.onclick=()=>{ const cur=localStorage.getItem('kukuTheme')||'mix'; setTheme(cur==='mix'?'pink':(cur==='pink'?'blue':'mix')); };
+        
+        /* 言語 */
+        const i18n={
+            ja:{title:'KuKuドリル',answerPH:'こたえ',score:'スコア',streak:'れんさ',avg:'平均タイム',
+                range:'出題範囲（かけられる数 × かける数）',A:'かけられる数（段）',B:'かける数（1〜10）',
+                timer:'タイムアタック', notStarted:'未開始',
+                speakProb:(a,b)=>`${a} かける ${b}`,
+                remainOk:n=>`のこり ${n} 問（ミスなし）`, remainNg:n=>`のこり ${n} 問（ミスあり：記録外）`,
+                runDone:n=>`${n}問 完走！🏃💨`, runInvalid:`途中でまちがいがありました🤯ざんねん😢`,
+                bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}秒 / ${score}点（${date}）`,
+                thisTime:'今回', bestPrefix:'自己ベスト', secUnit:'秒', ptsUnit:'点',
+                unlimitedLine:(q,sec,pts)=>`解いた数: ${q}問 / 所要 ${sec}秒 / ${pts}点（記録対象外）`,
+                shareAllOk:(n,sec,pts)=>`KuKu ${n}問 完走🏃💨！ ⏱${sec}秒 / ${pts}点`,
+                shareGeneric:(n,sec,pts,ok,total)=>`KuKu ${n}問 ⏱${sec}秒 / ${pts}点 / ${ok}/${total}`,
+                shareUnlimited:(q,sec,pts)=>`KuKu 無制限 ${q}Q ⏱${sec}秒 / ${pts}点`},
+            en:{title:'KuKu Drill',answerPH:'answer',score:'Score',streak:'Streak',avg:'Avg time',
+                range:'Range (Multiplicand × Multiplier)',A:'Multiplicand (tables)',B:'Multiplier (1–10)',
+                timer:'Time Trial',notStarted:'Not started',
+                speakProb:(a,b)=>`${a} times ${b}`,
+                remainOk:n=>`${n} left (no miss)`, remainNg:n=>`${n} left (miss: no record)`,
+                runDone:n=>`${n}Q Completed!`, runInvalid:`Record void due to a mistake.`,
+                bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}s / ${score}pts (${date})`,
+                thisTime:'This run', bestPrefix:'Personal best', secUnit:'s', ptsUnit:'pts',
+                unlimitedLine:(q,sec,pts)=>`Solved: ${q}Q / Time ${sec}s / ${pts}pts (not recorded)`,
+                shareAllOk:(n,sec,pts)=>`KuKu ${n}Q All correct! ⏱${sec}s / ${pts}pts`,
+                shareGeneric:(n,sec,pts,ok,total)=>`KuKu ${n}Q ⏱${sec}s / ${pts}pts / ${ok}/${total}`,
+                shareUnlimited:(q,sec,pts)=>`KuKu Free ${q}Q ⏱${sec}s / ${pts}pts`}
+        };
+        let appLang=localStorage.getItem('kukuLang')||'ja';
+        function setLang(lang){
+            appLang=(lang==='en')?'en':'ja';
+            try{ localStorage.setItem('kukuLang',appLang); }catch(_){}
+            updateLangUI();
+            if(typeof refreshFaceButtons==='function') refreshFaceButtons();
+        }
+        on($('langSet'),'click',e=>{
+            const b=e.target.closest('button'); if(!b) return;
+            setLang(b.dataset.lang);
+            document.querySelectorAll('#langSet .pill').forEach(x=>x.classList.toggle('active',x===b));
+        });
+        function txt(el,s){ if(el) el.textContent=s; }
+        
+        let allowedA=new Set(JSON.parse(localStorage.getItem('allowedA')||'[1,2,3,4,5,6,7,8,9,10,11,12]'));
+        let allowedB=new Set(JSON.parse(localStorage.getItem('allowedB')||'[1,2,3,4,5,6,7,8,9,10,11,12]'));
+        
+        
+        function buildPills(container,type){
+            container.innerHTML='';
+            for(let i=1;i<=12;i++){
+                const set=(type==='A'?allowedA:allowedB); const active=set.has(i);
+                const btn=document.createElement('button'); btn.className='pill'+(active?' active':'');
+                btn.textContent=(type==='A'?(appLang==='ja'?i+'段':i+'×'):String(i));
+                btn.onclick=()=>{ set.has(i)?set.delete(i):set.add(i); btn.classList.toggle('active'); localStorage.setItem(type==='A'?'allowedA':'allowedB', JSON.stringify([...set])); pop(); newProblem(true); };
+                container.appendChild(btn);
+            }
+        }
+        
+        function updateLangUI(){
+            const t=i18n[appLang];
+            document.documentElement.lang=(appLang==='ja'?'ja':'en');
+            txt($('titleTxt'),t.title);
+            const ans=$('answer'); if(ans) ans.placeholder=t.answerPH;
+            txt($('labScore'),t.score); txt($('labStreak'),t.streak); txt($('labAvg'),t.avg);
+            txt($('rngTitle'),t.range); txt($('labA'),t.A); txt($('labB'),t.B);
+            document.querySelectorAll('#langSet .pill').forEach(b=>b.classList.toggle('active', b.dataset.lang===appLang));
+            txt($('labMode'), (appLang==='ja'?'モード':'Mode'));
+            txt($('modeP'),   (appLang==='ja'?'答えを入力（標準）':'Enter product (default)'));
+            txt($('modeMB'),  (appLang==='ja'?'□ × B = ?（左を入力）':'□ × B = ? (fill left)'));
+            txt($('modeMA'),  (appLang==='ja'?'A × □ = ?（右を入力）':'A × □ = ? (fill right)'));
+            const tl=$('timerLabel'); if(tl){ tl.textContent=t.timer; }
+            
+            const stopFab=$('taStopFab');
+            if(stopFab){
+                stopFab.textContent=(appLang==='ja')?'停止':'Stop';
+                stopFab.setAttribute('aria-label',(appLang==='ja')?'タイムアタックを停止':'Stop time trial');
+            }
+            
+            txt($('secSound'), appLang==='ja'?'サウンド':'Sound');
+            txt($('secLang'),  appLang==='ja'?'言語設定':'Language');
+            txt($('secTog'),   appLang==='ja'?'読み上げ / 効果音 / 応援':'TTS / SFX / Cheer');
+            txt($('secCheer'), appLang==='ja'?'応援':'Cheer');
+            txt($('secBg'),    appLang==='ja'?'背景画像':'Background');
+            txt($('secBright'),appLang==='ja'?'明るさ':'Brightness');
+            txt($('secSize'),  appLang==='ja'?'背景サイズ':'Background size');
+            txt($('dataLabel'),appLang==='ja'?'データ':'Data');
+            
+            txt($('togSpeak'), appLang==='ja'?'読み上げ':'TTS');
+            txt($('togSfx'),   appLang==='ja'?'効果音':'SFX');
+            txt($('togCheer'), appLang==='ja'?'応援':'Cheer');
+            
+            txt($('faceBtn'),  appLang==='ja'?'顔を設定':'Set face');
+            txt($('faceDel'),  appLang==='ja'?'顔を削除':'Remove face');
+            txt($('bgPick'),   appLang==='ja'?'背景を選択':'Set Background');
+            txt($('bgReset'),  appLang==='ja'?'背景を削除':'Reset background');
+            txt($('hardResetBtn'), appLang==='ja'?'すべてのデータを削除':'Reset all data');
+            
+            txt($('openSettings'), appLang==='ja'?'⚙️詳細設定':'⚙️ Settings');
+            txt($('closeSettings'),appLang==='ja'?'閉じる':'Close');
+            
+            txt($('startTitle'), appLang==='ja'?'スタートしますか？':'Ready to start?');
+            txt($('startCancel'),appLang==='ja'?'キャンセル':'Cancel');
+            txt($('startGo'),    'OK');
+            txt($('rpTitle'), appLang==='ja'?'結果':'Results');
+            txt($('rpShare'), appLang==='ja'?'共有':'Share');
+            txt($('rpCopy'),  appLang==='ja'?'コピー':'Copy text');
+            txt($('rpClose'), 'OK');
+            
+            buildPills($('danSet'),'A'); buildPills($('kuSet'),'B');
+            
+            (function(){
+                $('timer20').textContent=(appLang==='ja')?'20問':'20Q';
+                $('timer30').textContent=(appLang==='ja')?'30問':'30Q';
+                $('timer60').textContent=(appLang==='ja')?'60問':'60Q';
+                $('timer81').textContent=(appLang==='ja')?'九九(81問)':'All 9×9';
+                $('timer100').textContent=(appLang==='ja')?'10×10(100問)':'10×10 (100Q)';
+                // ★追加: 144問ラベル
+                $('timer144').textContent=(appLang==='ja')?'12×12(144問)':'12×12 (144Q)';
+                $('timerFree').textContent=(appLang==='ja')?'無制限':'Unlimited';
+                $('openHistory').textContent=(appLang==='ja')?'履歴':'History';
+                const labDan=$('labDanTT');
+                if(labDan){
+                    labDan.textContent=(appLang==='ja')?'段タイムアタック':'Per-table trial';
+                }
+                
+                // 修正: 12段まで拡張
+                const labelsJa=['1段','2段','3段','4段','5段','6段','7段','8段','9段','10段','11段','12段'];
+                const labelsEn=['1×','2×','3×','4×','5×','6×','7×','8×','9×','10×','11×','12×'];
+                
+                for(let i=1;i<=12;i++){
+                    const b=$('timerDan'+i);
+                    if(b) b.textContent=(appLang==='ja')?labelsJa[i-1]:labelsEn[i-1];
+                }
+                
+                txt($('secPerf'), appLang==='ja'?'パフォーマンス':'Performance');
+                const liteBtn=$('togLite');
+                if(liteBtn) liteBtn.textContent=(appLang==='ja'?'軽量モード':'Lite mode');
+                txt($('faceTitle'), appLang==='ja'?'応援の顔を撮影':'Capture cheer face');
+                const hint=$('faceHint');
+                if(hint){
+                    hint.innerHTML=(appLang==='ja')?'丸枠に顔を入れてね。<br><strong>※カメラ映像はデバイス内のみで処理され、外部に送信されません。</strong>':'Fit your face in the circle.<br><strong>Camera feed stays on device (not uploaded).</strong>';
+                }
+                txt($('facePickFile'), appLang==='ja'?'撮影 | ファイルから選択':'Photos | Files');
+                txt($('faceTake'),     appLang==='ja'?'撮影':'Capture');
+                txt($('faceSave'),     appLang==='ja'?'保存':'Save');
+                txt($('faceCancel'),   appLang==='ja'?'キャンセル':'Cancel');
+                // ★追加: 法的情報セクション
+                txt($('secPrivacy'), appLang==='ja'?'法的情報':'Legal');
+                txt($('privacyBtn'), appLang==='ja'?'プライバシーポリシー':'Privacy Policy');
+                txt($('termsBtn'), appLang==='ja'?'利用規約':'Terms of Use');
+                
+                // ★追加: カメラ説明関連のUI更新
+                if($('cameraExplainModal') && $('cameraExplainModal').classList.contains('show')){
+                    setupCameraExplainContent();
+                }
+                if($('cameraDeniedModal') && $('cameraDeniedModal').classList.contains('show')){
+                    setupCameraDeniedContent();
+                }
+                
+                
+            })();
+        } // ★この行を追加: updateLangUI関数の閉じ括弧
+        
+        /* 出題順トグル */
+        let orderMode=localStorage.getItem('kukuOrder')||'random';
+        let seqA=1, seqB=1;
+        function applyOrderToggleUI(){
+            const isSeq=(orderMode==='sequential');
+            $('orderSeqBtn').setAttribute('aria-pressed',String(isSeq));
+            $('orderRndBtn').setAttribute('aria-pressed',String(!isSeq));
+        }
+        applyOrderToggleUI();
+        
+        (function(){
+            const el=$('orderToggle');
+            el.addEventListener('click',(e)=>{
+                const btn=e.target.closest('.ot-btn');
+                if(!btn) return;
+
+                const nextMode=(btn.id==='orderSeqBtn') ? 'sequential' : 'random';
+                const doSwitch = () => { setOrderMode(nextMode); };
+
+                if(run){
+                    const msg = (appLang==='ja')
+                      ? 'タイムアタック中です。終了して切り替えますか？\n（今回の記録は残りません）'
+                      : 'A time trial is running. End and switch?\n(This run will not be recorded)';
+                    if (confirm(msg)) {
+                        endRunNow();
+                        doSwitch();
+                    }
+                } else {
+                    doSwitch();
+                }
+            }, {passive:true});
+        })();
+        
+        function endRunNow(){
+            if(!run) return;
+            document.body.classList.remove('ta-on');
+            $('taStopFab').style.display='none';
+            run=null; $('answer').value=''; $('orderToggle').classList.remove('disabled');
+        }
+        function setOrderMode(mode){ orderMode=mode; localStorage.setItem('kukuOrder',mode); seqA=1; seqB=1; applyOrderToggleUI(); newProblem(true); }
+        
+        /* サウンド/TTS */
+        const AudioCtx=window.AudioContext||window.webkitAudioContext; const audio=AudioCtx?new AudioCtx():null;
+        function ensureAudio(){ if(audio&&audio.state==='suspended') audio.resume(); }
+        function tone(f,d,type,g=.95){ if(!audio||!getFlag('sfx')) return; const o=audio.createOscillator(), g1=audio.createGain();
+            o.type=type; o.frequency.value=f; o.connect(g1).connect(audio.destination); const now=audio.currentTime;
+            g1.gain.setValueAtTime(0,now); g1.gain.linearRampToValueAtTime(g,now+.02); g1.gain.exponentialRampToValueAtTime(.0001,now+d); o.start(); o.stop(now+d+.02); }
+        function pop(){ ensureAudio(); const p=localStorage.getItem('kukuSoundPack')||'synth'; if(p==='cute') tone(880,.09,'triangle'); else if(p==='edm') tone(520,.06,'sawtooth'); else tone(900,.08,'sine'); }
+        function buzz(){ ensureAudio(); tone(120,.32,'sawtooth',.7); setTimeout(()=>tone(110,.22,'square',.6),80); }
+        function pinpon(){
+            ensureAudio();
+            tone(1568,.12,'sine');
+            setTimeout(()=>tone(2093,.16,'sine'),120);
+        }
+        
+        let preferredVoice=null;
+        function initVoices(){
+            const vs=window.speechSynthesis?.getVoices?.()||[];
+            preferredVoice=vs.find(v=>/ja/i.test(v.lang)&&/Kyoko|Nozomi|Nanami|Mizuki/i.test(v.name))||vs.find(v=>/ja/i.test(v.lang))||null;
+        }
+
+        if(window.speechSynthesis){
+            window.speechSynthesis.onvoiceschanged = initVoices;
+            if(speechSynthesis.getVoices().length > 0){
+                initVoices();
+            }
+        }
+        
+        function speakText(txt){
+            if(!userInteracted) return;
+            if(!window.speechSynthesis) return;
+            
+            try {
+                if(!preferredVoice && speechSynthesis.getVoices().length > 0){
+                    initVoices();
+                }
+                
+                const u=new SpeechSynthesisUtterance(txt);
+                u.lang=(appLang==='ja'?'ja-JP':'en-US');
+                
+                if(preferredVoice&&/ja/i.test(u.lang)) {
+                    u.voice=preferredVoice;
+                }
+                
+                try{
+                    window.speechSynthesis.cancel();
+                }catch(e){}
+                
+                u.onerror = function(event) {};
+                
+                window.speechSynthesis.speak(u);
+            } catch(error) {}
+        }
+        
+        (function(){
+            const wrap=$('soundPack'); const cur=localStorage.getItem('kukuSoundPack')||'synth';
+            function setPack(p){ localStorage.setItem('kukuSoundPack',p); [...wrap.querySelectorAll('.opt')].forEach(o=>o.classList.toggle('active',o.dataset.pack===p)); pop(); }
+            setPack(cur); wrap.addEventListener('click',e=>{const t=e.target.closest('.opt'); if(!t) return; setPack(t.dataset.pack);});
+        })();
+        
+        function getFlag(k){ return localStorage.getItem('kukuFlag_'+k)!=='0'; }
+        function setFlag(k,v){ localStorage.setItem('kukuFlag_'+k, v?'1':'0'); }
+        function applyToggleUI(){ ['speak','sfx','cheer'].forEach(k=>{ const btn=document.querySelector(`.toggle[data-flag="${k}"]`); btn.classList.toggle('active', getFlag(k)); }); }
+        applyToggleUI();
+        $('toggles').addEventListener('click', e=>{ const t=e.target.closest('.toggle'); if(!t) return; const key=t.dataset.flag; setFlag(key, !getFlag(key)); applyToggleUI(); pop(); });
+        
+        /* 出題 */
+        const problem=$('problem'), ans=$('answer'), result=$('result');
+        const scoreEl=$('score'), streakEl=$('streak'), avgTimeEl=$('avgTime');
+        const modeSet=$('modeSet');
+        let state={a:null,b:null,correct:null,start:null,score:0,streak:0,times:[],mode:'product'};
+        
+        const keypad=document.querySelector('.keypad');
+        if(keypad){
+            keypad.addEventListener('touchstart',(e)=>{
+                const btn=e.target.closest('.key');
+                if(!btn) return;
+                e.preventDefault();
+                
+                const label=btn.textContent.trim();
+                pop();
+                
+                if(label==='⌫'){
+                    ans.value=ans.value.slice(0,-1);
+                }
+                else if(label==='OK'){
+                    check();
+                }
+                else if(/^\d$/.test(label)){
+                    ans.value+=label;
+                }
+            }, {passive: false});
+            
+            keypad.addEventListener('click',(e)=>{
+                const btn=e.target.closest('.key');
+                if(!btn) return;
+                
+                const label=btn.textContent.trim();
+                pop();
+                
+                if(label==='⌫'){
+                    ans.value=ans.value.slice(0,-1);
+                }
+                else if(label==='OK'){
+                    check();
+                }
+                else if(/^\d$/.test(label)){
+                    ans.value+=label;
+                }
+            }, {passive: true});
+        }
+
+        function resetState(){ state.score=0; state.streak=0; state.times=[]; scoreEl.textContent='0'; streakEl.textContent='0'; avgTimeEl.textContent='—'; }
+        
+        function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]];} return a; }
+        function combosFromSets(A,B){ const list=[], a=[...A].sort((x,y)=>x-y), b=[...B].sort((x,y)=>x-y); for(const x of a){ for(const y of b){ list.push([x,y]); } } return list; }
+        function buildProblemQueue(n){
+            let pool;
+            if(n===81){ pool=[]; for(let a=1;a<=9;a++){ for(let b=1;b<=9;b++){ pool.push([a,b]); } } }
+            else if(n===100){ pool=[]; for(let a=1;a<=10;a++){ for(let b=1;b<=10;b++){ pool.push([a,b]); } } }
+            else if(n===144){ pool=[]; for(let a=1;a<=12;a++){ for(let b=1;b<=12;b++){ pool.push([a,b]); } } }
+            else{ pool=combosFromSets(allowedA,allowedB); }
+            const isSeq=(orderMode==='sequential');
+            if(!isSeq) shuffle(pool);
+            if(n===Infinity) return pool.slice(); if(!pool.length) return [[1,1]];
+            const q=[]; while(q.length<n){ if(q.length+pool.length<=n){ q.push(...pool); if(!isSeq) shuffle(pool); } else { q.push(...pool.slice(0,n-q.length)); } }
+            return q;
+        }
+        
+        modeSet.addEventListener('click', e=>{
+            const t=e.target.closest('.pill'); if(!t) return;
+            [...modeSet.querySelectorAll('.pill')].forEach(p=>p.classList.remove('active'));
+            t.classList.add('active'); state.mode=t.dataset.mode; pop(); newProblem(true);
+        });
+        
+        function randFrom(set){ const a=[...set]; return a.length?a[(Math.random()*a.length)|0]:1; }
+        function nextSequentialFromSets(){
+            let tries=0;
+            while(tries<300){
+                const p={a:seqA,b:seqB};
+                
+                seqB++;
+                if(seqB>12){
+                    seqB=1;
+                    seqA++;
+                    if(seqA>12) seqA=1;
+                }
+                
+                if(allowedA.has(p.a)&&allowedB.has(p.b)) return p;
+                tries++;
+            }
+            return {a:1,b:1};
+        }
+        
+        function showMsg(t,ok){ result.textContent=t; result.className='result '+(ok?'ok':'ng'); }
+        function answerText(){ return (state.mode==='product')?state.correct:(state.mode==='missingB')?state.a:state.b; }
+        function updateStats(){
+            scoreEl.textContent=state.score; streakEl.textContent=state.streak;
+            const n=state.times.length;
+            avgTimeEl.textContent = n ? (state.times.reduce((a,b)=>a+b,0)/n).toFixed(1)+(appLang==='ja'?'秒':'s') : '—';
+        }
+        
+        let problemReady=false;
+        
+        function newProblem(force){
+            // タイムアタック中でキューがある場合は、forceに関わらずキューから取得
+            if(run && run.queue && run.idx < run.queue.length){
+                const [a,b] = run.queue[run.idx++];
+                state.a = a; state.b = b;
+            } else {
+                // キューがない場合のみ通常のロジック
+                if(orderMode === 'sequential'){
+                    const p = nextSequentialFromSets();
+                    state.a = p.a; state.b = p.b;
+                } else {
+                    state.a = randFrom(allowedA);
+                    state.b = randFrom(allowedB);
+                }
+            }
+            
+            if(state.mode === 'product'){
+                state.correct = state.a * state.b;
+                problem.textContent = `${state.a} × ${state.b} = ?`;
+            } else if(state.mode === 'missingB'){
+                state.correct = state.a * state.b;
+                problem.textContent = `□ × ${state.b} = ${state.correct}`;
+            } else if(state.mode === 'missingA'){
+                state.correct = state.a * state.b;
+                problem.textContent = `${state.a} × □ = ${state.correct}`;
+            }
+            
+            ans.value = '';
+            result.textContent = '';
+            state.start = performance.now();
+            problemReady = true;
+             
+            requestAnimationFrame(() => {
+                if(ans) ans.focus({ preventScroll: true });
+            });
+             
+            if(getFlag('speak') && userInteracted){
+                const txt = i18n[appLang].speakProb(state.a, state.b);
+                speakText(txt);
+            }
+            
+            if(run && Number.isFinite(run.target)){
+                const remain = run.target - (state.score - run.scoreStart);
+                const msg = run.hasMiss
+                    ? i18n[appLang].remainNg(remain)
+                    : i18n[appLang].remainOk(remain);
+            }
+        }
+
+        function check(){
+            if(!problemReady || state.correct==null){
+                newProblem(true);
+                result.textContent=(appLang==='ja'?'最初の問題を用意しました！':'Prepared the first problem!');
+                result.className='result'; return;
+            }
+            const val=parseInt(ans.value,10);
+            if(isNaN(val)){ showMsg(appLang==='ja'?'数字を入れてね':'Enter a number',false); return; }
+            const ok=(val===answerText()); const sec=(performance.now()-state.start)/1000;
+            if(ok){
+                state.score++; state.streak++;
+                showMsg((appLang==='ja'?'正解！ ':'OK! ')+sec.toFixed(1)+(appLang==='ja'?'秒':'s'), true);
+                pinpon();
+                pop();
+                if(getFlag('cheer')) try{ showMascot('cheer'); }catch(_){}
+            }else{
+                state.streak=0; showMsg((appLang==='ja'?'ざんねん… 正解は ':'Answer: ')+answerText(), false);
+                buzz();
+                if(getFlag('cheer')) try{ showMascot('cry'); }catch(_){}
+                if(run) run.hasMiss=true;
+            }
+            state.times.push(sec); if(state.times.length>40) state.times.shift(); updateStats();
+            
+            if(run && Number.isFinite(run.target)){
+                const solved=state.score-run.scoreStart; if(solved>=run.target){ finishRun(); return; }
+            }
+            if(run && !run.isUnlimited){
+                run.left--; if(run.left<=0){ finishRun(); return; }
+            }
+            
+            setTimeout(()=>{
+                newProblem(true);
+                requestAnimationFrame(() => {
+                    try {
+                        scrollToInput();
+                    } catch(e) {}
+                });
+            }, 400);
+        }
+        
+        const bestEls={20:$('best20'),30:$('best30'),60:$('best60'),81:$('best81'),100:$('best100'),144:$('best144')};
+        function rHist(n){ try{ return JSON.parse(localStorage.getItem('historyRun'+n)||'[]'); }catch(e){ return []; } }
+        function wHist(n,arr){ localStorage.setItem('historyRun'+n, JSON.stringify(arr)); }
+        function addHistory(n,entry){ const arr=rHist(n); arr.unshift(entry); if(arr.length>50) arr.pop(); wHist(n,arr); }
+        function bestOf(n){ const arr=rHist(n).filter(x=>x.valid); if(!arr.length) return null; return arr.reduce((p,c)=>p.sec<=c.sec?p:c); }
+        function fmt(iso){ const d=new Date(iso); const z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; }
+        function renderBests(){}
+        
+        function section(n){
+            const list=rHist(n).slice(0,10); if(list.length===0) return '';
+            const best=(function(){ const a=rHist(n).filter(x=>x.valid); if(!a.length) return null; return a.reduce((p,c)=>p.sec<=c.sec?p:c); })();
+            const rows=list.map(h=>{
+                const okRatio=(h.correct!=null&&h.total!=null)?`${h.correct}/${h.total}`:'';
+                const isBest=!!best&&h.valid&&h.sec===best.sec&&h.score===best.score&&h.date===best.date;
+                let modeText=(h.mode==='missingB')?'□×B':(h.mode==='missingA')?'A×□':(appLang==='ja'?'標準':'Std');
+                if(h.dan){ modeText += (appLang==='ja')?` / ${h.dan}段`:` / ${h.dan}×`; }
+                return `<tr class="${isBest?'best-row':''} ${(!h.valid?'miss-row':'')}">
+        <td style="font-size:11px">${fmt(h.date)}</td><td>${h.sec?.toFixed(1)||''}</td>
+        <td>${h.score??''}</td><td style="font-size:13px">${okRatio}</td>
+        <td style="font-size:11px">${modeText}</td><td>${isBest?'<span class="best-badge">⭐️</span>':''}</td></tr>`;
+            }).join('');
+            
+            let title=(n===81)?(appLang==='ja'?'九九（81問）':'All 9×9 (81Q)')
+            :(n===100)?(appLang==='ja'?'10×10（100問）':'10×10 (100Q)')
+            :(n===144)?(appLang==='ja'?'12×12（144問）':'12×12 (144Q)')
+            :(appLang==='ja'?`${n}問`:`${n}Q`);
+            
+            return `<div class="table-wrap"><h4 class="small" style="margin:10px 0 6px">${title}</h4>
+      <table class="history-table"><thead><tr>
+      <th>${appLang==='ja'?'日時':'Date'}</th><th>${appLang==='ja'?'秒':'Sec'}</th><th>${appLang==='ja'?'点':'Pts'}</th>
+      <th>${appLang==='ja'?'正解':'Solved'}</th><th>${appLang==='ja'?'形式':'Mode'}</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+        }
+        
+        function sectionDan(dan){
+            const key=`dan${dan}`;
+            const list=rHist(key).slice(0,10);
+            if(list.length===0) return '';
+            
+            const best=(function(){
+                const a=rHist(key).filter(x=>x.valid);
+                if(!a.length) return null;
+                return a.reduce((p,c)=>p.sec<=c.sec?p:c);
+            })();
+            
+            const rows=list.map(h=>{
+                const okRatio=(h.correct!=null&&h.total!=null)?`${h.correct}/${h.total}`:'';
+                const isBest=!!best&&h.valid&&h.sec===best.sec&&h.score===best.score&&h.date===best.date;
+                let modeText=(h.mode==='missingB')?'□×B':(h.mode==='missingA')?'A×□':(appLang==='ja'?'標準':'Std');
+                return `<tr class="${isBest?'best-row':''} ${(!h.valid?'miss-row':'')}">
+        <td style="font-size:11px">${fmt(h.date)}</td><td>${h.sec?.toFixed(1)||''}</td>
+        <td>${h.score??''}</td><td style="font-size:13px">${okRatio}</td>
+        <td style="font-size:11px">${modeText}</td><td>${isBest?'<span class="best-badge">⭐️</span>':''}</td></tr>`;
+            }).join('');
+            
+            const firstRecord = list[0];
+            const actualTotal = firstRecord && firstRecord.total ? firstRecord.total : 10;
+            const title=(appLang==='ja')?`${dan}段（${actualTotal}問）`:`${dan}× (${actualTotal}Q)`;
+            
+            return `<div class="table-wrap"><h4 class="small" style="margin:10px 0 6px">${title}</h4>
+      <table class="history-table"><thead><tr>
+      <th>${appLang==='ja'?'日時':'Date'}</th><th>${appLang==='ja'?'秒':'Sec'}</th><th>${appLang==='ja'?'点':'Pts'}</th>
+      <th>${appLang==='ja'?'正解':'Solved'}</th><th>${appLang==='ja'?'形式':'Mode'}</th><th></th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+        }
+        
+        function renderHistory(){
+            $('histTitle').textContent=(appLang==='ja'?'履歴（直近10件）':'History (last 10)');
+            let html='';
+            
+            for(let d=1; d<=12; d++) html+=sectionDan(d);
+            html+=section(20)+section(30)+section(60)+section(81)+section(100)+section(144);
+            
+            if(!html.trim()){
+                html=`<div class="small" style="text-align:center; padding:20px; opacity:0.6;">${appLang==='ja'?'まだ履歴がありません':'No history yet'}</div>`;
+            }
+            $('historyContent').innerHTML=html;
+            $('clearHistory').textContent=(appLang==='ja'?'履歴をクリア':'Clear history');
+            $('historyClose').textContent=(appLang==='ja'?'閉じる':'Close');
+        }
+        
+        function refreshClearHistoryState(){
+            const btn=$('clearHistory'); if(!btn) return;
+            const hasData=hasAnyHistory(); btn.disabled=!hasData; btn.style.opacity=hasData?'1':'.5'; btn.style.pointerEvents=hasData?'auto':'none';
+        }
+        function hasAnyHistory(){
+            const hasNormal=[20,30,60,81,100,144].some(n => (localStorage.getItem('historyRun'+n)||'[]')!=='[]');
+            if(hasNormal) return true;
+            
+            for(let d=1; d<=12; d++){
+                if((localStorage.getItem('historyRundan'+d)||'[]')!=='[]') return true;
+            }
+            return false;
+        }
+        
+        /* タイムアタック */
+        let run = null;
+        function clearTimerStatus(){}
+
+        function beginRun(n, dan){
+            $('orderToggle').classList.add('disabled');
+            run = {
+                target: n,
+                isUnlimited: (n === Infinity),
+                hasMiss: false,
+                startAt: performance.now(),
+                scoreStart: state.score,
+                left: n,
+                problemMode: state.mode,
+                dan: dan || null
+            };
+            
+            if(dan){
+                const bValues = [...allowedB];
+                const actualCount = bValues.length > 0 ? bValues.length : 10;
+                run.target = actualCount;
+                run.left = actualCount;
+                run.queue = [];
+                for(const b of bValues){
+                    run.queue.push([dan, b]);
+                }
+                if(orderMode === 'random') shuffle(run.queue);
+                run.idx = 0;
+            } else if(Number.isFinite(n)){
+                run.queue = buildProblemQueue(n);
+                run.idx = 0;
+            }
+            
+            document.body.classList.add('ta-on');
+            $('taStopFab').style.display = 'flex';
+            
+            newProblem(true);
+            
+            setTimeout(() => {
+                try {
+                    scrollToInput();
+                } catch(e) {}
+            }, 300);
+        }
+
+function finishRun(){
+    if(!run) return;
+
+    $('orderToggle').classList.remove('disabled');
+    const lang=localStorage.getItem('kukuLang')||appLang||'ja';
+    const T=i18n[lang];
+    const elapsed=(performance.now()-run.startAt)/1000;
+    const gained=state.score-run.scoreStart;
+    const solved=gained;
+    const total=run.isUnlimited?solved:run.target;
+    const allOk=(!run.isUnlimited)&&(!run.hasMiss)&&(solved===total);
+
+    let title,body,shareText;
+
+    if(run.isUnlimited){
+        title=T.runDone('∞');
+        body=T.unlimitedLine(solved, elapsed.toFixed(1), gained);
+        shareText=T.shareUnlimited(Math.round(gained/10), elapsed.toFixed(1), gained);
+    }else{
+        const rec={ sec:elapsed, score:gained, correct:solved, total:total, valid:allOk, mode:run.problemMode, dan:run.dan||null, date:new Date().toISOString() };
+        const historyKey = run.dan ? `dan${run.dan}` : run.target;
+        addHistory(historyKey, rec);
+
+        title=T.runDone(run.target);
+        const lineThis=`${T.thisTime}: ${rec.sec.toFixed(1)}${T.secUnit} / ${rec.score}${T.ptsUnit} / ${rec.correct}/${rec.total}（${fmt(rec.date)}）`;
+
+        if(allOk){
+            pinpon();
+            confettiBurst();
+            body=lineThis;
+            shareText=T.shareAllOk(run.target, rec.sec.toFixed(1), rec.score);
+        }else{
+            body=`${lineThis}\n${T.runInvalid}`;
+            shareText=T.shareGeneric(run.target, rec.sec.toFixed(1), rec.score, rec.correct, rec.total);
+        }
+    }
+
+    $('rpTitle').textContent=title;
+    $('rpBody').textContent=body;
+    
+    // ========================================
+    // IndexedDBに記録を保存
+    // ========================================
+    saveRecord({
+        questionCount: total,
+        timeTaken: elapsed.toFixed(1),
+        score: gained,
+        danNumber: run.dan || null,
+        mode: run.problemMode || 'timeattack'
+    }).then(() => {
+        console.log('✅ Record saved to IndexedDB');
+    }).catch(err => {
+        console.error('❌ Failed to save record:', err);
+    });
+    // ========================================
+    
+    $('resultModal').classList.add('show');
+    setOverlayLock(true);
+
+    const closeResultModal = () => {
+        $('resultModal').classList.remove('show');
+        setOverlayLock(false);
+        setTimeout(()=>{ try{ scrollToInput(); }catch(_){} }, 400);
+    };
+    $('rpClose').onclick = closeResultModal;
+    $('resultModal').querySelector('.back').onclick = closeResultModal;
+    $('rpCopy').onclick=()=>navigator.clipboard?.writeText(shareText||body).catch(()=>{});
+    
+    // ========================================
+    // 共有ボタン (アイコン画像 + テキスト)
+    // ========================================
+    $('rpShare').onclick = async () => {
+        if (!navigator.share) {
+            $('rpCopy').click();
+            return;
+        }
+        
+        try {
+            const response = await fetch('icon/icon-180.png');
+            const blob = await response.blob();
+            const file = new File([blob], 'kuku-drill-icon.png', { type: 'image/png' });
+            
+            await navigator.share({
+                text: shareText || body,
+                files: [file]
+            });
+            
+            console.log('✅ 共有成功');
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                try {
+                    await navigator.share({
+                        text: shareText || body
+                    });
+                } catch (err2) {
+                    if (err2.name !== 'AbortError') {
+                        $('rpCopy').click();
+                    }
+                }
+            }
+        }
+    };
+
+    document.body.classList.remove('ta-on');
+    $('taStopFab').style.display='none';
+    run=null;
+    clearTimerStatus();
+    $('answer').value='';
+    $('orderToggle').classList.remove('disabled');
+    
+      newProblem(true);
+}
+
+function confettiBurst(){
+    const colors=['#ff4dc4','#3bc7ff','#ffe066','#35ffa1','#ff8af2','#a1a8ff']; 
+    const n=90;
+    for(let i=0;i<n;i++){
+        const d=document.createElement('div');
+        d.style.position='fixed'; 
+        d.style.top='-10px'; 
+        d.style.width='8px'; 
+        d.style.height='14px'; 
+        d.style.opacity='.9'; 
+        d.style.zIndex='1000'; 
+        d.style.borderRadius='2px';
+        d.style.left=(Math.random()*100)+'vw'; 
+        d.style.background=colors[(Math.random()*colors.length)|0]; 
+        d.style.transform='rotate('+(Math.random()*360)+'deg)';
+        const dur=900+Math.random()*1200;
+        d.style.transition=`transform ${dur}ms ease-out, top ${dur}ms ease-out, opacity ${dur}ms ease`;
+        document.body.appendChild(d);
+        requestAnimationFrame(()=>{ 
+            d.style.top='110vh'; 
+            d.style.transform+=` translateY(90vh) rotate(${360+Math.random()*360}deg)`; 
+        });
+        setTimeout(()=>d.remove(), dur+500);
+    }
+}
+
+        function openStart(n, dan){
+            const m = $('startModal'), desc = $('startDesc'), count = $('countNum');
+            m.classList.add('show'); setOverlayLock(true);
+            
+            let actualQuestions = n;
+            if(dan){
+                const bValues = [...allowedB];
+                actualQuestions = bValues.length > 0 ? bValues.length : 10;
+            }
+            
+            const msgJa = dan
+            ? `${dan}段（${actualQuestions}問）をスタートします。`
+            : (n===Infinity ? '無制限でスタートします。'
+               : (n===81 ? '九九(81問)をスタートします。'
+                  : (n===100 ? '10×10(100問)をスタートします。'
+                     : (n===144 ? '12×12(144問)をスタートします。' : (n+'問でスタートします。')))));
+                     
+            const msgEn = dan
+            ? `Start ${dan}× table (${actualQuestions}Q).`
+            : (n===Infinity ? 'Start Unlimited.'
+                : (n===81 ? 'Start All 9×9.'
+                   : (n===100 ? 'Start All 10×10.'
+                      : (n===144 ? 'Start All 12×12.' : ('Start with '+n+' questions.')))));
+                      
+            desc.textContent = (appLang==='ja') ? msgJa : msgEn;
+            count.textContent='⏱';
+            count.classList.remove('pop-grow');
+            
+            const close = ()=>{ m.classList.remove('show'); setOverlayLock(false); };
+            $('startCancel').onclick = close;
+            m.querySelector('.back').onclick = close;
+            
+            $('startGo').onclick = ()=>{
+                let i=0; const seq=['3','2','1'];
+                const tick=()=>{
+                    count.textContent = seq[i];
+                    count.classList.remove('pop-grow'); void count.offsetWidth; count.classList.add('pop-grow');
+                    ensureAudio(); tone(700,.12,'sine',.9);
+                    i++;
+                    if(i < seq.length){ setTimeout(tick,650); }
+                    else {
+                        const proceed = ()=>{
+                            try { close(); } catch(_){}
+                            try {
+                                beginRun(n, dan);
+                            } catch(e){
+                                console.error('beginRun error', e);
+                            }
+                        };
+                        setTimeout(proceed, 650);
+                        setTimeout(()=>{ if(!run) proceed(); }, 1600);
+                    }
+                };
+                setTimeout(tick, 220);
+            };
+        }
+        
+        $('timer20').onclick=()=>openStart(20);
+        $('timer30').onclick=()=>openStart(30);
+        $('timer60').onclick=()=>openStart(60);
+        $('timer81').onclick=()=>openStart(81);
+        $('timer100').onclick=()=>openStart(100);
+        $('timer144').onclick=()=>openStart(144);
+        $('timerDan1').onclick=()=>openStart(10,1);
+        $('timerDan2').onclick=()=>openStart(10,2);
+        $('timerDan3').onclick=()=>openStart(10,3);
+        $('timerDan4').onclick=()=>openStart(10,4);
+        $('timerDan5').onclick=()=>openStart(10,5);
+        $('timerDan6').onclick=()=>openStart(10,6);
+        $('timerDan7').onclick=()=>openStart(10,7);
+        $('timerDan8').onclick=()=>openStart(10,8);
+        $('timerDan9').onclick=()=>openStart(10,9);
+        $('timerDan10').onclick=()=>openStart(10,10);
+        $('timerDan11').onclick=()=>openStart(10,11);
+        $('timerDan12').onclick=()=>openStart(10,12);
+        
+        /* 背景 */
+        const bgPick=$('bgPick'), bgReset=$('bgReset'), bgFile=$('bgFile'), bgBright=$('bgBright'), bgSize=$('bgSize');
+        function setWallBackground(uri){ document.documentElement.style.setProperty('--neon-wall', uri); const w=document.querySelector('.wall'); if(w) w.style.backgroundImage=uri; }
+        function injectDefaultNeon(){
+            const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 220 220'>
+      <defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='#ff4dc4'/><stop offset='1' stop-color='#3bc7ff'/></linearGradient></defs>
+      <rect width='100%' height='100%' fill='black'/>
+      <g opacity='0.18' stroke='url(#g)' stroke-width='1.5' fill='none'>
+        <path d='M-40 220 L 260 -40'/><path d='M-20 240 L 280 -20'/><path d='M0 260 L 300 0'/>
+      </g></svg>`;
+      const encoded=encodeURIComponent(svg);
+      document.documentElement.style.setProperty('--neon-wall', `url('data:image/svg+xml;utf8,${encoded}')`);
+      const w=document.querySelector('.wall'); if(w) w.style.backgroundImage='';
+        }
+        function validUserBg(){ const d=localStorage.getItem('neonWallData'); return !!(d && d.indexOf('data:image')===0); }
+        function applySavedOrDefaultWall(){
+            const saved=localStorage.getItem('neonWallData');
+            if(validUserBg()) setWallBackground("url('"+saved+"')"); else injectDefaultNeon();
+            const savedOp=localStorage.getItem('neonWallOpacity'); if(savedOp){ document.documentElement.style.setProperty('--wallOpacity', savedOp); if(bgBright) bgBright.value=Math.round(parseFloat(savedOp)*100); } else { document.documentElement.style.setProperty('--wallOpacity','0.36'); if(bgBright) bgBright.value=36; }
+            const savedSize=localStorage.getItem('neonWallSize'); if(savedSize){ document.documentElement.style.setProperty('--wallSize', savedSize+'%'); if(bgSize) bgSize.value=savedSize; } else { document.documentElement.style.setProperty('--wallSize','cover'); if(bgSize) bgSize.value=100; }
+        }
+        applySavedOrDefaultWall();
+        
+        const bgResetBtn = $('bgReset');
+        if(bgResetBtn){
+          bgResetBtn.onclick = async () => {
+            const ja = (appLang === 'ja');
+            const ok = await confirmAsync(ja ? '背景画像を削除しますか？' : 'Remove background image?');
+            if (!ok) return;
+            
+            try {
+              localStorage.removeItem('neonWallData');
+            } catch(_){}
+            
+            applySavedOrDefaultWall();
+            alert(ja ? '背景画像をリセットしました' : 'Background image reset');
+          };
+        }
+
+        const hardResetBtn = $('hardResetBtn');
+        if(hardResetBtn){
+          hardResetBtn.onclick = async () => {
+            const msg = (appLang === 'ja')
+              ? 'すべてのデータ（履歴・設定・同意状態）を削除します。\nこの操作は取り消せません。'
+              : 'Delete all data (history, settings, consent).\nThis cannot be undone.';
+            
+            const ok = await confirmAsync(msg);
+            if(!ok) return;
+            
+            try{
+              const keys = [
+                'kukuTheme','kukuLang','kukuOrder','kukuSoundPack','kukuLite',
+                'allowedA','allowedB','neonWallData','neonWallOpacity','neonWallSize',
+                'cheerFaceImg','cameraExplainDontShow','privacyAgreed'
+              ];
+              
+              for(const k of keys){
+                localStorage.removeItem(k);
+              }
+              
+              for(let n of [20,30,60,81,100,144]){
+                localStorage.removeItem('historyRun'+n);
+              }
+              for(let d=1; d<=12; d++){
+                localStorage.removeItem('historyRundan'+d);
+              }
+              
+              ['speak','sfx','cheer','lite'].forEach(f => localStorage.removeItem('kukuFlag_'+f));
+              
+              alert((appLang === 'ja')
+                ? 'すべてのデータを削除しました。\nページを再読み込みします。'
+                : 'All data deleted.\nReloading page.');
+              
+              location.reload();
+            }catch(e){
+              console.error('Reset error:', e);
+              alert((appLang === 'ja') ? '削除に失敗しました' : 'Failed to delete data');
+            }
+          };
+        }
+
+        if(bgBright){
+            bgBright.oninput = debounce(()=>{
+                const v=Math.max(0,Math.min(100,parseInt(bgBright.value||'36',10)))/100;
+                document.documentElement.style.setProperty('--wallOpacity',String(v));
+                localStorage.setItem('neonWallOpacity',String(v));
+            }, 200);
+        }
+        if(bgSize){
+            bgSize.oninput = debounce(()=>{
+                const v=bgSize.value;
+                document.documentElement.style.setProperty('--wallSize', v+'%');
+                localStorage.setItem('neonWallSize', v);
+            }, 200);
+        }
+        if(bgPick){ bgPick.onclick=()=> bgFile.click(); }
+        if(bgFile){ bgFile.onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ localStorage.setItem('neonWallData', r.result); }catch(_){ alert(appLang==='ja'?'画像が大きすぎます':'Image too large'); return; } setWallBackground("url('"+r.result+"')"); }; r.readAsDataURL(f); }; }
+        
+        /* カメラ説明機能 */
+        function setupCameraExplainContent(){
+            const title = $('cameraExplainTitle');
+            const body = $('cameraExplainBody');
+            const privacy = $('cameraExplainPrivacy');
+            const dontShowLabel = $('cameraExplainDontShowLabel');
+            const cancelBtn = $('cameraExplainCancel');
+            const okBtn = $('cameraExplainOk');
+            
+            if(appLang === 'ja'){
+                if(title) title.textContent = 'カメラの使用について';
+                if(body){
+                    body.innerHTML = `
+      <strong>🎭 応援キャラクター機能について</strong><br><br>
+      このアプリでは、正解時にあなたやお子様の顔が表示される「応援キャラクター」機能を提供しています。<br><br>
+      <strong>カメラを使用する目的：</strong>
+      <ul>
+      <li>応援キャラクターの顔を撮影するため</li>
+      <li>学習のモチベーション向上のため</li>
+      </ul>
+      <strong>✨ この機能は任意です</strong><br>
+      カメラを使用しなくても、アプリの主要機能（九九の学習）はすべてご利用いただけます。
+      `;
+                }
+                if(privacy){
+                    privacy.innerHTML = `
+      <strong>🔒 プライバシー保護について：</strong><br>
+      • 撮影した写真はお使いのデバイス内にのみ保存されます<br>
+      • 外部のサーバーやインターネットに送信されることは一切ありません<br>
+      • いつでも設定から削除できます<br>
+      • カメラ映像はリアルタイム処理のみで、自動保存されません
+      `;
+                }
+                if(dontShowLabel) dontShowLabel.textContent = '次回から表示しない';
+                if(cancelBtn) cancelBtn.textContent = 'キャンセル';
+                if(okBtn) okBtn.textContent = 'カメラを起動';
+            } else {
+                if(title) title.textContent = 'About Camera Usage';
+                if(body){
+                    body.innerHTML = `
+      <strong>🎭 Cheer Character Feature</strong><br><br>
+      This app offers a "Cheer Character" feature that displays your or your child's face when answering correctly.<br><br>
+      <strong>Purpose of Camera Use:</strong>
+      <ul>
+      <li>To capture your cheer character's face</li>
+      <li>To increase learning motivation</li>
+      </ul>
+      <strong>✨ This feature is optional</strong><br>
+      You can use all main features (multiplication practice) without using the camera.
+      `;
+                }
+                if(privacy){
+                    privacy.innerHTML = `
+      <strong>🔒 Privacy Protection:</strong><br>
+      • Captured photos are stored only on your device<br>
+      • Never transmitted to external servers or the internet<br>
+      • Can be deleted anytime from settings<br>
+      • Camera feed is processed in real-time only, not automatically saved
+      `;
+                }
+                if(dontShowLabel) dontShowLabel.textContent = "Don't show again";
+                if(cancelBtn) cancelBtn.textContent = 'Cancel';
+                if(okBtn) okBtn.textContent = 'Open Camera';
+            }
+        }
+        
+        function setupCameraDeniedContent(){
+            const title = $('cameraDeniedTitle');
+            const body = $('cameraDeniedBody');
+            const useFileBtn = $('cameraDeniedUseFile');
+            const settingsBtn = $('cameraDeniedSettings');
+            const closeBtn = $('cameraDeniedClose');
+            
+            if(appLang === 'ja'){
+                if(title) title.textContent = 'カメラへのアクセスが拒否されました';
+                if(body){
+                    body.innerHTML = `
+    <strong>📱 カメラへのアクセスが必要です</strong><br><br>
+    「応援キャラクター」機能を使用するには、カメラへのアクセス許可が必要です。<br><br>
+    <strong>対処方法：</strong>
+    <ol>
+    <li><strong>「設定を開く」</strong>ボタンをタップ</li>
+    <li>デバイスの設定画面で「KuKuドリル」を探す</li>
+    <li>「カメラ」の項目をオンにする</li>
+    <li>アプリに戻って再度お試しください</li>
+    </ol>
+    <strong>または</strong><br>
+    既に撮影済みの写真をご使用の場合は、<strong>「ファイルから選択」</strong>をお試しください。
+    `;
+                }
+                if(useFileBtn) useFileBtn.textContent = 'ファイルから選択';
+                if(settingsBtn) settingsBtn.textContent = '設定を開く';
+                if(closeBtn) closeBtn.textContent = '閉じる';
+            } else {
+                if(title) title.textContent = 'Camera Access Denied';
+                if(body){
+                    body.innerHTML = `
+    <strong>📱 Camera Access Required</strong><br><br>
+    Camera access is needed to use the "Cheer Character" feature.<br><br>
+    <strong>How to Fix:</strong>
+    <ol>
+    <li>Tap <strong>"Open Settings"</strong> button</li>
+    <li>Find "KuKu Drill" in device settings</li>
+    <li>Turn on "Camera" permission</li>
+    <li>Return to the app and try again</li>
+    </ol>
+    <strong>Or</strong><br>
+    If you have an existing photo, try <strong>"Choose from Files"</strong>.
+    `;
+                }
+                if(useFileBtn) useFileBtn.textContent = 'Choose from Files';
+                if(settingsBtn) settingsBtn.textContent = 'Open Settings';
+                if(closeBtn) closeBtn.textContent = 'Close';
+            }
+        }
+        
+        function showCameraExplainModal(callback){
+            if(localStorage.getItem('cameraExplainDontShow') === '1'){
+                if(callback) callback();
+                return;
+            }
+            
+            setupCameraExplainContent();
+            const modal = $('cameraExplainModal');
+            if(!modal) return;
+            
+            modal.classList.add('show');
+            setOverlayLock(true);
+            
+            const okBtn = $('cameraExplainOk');
+            if(okBtn){
+                okBtn.onclick = ()=>{
+                    const dontShow = $('cameraExplainDontShow');
+                    if(dontShow && dontShow.checked){
+                        localStorage.setItem('cameraExplainDontShow', '1');
+                    }
+                    
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                    if(callback) callback();
+                };
+            }
+            
+            const cancelBtn = $('cameraExplainCancel');
+            if(cancelBtn){
+                cancelBtn.onclick = ()=>{
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                };
+            }
+            
+            const back = modal.querySelector('.back');
+            if(back){
+                back.onclick = ()=>{
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                };
+            }
+        }
+        
+        function showCameraDeniedModal(){
+            setupCameraDeniedContent();
+            const modal = $('cameraDeniedModal');
+            if(!modal) return;
+            
+            modal.classList.add('show');
+            setOverlayLock(true);
+            
+            const useFileBtn = $('cameraDeniedUseFile');
+            if(useFileBtn){
+                useFileBtn.onclick = ()=>{
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                    const fileInput = $('faceFileInput');
+                    if(fileInput) fileInput.click();
+                };
+            }
+            
+            const settingsBtn = $('cameraDeniedSettings');
+            if(settingsBtn){
+                settingsBtn.onclick = ()=>{
+                    if(window.webkit?.messageHandlers?.openSettings){
+                        window.webkit.messageHandlers.openSettings.postMessage({});
+                    } else {
+                        alert(appLang==='ja'
+                              ? 'デバイスの「設定」アプリを開き、このアプリのカメラ許可をオンにしてください。'
+                              : 'Please open your device Settings app and enable camera access for this app.');
+                    }
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                };
+            }
+            
+            const closeBtn = $('cameraDeniedClose');
+            if(closeBtn){
+                closeBtn.onclick = ()=>{
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                };
+            }
+            
+            const back = modal.querySelector('.back');
+            if(back){
+                back.onclick = ()=>{
+                    modal.classList.remove('show');
+                    setOverlayLock(false);
+                };
+            }
+        }
+        
+        /* カメラ関連変数 */
+        let stream=null, faceImg=null, faceScale=1, faceOffsetX=0, faceOffsetY=0, isDragging=false, dragStartX=0, dragStartY=0, pointers=new Map(), pinchBaseDist=0;
+        let camWarned = false;
+        let cameraExplainShown = false;
+        
+        function getShotCanvas(){ return $('shot'); }
+        function showLivePreview(isLive){
+            const v=$('cam'), c=$('shot'), take=$('faceTake'), save=$('faceSave');
+            if(isLive){ if(v) v.style.display='block'; if(c) c.style.display='none'; if(save) save.disabled=true; if(take){ take.style.display=stream?'inline-block':'none'; take.textContent=stream?(appLang==='ja'?'撮影':'Capture'):(appLang==='ja'?'カメラを起動':'Open Camera'); } }
+            else{ if(v) v.style.display='none'; if(c) c.style.display='block'; if(save) save.disabled=false; if(take){ take.style.display='inline-block'; take.textContent=(appLang==='ja'?'再撮影':'Retake'); } }
+        }
+        
+        function fallbackToPicker(){
+            const faceModal = $('faceModal');
+            if(faceModal && faceModal.classList.contains('show')){
+                faceModal.classList.remove('show');
+                setOverlayLock(false);
+            }
+            
+            if(!camWarned){
+                try{
+                    alert(appLang==='ja'
+                          ?'この環境ではカメラが使えないため、写真を選択します。'
+                          :'Camera unavailable. Opening photo picker.');
+                }catch(_){}
+                camWarned = true;
+            }
+            
+            showLivePreview(false);
+            const take=$('faceTake');
+            if(take) take.style.display='none';
+            
+            setTimeout(()=>{
+                const file=$('faceFileInput');
+                if(file) file.click();
+            }, 100);
+        }
+        
+        function startCamera(){
+            if(navigator.mediaDevices?.getUserMedia){
+                navigator.mediaDevices.getUserMedia({
+                    video: {facingMode:'user', width:{ideal:640}, height:{ideal:640}},
+                    audio: false
+                })
+                .then(s => {
+                    stream = s;
+                    const v = $('cam');
+                    if(v){
+                        v.srcObject = s;
+                        v.classList.add('mirror');
+                    }
+                    showLivePreview(true);
+                })
+                .catch(err => {
+                    console.error('Camera error:', err);
+                    
+                    const faceModal = $('faceModal');
+                    if(faceModal && faceModal.classList.contains('show')){
+                        faceModal.classList.remove('show');
+                        setOverlayLock(false);
+                    }
+                    
+                    setTimeout(() => {
+                        if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
+                            showCameraDeniedModal();
+                        } else if(err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError'){
+                            alert(appLang==='ja'
+                                  ? 'カメラが見つかりませんでした。ファイルから選択してください。'
+                                  : 'Camera not found. Please choose from files.');
+                                  fallbackToPicker();
+                        } else {
+                            alert(appLang==='ja'
+                                  ? 'カメラの起動に失敗しました。ファイルから選択してください。'
+                                  : 'Failed to start camera. Please choose from files.');
+                                  fallbackToPicker();
+                        }
+                    }, 200);
+                });
+            } else {
+                const faceModal = $('faceModal');
+                if(faceModal && faceModal.classList.contains('show')){
+                    faceModal.classList.remove('show');
+                    setOverlayLock(false);
+                }
+                setTimeout(() => {
+                    fallbackToPicker();
+                }, 200);
+            }
+        }
+        
+        function stopCamera(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } const v=$('cam'); if(v){ v.srcObject=null; v.classList.remove('mirror'); } }
+        function closeFace(){ const modal=$('faceModal'); if(modal){ modal.classList.remove('show'); setOverlayLock(false); } stopCamera(); showLivePreview(true); faceImg=null; faceScale=1; faceOffsetX=0; faceOffsetY=0; pointers.clear(); isDragging=false; pinchBaseDist=0; }
+        function beginFaceEdit(img){ faceImg=img; faceScale=1; faceOffsetX=0; faceOffsetY=0; drawFacePreview(); showLivePreview(false); attachFaceEditorEvents(); }
+        function drawFacePreview(){
+            if(!faceImg) return; const c=getShotCanvas(); if(!c) return; const ctx=c.getContext('2d'); const s=c.width;
+            ctx.clearRect(0,0,s,s); ctx.save(); const cx=s/2, cy=s/2; const radius=(s/2)-3; ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.closePath(); ctx.clip();
+            const imgRatio=faceImg.width/faceImg.height; const base=radius*2; const drawW=(imgRatio>=1)?base*imgRatio:base; const drawH=(imgRatio>=1)?base:base/imgRatio;
+            const w=drawW*faceScale, h=drawH*faceScale; const ox=cx-w/2+faceOffsetX, oy=cy-h/2+faceOffsetY;
+            ctx.drawImage(faceImg, ox, oy, w, h); ctx.restore();
+        }
+        function attachFaceEditorEvents(){
+            const c=getShotCanvas(); if(!c) return;
+            c.onpointerdown=c.onpointermove=c.onpointerup=c.onpointercancel=c.onwheel=null; c.style.touchAction='none';
+            c.onpointerdown=e=>{ c.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+                if(pointers.size===1){ isDragging=true; dragStartX=e.clientX; dragStartY=e.clientY; }
+                else if(pointers.size===2){ const pts=[...pointers.values()]; pinchBaseDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y); } };
+            c.onpointermove=e=>{ if(!pointers.has(e.pointerId)) return; pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+                if(pointers.size===1&&isDragging){ faceOffsetX+=e.clientX-dragStartX; faceOffsetY+=e.clientY-dragStartY; dragStartX=e.clientX; dragStartY=e.clientY; drawFacePreview(); }
+                else if(pointers.size===2){ const pts=[...pointers.values()]; const dist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+                    if(pinchBaseDist>0){ const factor=dist/pinchBaseDist; faceScale=clamp(faceScale*factor,.5,3); drawFacePreview(); } pinchBaseDist=dist; } };
+            c.onpointerup=c.onpointercancel=e=>{ try{ c.releasePointerCapture(e.pointerId); }catch(_){}
+                pointers.delete(e.pointerId); if(pointers.size===0){ isDragging=false; pinchBaseDist=0; } };
+            c.onwheel=e=>{ e.preventDefault(); const factor=(e.deltaY<0)?1.08:0.92; faceScale=clamp(faceScale*factor,.5,3); drawFacePreview(); };
+        }
+        function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
+        function refreshFaceButtons(){ const t=$('faceTake'); if(!t) return; t.textContent=stream?(appLang==='ja'?'撮影':'Capture'):(appLang==='ja'?'カメラを起動':'Open Camera'); }
+        
+        function showMascot(kind){
+            if(!getFlag('cheer')) return;
+            const shotData=localStorage.getItem('kukuFaceData');
+            if(!shotData) return;
+            
+            const box=document.createElement('div');
+            box.className='mascot';
+            
+            if(kind==='cry'){
+                const t1=document.createElement('div'); t1.className='tear left';
+                const t2=document.createElement('div'); t2.className='tear right';
+                box.appendChild(t1); box.appendChild(t2);
+            } else {
+                const balloon=document.createElement('div');
+                balloon.className='mascot-bubble';
+                balloon.textContent=(appLang==='ja'?'すごい！👍':'Great!👍');
+                box.appendChild(balloon);
+            }
+            
+            const img=new Image();
+            img.src=shotData;
+            box.appendChild(img);
+            document.body.appendChild(box);
+            setTimeout(()=>box.remove(),2600);
+        }
+        
+        document.addEventListener('click', async (e)=>{
+            const btn = e.target.closest('#hardResetBtn');
+            if (!btn) return;
+            e.preventDefault(); e.stopPropagation();
+            const ja = (localStorage.getItem('kukuLang') || 'ja') === 'ja';
+            const ok = await confirmAsync(
+                                          ja
+                                          ? '【確認】すべてのデータ（スコア/履歴/設定/背景/顔 等）を削除します。元に戻せません。よろしいですか？'
+                                          : 'CONFIRM: Delete ALL data (scores/history/settings/bg/face etc.). This cannot be undone. Proceed?'
+                                          );
+                                          if (!ok) return;
+                                          await handleHardReset();
+        });
+        
+        async function handleHardReset(){
+            try{
+                endRunNow();
+                const keys=['allowedA','allowedB','kukuTheme','kukuLang','kukuSoundPack','kukuOrder','kukuLite','neonWallData','neonWallOpacity','neonWallSize','kukuFaceData','privacyAgreed'];
+                keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_){ } });
+                ['speak','sfx','cheer'].forEach(f=>{ try{ localStorage.removeItem('kukuFlag_'+f); }catch(_){ } });
+                
+                [20,30,60,81,100,144].forEach(n=>{ try{ localStorage.removeItem('historyRun'+n); }catch(_){ } });
+                
+                for(let d=1; d<=12; d++){
+                    try{ localStorage.removeItem('historyRundan'+d); }catch(_){ }
+                }
+            }finally{
+                allowedA=new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
+                allowedB=new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
+                setTheme('mix');
+                setLang('ja');
+                applyToggleUI();
+                buildPills($('danSet'),'A'); buildPills($('kuSet'),'B');
+                applySavedOrDefaultWall();
+                resetState(); newProblem(true);
+                renderHistory(); refreshClearHistoryState();
+                alert((appLang==='ja')?'すべて削除しました。次回起動時にプライバシー同意が再表示されます。':'All data deleted. Privacy agreement will show on next launch.');
+                
+                setTimeout(()=>{
+                    location.reload();
+                }, 1000);
+            }
+        }
+        
+        /* 設定シート */
+        const sheet=$('sheet'), openSettingsBtn=$('openSettings'), closeSettingsBtn=$('closeSettings');
+        if(sheet&&openSettingsBtn&&closeSettingsBtn){
+            sheet.classList.remove('show'); openSettingsBtn.setAttribute('aria-expanded','false');
+            openSettingsBtn.onclick=()=>{ sheet.classList.add('show'); openSettingsBtn.setAttribute('aria-expanded','true'); setOverlayLock(true); };
+            closeSettingsBtn.onclick=()=>{ sheet.classList.remove('show'); openSettingsBtn.setAttribute('aria-expanded','false'); setOverlayLock(false); };
+            const grab=sheet.querySelector('.grab'); if(grab){ grab.onclick=()=>{ sheet.classList.remove('show'); openSettingsBtn.setAttribute('aria-expanded','false'); setOverlayLock(false); }; }
+        }
+        const closeSettingsTop=$('closeSettingsTop');
+        if(closeSettingsTop){ closeSettingsTop.addEventListener('click',()=>{ sheet.classList.remove('show'); openSettingsBtn.setAttribute('aria-expanded','false'); setOverlayLock(false); }); }
+        
+        /* 顔モーダルイベント */
+        const faceBtnEl=$('faceBtn');
+        if(faceBtnEl){
+            faceBtnEl.onclick = ()=>{
+                sheet.classList.remove('show');
+                setOverlayLock(false);
+                const modal = $('faceModal');
+                if(modal){
+                    showCameraExplainModal(()=>{
+                        modal.classList.add('show');
+                        setOverlayLock(true);
+                        showLivePreview(true);
+                    });
+                }
+            };
+        }
+        
+        const facePickFileBtn=$('facePickFile'); if(facePickFileBtn){ facePickFileBtn.onclick=()=>{ const fileInput=$('faceFileInput'); if(fileInput) fileInput.click(); }; }
+        const faceFileInput = $('faceFileInput');
+        if (faceFileInput) {
+            try { faceFileInput.removeAttribute('capture'); } catch(_){}
+            faceFileInput.onchange = e => {
+                const file = e.target.files?.[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => { const img = new Image();
+                    img.onload = ()=>{ beginFaceEdit(img); faceFileInput.value=''; };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+        }
+        
+        const faceTakeBtn=$('faceTake');
+        if(faceTakeBtn){
+            faceTakeBtn.onclick = e => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if(!stream){
+                    showCameraExplainModal(()=>{
+                        startCamera();
+                    });
+                    return;
+                }
+                
+                const v=$('cam'), c=$('shot'), s=c?c.width:320;
+                if(!v||!v.srcObject){
+                    const faceModal = $('faceModal');
+                    if(faceModal && faceModal.classList.contains('show')){
+                        faceModal.classList.remove('show');
+                        setOverlayLock(false);
+                    }
+                    setTimeout(() => {
+                        showCameraDeniedModal();
+                    }, 200);
+                    return;
+                }
+                
+                const tmp=document.createElement('canvas');
+                tmp.width=s; tmp.height=s;
+                const tctx=tmp.getContext('2d');
+                tctx.clearRect(0,0,s,s);
+                tctx.save();
+                tctx.translate(s,0);
+                tctx.scale(-1,1);
+                tctx.drawImage(v,0,0,s,s);
+                tctx.restore();
+                
+                const img=new Image();
+                img.onload=()=>{ beginFaceEdit(img); };
+                img.src=tmp.toDataURL('image/png');
+            };
+        }
+        
+        const faceSaveBtn=$('faceSave'); if(faceSaveBtn){ faceSaveBtn.onclick=e=>{ e.preventDefault(); e.stopPropagation(); try{ const c=$('shot'); if(!c) return; const data=c.toDataURL('image/png'); localStorage.setItem('kukuFaceData',data); alert(appLang==='ja'?'保存しました！':'Saved!'); }catch(err){ alert(appLang==='ja'?'保存に失敗しました':'Save failed'); } closeFace(); }; }
+        const faceCancelBtn=$('faceCancel'); if(faceCancelBtn){ faceCancelBtn.onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeFace(); }; }
+        const faceModal=$('faceModal'); if(faceModal){ const bk=faceModal.querySelector('.back'); if(bk){ bk.onclick=e=>{ e.preventDefault(); e.stopPropagation(); closeFace(); }; } }
+        const faceDelBtn=$('faceDel'); if(faceDelBtn){ faceDelBtn.onclick=async()=>{ const ja=(appLang==='ja'); const ok=await confirmAsync(ja?'顔画像を削除しますか？':'Delete face image?'); if(!ok) return; try{ localStorage.removeItem('kukuFaceData'); }catch(_){}
+            stopCamera(); showLivePreview(true); alert(ja?'顔画像を削除しました':'Face image deleted'); }; }
+
+// id取得ショートカット（$は既存で使っている可能性があるので別名にする）
+const byId = (id) => document.getElementById(id);
+
+/* ============================
+   履歴モーダル（安全版）
+   ============================ */
+function wireHistoryModal() {
+  const modal = byId('historyModal');
+  if (!modal) {
+    console.warn('[history] historyModal not found');
+    return;
+  }
+
+  const openBtn  = byId('openHistory');
+  const closeBtn = byId('historyClose');
+  const back     = modal.querySelector('.back');
+
+  const close = () => {
+    modal.classList.remove('show');
+    try { setOverlayLock(false); } catch (_) {}
+  };
+
+  const open = () => {
+    try { renderHistory(); } catch (_) {}
+    try { refreshClearHistoryState(); } catch (_) {}
+    try { setOverlayLock(true); } catch (_) {}
+    modal.classList.add('show');
+  };
+
+  if (openBtn)  openBtn.onclick = open;
+  if (closeBtn) closeBtn.onclick = close;
+  if (back)     back.onclick = close;
+}
+
+function wireClearHistoryButton() {
+  const btn = byId('clearHistory');
+  if (!btn) return;
+  btn.addEventListener('click', handleClearHistory);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  wireHistoryModal();
+  wireClearHistoryButton();
+});
+
+  async function handleClearHistory(e){
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  const ja = (appLang === 'ja');
+  const ok = await confirmAsync(ja ? '履歴をすべて削除しますか？' : 'Clear all history?');
+  if (!ok) return;
+
+  [20,30,60,81,100,144].forEach(n => { try { localStorage.removeItem('historyRun'+n); } catch(_){} });
+  for (let d=1; d<=12; d++) { try { localStorage.removeItem('historyRundan'+d); } catch(_){} }
+
+  renderHistory();
+  refreshClearHistoryState();
+  alert(ja ? '履歴を削除しました' : 'History cleared');
+}
+        
+        /* 停止FAB */
+        const taStopFab=$('taStopFab');
+        if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); if(!run) return;
+            const ja=(appLang==='ja');
+            const ok=await confirmAsync(ja?'タイムアタックを終了しますか？\n（今回の記録は残りません）':'End the time trial?\n(This run will not be recorded)');
+            if(!ok) return;
+            document.body.classList.remove('ta-on'); taStopFab.style.display='none'; run=null; const ai=$('answer'); if(ai) ai.value=''; $('orderToggle').classList.remove('disabled'); clearTimerStatus(); newProblem(true);
+        }); }
+        
+        /* 物理キーボード */
+        document.addEventListener('keydown',(e)=>{
+            const k=e.key;
+            if(k>='0'&&k<='9'){ navigator.vibrate?.(50); pop(); ans.value+=k; return; }
+            if(k==='Enter'){ navigator.vibrate?.(50); pop(); check(); return; }
+            if(k==='Backspace'){ navigator.vibrate?.(50); pop(); ans.value=ans.value.slice(0,-1); return; }
+            if(e.key==='Escape'){
+                ['startModal','resultModal','historyModal','faceModal','privacyModal','termsModal'].forEach(id=>{ const m=$(id); if(m&&m.classList.contains('show')){ m.classList.remove('show'); setOverlayLock(false); } });
+                if(sheet && sheet.classList.contains('show')){ sheet.classList.remove('show'); setOverlayLock(false); }
+            }
+        });
+        
+        try{ window.webkit?.messageHandlers?.lang?.postMessage({ lang: appLang }); }catch(_){}
+        
+        function boot(){
+            try {
+                setTimeout(()=>{
+                    const beams = document.querySelector('.beams');
+                    if(beams){
+                        beams.style.animation = 'spin 18s linear infinite';
+                    }
+                }, 500);
+            } catch(e) {}
+        }
+        
+        /* プライバシーポリシー・利用規約設定 */
+        function setupPrivacyContent(){
+          const title = $('privacyTitle');
+          const content = $('privacyContent');
+          
+          if(appLang === 'ja'){
+            if(title) title.textContent = 'プライバシーポリシー';
+            if(content){
+              content.textContent = `
+        【KuKuドリル プライバシーポリシー】
+
+        最終更新日: ${new Date().toLocaleDateString('ja-JP')}
+
+        1. 基本方針
+        KuKuドリル（以下「当アプリ」）は、ユーザーのプライバシーを最重要視しています。
+        当アプリは完全オフラインで動作し、個人情報の収集・送信は一切行いません。
+
+        2. 収集する情報
+        当アプリは以下の情報をお使いのデバイス内にのみ保存します：
+        • 学習履歴（スコア、タイム記録）
+        • アプリ設定（テーマ、言語、サウンド設定など）
+        • 応援キャラクター用の顔画像（任意・ユーザーが設定した場合のみ）
+
+        3. データの保存場所
+        すべてのデータはお使いのデバイスのローカルストレージにのみ保存されます。
+        外部サーバーやクラウドへの送信は一切行いません。
+
+        4. カメラ機能について
+        応援キャラクター機能でカメラを使用する場合：
+        • カメラへのアクセスは完全に任意です
+        • 撮影した画像はデバイス内にのみ保存されます
+        • 画像の外部送信は一切行いません
+        • いつでも設定から削除できます
+
+        5. データの削除
+        アプリの設定画面から、いつでもすべてのデータを削除できます。
+
+        6. 第三者への情報提供
+        当アプリは、いかなる個人情報も第三者に提供することはありません。
+
+        7. お問い合わせ
+        プライバシーポリシーに関するご質問は、アプリストアのレビュー欄にてお願いいたします。
+
+        以上
+        `;
+            }
+          } else {
+            if(title) title.textContent = 'Privacy Policy';
+            if(content){
+              content.textContent = `
+        【KuKu Drill Privacy Policy】
+
+        Last Updated: ${new Date().toLocaleDateString('en-US')}
+
+        1. Basic Policy
+        KuKu Drill ("the App") places the highest priority on user privacy.
+        The App operates completely offline and does not collect or transmit any personal information.
+
+        2. Information We Store
+        The App stores the following information only on your device:
+        • Learning history (scores, time records)
+        • App settings (theme, language, sound settings, etc.)
+        • Cheer character face image (optional, only if set by user)
+
+        3. Data Storage Location
+        All data is stored only in local storage on your device.
+        No data is transmitted to external servers or cloud services.
+
+        4. Camera Feature
+        When using the camera for the cheer character feature:
+        • Camera access is completely optional
+        • Captured images are stored only on your device
+        • Images are never transmitted externally
+        • Can be deleted anytime from settings
+
+        5. Data Deletion
+        You can delete all data anytime from the app settings screen.
+
+        6. Third-Party Information Sharing
+        The App does not share any personal information with third parties.
+
+        7. Contact
+        For questions about this Privacy Policy, please contact us via the App Store review section.
+
+        End
+        `;
+            }
+          }
+        }
+
+        function setupTermsContent(){
+          const title = $('termsTitle');
+          const content = $('termsContent');
+          
+          if(appLang === 'ja'){
+            if(title) title.textContent = '利用規約';
+            if(content){
+              content.textContent = `
+        【KuKuドリル 利用規約】
+
+        最終更新日: ${new Date().toLocaleDateString('ja-JP')}
+
+        1. 利用規約の適用
+        本利用規約は、KuKuドリル（以下「当アプリ」）の利用に関する条件を定めるものです。
+        ユーザーは、当アプリを利用することにより、本規約に同意したものとみなされます。
+
+        2. アプリの利用
+        • 当アプリは教育目的で提供される無料アプリです
+        • 個人利用・家庭内利用・学校での利用を想定しています
+        • 営利目的での再配布や改変は禁止します
+
+        3. 免責事項
+        • 当アプリは「現状のまま」提供されます
+        • 当アプリの利用により生じたいかなる損害についても、開発者は責任を負いません
+        • 当アプリの動作保証はいたしません
+
+        4. 知的財産権
+        当アプリに関する著作権・知的財産権は開発者に帰属します。
+
+        5. 禁止事項
+        以下の行為を禁止します：
+        • 当アプリの不正利用・改変・リバースエンジニアリング
+        • 他者の権利を侵害する行為
+        • 法令に違反する行為
+
+        6. 規約の変更
+        開発者は、ユーザーへの事前通知なく本規約を変更できるものとします。
+
+        7. 準拠法・管轄裁判所
+        本規約は日本法に準拠します。
+        紛争が生じた場合は、東京地方裁判所を第一審の専属的合意管轄裁判所とします。
+
+        以上
+        `;
+            }
+          } else {
+            if(title) title.textContent = 'Terms of Use';
+            if(content){
+              content.textContent = `
+        【KuKu Drill Terms of Use】
+
+        Last Updated: ${new Date().toLocaleDateString('en-US')}
+
+        1. Application of Terms
+        These Terms of Use define the conditions for using KuKu Drill ("the App").
+        By using the App, users are deemed to have agreed to these Terms.
+
+        2. Use of the App
+        • The App is a free educational app
+        • Intended for personal, home, and school use
+        • Commercial redistribution or modification is prohibited
+
+        3. Disclaimer
+        • The App is provided "as is"
+        • The developer is not responsible for any damages arising from use of the App
+        • No warranty is provided for the App's operation
+
+        4. Intellectual Property Rights
+        Copyright and intellectual property rights related to the App belong to the developer.
+
+        5. Prohibited Activities
+        The following activities are prohibited:
+        • Unauthorized use, modification, or reverse engineering of the App
+        • Acts that infringe on the rights of others
+        • Acts that violate laws and regulations
+
+        6. Changes to Terms
+        The developer may change these Terms without prior notice to users.
+
+        7. Governing Law and Jurisdiction
+        These Terms are governed by Japanese law.
+        In case of disputes, Tokyo District Court shall be the exclusive agreed jurisdiction court of first instance.
+
+        End
+        `;
+            }
+          }
+        }
+        
+        const privacyBtn = $('privacyBtn');
+        if(privacyBtn){
+            privacyBtn.onclick = ()=>{
+                const modal = $('privacyModal');
+                const content = $('privacyContent');
+                const title = $('privacyTitle');
+                const closeBtn = $('privacyClose');
+                
+                if(!modal || !content || !title) return;
+                
+                setupPrivacyContent();
+                
+                modal.classList.add('show');
+                setOverlayLock(true);
+                
+                const sheet = $('sheet');
+                if(sheet) sheet.classList.remove('show');
+                
+                if(closeBtn){
+                    closeBtn.onclick = function(e){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        modal.classList.remove('show');
+                        setOverlayLock(false);
+                        return false;
+                    };
+                }
+                
+                const backDrop = modal.querySelector('.back');
+                if(backDrop){
+                    backDrop.onclick = function(e){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        modal.classList.remove('show');
+                        setOverlayLock(false);
+                        return false;
+                    };
+                }
+            };
+        }
+        
+        const termsBtn = $('termsBtn');
+        if(termsBtn){
+            termsBtn.onclick = ()=>{
+                const modal = $('termsModal');
+                const content = $('termsContent');
+                const title = $('termsTitle');
+                const closeBtn = $('termsClose');
+                
+                if(!modal || !content || !title) return;
+                
+                setupTermsContent();
+                
+                modal.classList.add('show');
+                setOverlayLock(true);
+                
+                const sheet = $('sheet');
+                if(sheet) sheet.classList.remove('show');
+                
+                if(closeBtn){
+                    closeBtn.onclick = function(e){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        modal.classList.remove('show');
+                        setOverlayLock(false);
+                        return false;
+                    };
+                }
+                
+                const backDrop = modal.querySelector('.back');
+                if(backDrop){
+                    backDrop.onclick = function(e){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        modal.classList.remove('show');
+                        setOverlayLock(false);
+                        return false;
+                    };
+                }
+            };
+        }
+        
+        // ★DOMContentLoadedイベント内で実行
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔵 DOMContentLoaded イベント発火');
+            await showFirstLaunchPrivacy();
+        });
+
+        (async ()=>{
+            console.log('🔵 初期化処理開始');
+            
+            updateLangUI();
+            resetState();
+            newProblem(true);
+            
+            const saved=localStorage.getItem('kukuLite');
+            if(saved!=null){
+                applyLite(saved==='1');
+            } else {
+                const prefersReduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if(prefersReduce){
+                    applyLite(true);
+                } else {
+                    const fps=await measureFps(12);
+                    if(isiOS && fps<30) applyLite(true);
+                }
+            }
+            
+            const togLite=$('togLite');
+            if(togLite){
+                togLite.classList.toggle('active', document.body.classList.contains('perf-lite'));
+                togLite.addEventListener('click',()=>{
+                    const next=!document.body.classList.contains('perf-lite');
+                    applyLite(next);
+                    togLite.classList.toggle('active', next);
+                });
+            }
+            
+            boot();
+        })();
+
+        // ========================================
+        // Service Worker 登録 (完全版)
+        // ========================================
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            console.log('🔧 Service Worker 登録処理開始');
+            
+            // localhost または https の場合のみ登録
+            if (location.protocol === 'https:' || location.hostname === 'localhost') {
+              navigator.serviceWorker.register('./sw.js', { scope: './' })
+                .then(function(registration) {
+                  console.log('✅ Service Worker 登録成功!');
+                  console.log('📍 Scope:', registration.scope);
+                  
+                  if (registration.active) {
+                    console.log('📦 Active Worker:', registration.active.scriptURL);
+                    console.log('📦 State:', registration.active.state);
+                  } else if (registration.installing) {
+                    console.log('⏳ Installing Worker...');
+                  } else if (registration.waiting) {
+                    console.log('⏸️ Waiting Worker...');
+                  }
+                  
+                  // 更新チェック
+                  registration.update();
+                  
+                  // 新しいワーカーがインストールされたら通知
+                  registration.addEventListener('updatefound', () => {
+                    console.log('🔄 新しい Service Worker を検出');
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                      console.log('📦 SW State changed to:', newWorker.state);
+                      if (newWorker.state === 'activated') {
+                        console.log('🎉 新しい Service Worker がアクティブになりました!');
+                      }
+                    });
+                  });
+                })
+                .catch(function(error) {
+                  console.error('❌ Service Worker 登録失敗:', error);
+                  console.error('❌ エラーメッセージ:', error.message);
+                  console.error('❌ エラースタック:', error.stack);
+                });
+            } else {
+              console.warn('⚠️ Service Worker は https:// または localhost でのみ動作します');
+              console.log('現在のプロトコル:', location.protocol);
+              console.log('現在のホスト:', location.hostname);
+            }
+          });
+        } else {
+          console.error('❌ このブラウザは Service Worker に対応していません');
+        }
+
+                })();
+            </script>
+
+    <!-- プライバシーポリシーモーダル -->
+    <!-- ★追加: 初回起動時のプライバシー同意画面 -->
+    <div class="modal" id="firstLaunchModal" style="z-index:1400">
+      <div class="back" style="background: rgba(6,4,20,.85)"></div>
+      <div class="panel" style="text-align:center; max-width:540px; max-height:88vh; overflow-y:auto;">
+        <div style="font-size:56px; margin:20px 0 16px;">🛡️</div>
+        <div class="h" id="firstLaunchTitle" style="font-size:22px; margin-bottom:12px;">
+          プライバシーとデータの取り扱い
+        </div>
+        
+        <div id="firstLaunchBody" style="text-align:left; padding:0 12px; margin-bottom:20px;">
+          <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                      border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--text);">
+              ✨ このアプリについて
+            </div>
+            <div class="small" style="line-height:1.7; color:var(--muted);">
+              KuKuドリルは、お子様が楽しく九九を学習できる教育アプリです。<br>
+              すべてのデータはお使いのデバイス内にのみ保存され、外部に送信されることは一切ありません。
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                      border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--text);">
+              🔒 プライバシー保護
+            </div>
+            <ul class="small" style="line-height:1.7; color:var(--muted); margin:0; padding-left:20px;">
+              <li>学習データ（スコア、履歴）はデバイス内のみに保存</li>
+              <li>インターネット接続は不要（完全オフラインで動作）</li>
+              <li>個人情報の収集は一切行いません</li>
+              <li>広告やトラッキングは含まれていません</li>
+            </ul>
+          </div>
+
+          <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
+                      border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--text);">
+              📸 カメラ機能（任意）
+            </div>
+            <div class="small" style="line-height:1.7; color:var(--muted);">
+              応援キャラクター機能では、カメラ撮影が可能です。<br>
+              • カメラ使用は<strong>完全に任意</strong>です<br>
+              • 撮影した写真はデバイス内のみに保存<br>
+              • 外部への送信は一切ありません<br>
+              • いつでも削除できます
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(180deg, rgba(59,199,255,.12), rgba(59,199,255,.04)); 
+                      border:1px solid rgba(59,199,255,.3); border-radius:12px; padding:14px; margin-bottom:16px;">
+            <div class="small" style="line-height:1.7; color:var(--text); text-align:center;">
+              詳細は
+              <button id="privacyLinkFromFirst"
+                      style="background:none; border:0; color:var(--accentB); 
+                             text-decoration:underline; cursor:pointer; font-size:inherit; padding:0;">
+                プライバシーポリシー
+              </button>
+              と
+              <button id="termsLinkFromFirst"
+                      style="background:none; border:0; color:var(--accentB); 
+                             text-decoration:underline; cursor:pointer; font-size:inherit; padding:0;">
+                利用規約
+              </button>
+              をご覧ください
+            </div>
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn grad" id="firstLaunchAgree" style="min-width:200px; font-size:16px;">
+            同意してはじめる
+          </button>
+        </div>
+
+        <div class="small" style="margin-top:16px; color:var(--muted); font-size:12px;">
+          「同意してはじめる」をタップすると、プライバシーポリシーと利用規約に同意したことになります
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal" id="privacyModal">
+      <div class="back"></div>
+      <div class="panel" style="max-height:80vh; overflow:auto;">
+        <div class="h" id="privacyTitle">プライバシーポリシー</div>
+        <div class="small" id="privacyContent" style="text-align:left; line-height:1.8; white-space:pre-wrap;">
+          <!-- プライバシーポリシー本文はJavaScriptで挿入 -->
+        </div>
+        <div class="btnrow">
+          <button class="btn grad" id="privacyClose">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 利用規約モーダル -->
+    <div class="modal" id="termsModal">
+      <div class="back"></div>
+      <div class="panel" style="max-height:80vh; overflow:auto;">
+        <div class="h" id="termsTitle">利用規約</div>
+        <div class="small" id="termsContent" style="text-align:left; line-height:1.8; white-space:pre-wrap;">
+          <!-- 利用規約本文はJavaScriptで挿入 -->
+        </div>
+        <div class="btnrow">
+          <button class="btn grad" id="termsClose">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    </body>
+    </html>
