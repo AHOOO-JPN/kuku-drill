@@ -3267,20 +3267,20 @@ function confettiBurst(){
             stopCamera(); showLivePreview(true); alert(ja?'顔画像を削除しました':'Face image deleted'); }; }
 
 // id取得のショートカット（既にあるなら不要）
-const $ = (id) => document.getElementById(id);
+const byld = (id) => document.getElementById(id);
 
 /* ============================
    履歴モーダル（安全版）
    ============================ */
 function wireHistoryModal() {
-  const modal = $('historyModal');
+  const modal = byld('historyModal');
   if (!modal) {
     console.warn('[history] historyModal not found');
     return;
   }
 
-  const openBtn  = $('openHistory');
-  const closeBtn = $('historyClose'); // ← HTMLに無いなら無くても落ちない
+  const openBtn  = byld('openHistory');
+  const closeBtn = byld('historyClose'); // ← HTMLに無いなら無くても落ちない
   const back     = modal.querySelector('.back');
 
   const close = () => {
@@ -3325,7 +3325,7 @@ async function handleClearHistory(e) {
 }
 
 function wireClearHistoryButton() {
-  const btn = $('clearHistory');
+  const btn = byld('clearHistory');
   if (!btn) return;
   btn.addEventListener('click', handleClearHistory);
 }
