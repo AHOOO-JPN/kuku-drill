@@ -3266,21 +3266,21 @@ function confettiBurst(){
         const faceDelBtn=$('faceDel'); if(faceDelBtn){ faceDelBtn.onclick=async()=>{ const ja=(appLang==='ja'); const ok=await confirmAsync(ja?'顔画像を削除しますか？':'Delete face image?'); if(!ok) return; try{ localStorage.removeItem('kukuFaceData'); }catch(_){}
             stopCamera(); showLivePreview(true); alert(ja?'顔画像を削除しました':'Face image deleted'); }; }
 
-// id取得のショートカット（既にあるなら不要）
-const byld = (id) => document.getElementById(id);
+// id取得ショートカット（$は既存で使っている可能性があるので別名にする）
+const byId = (id) => document.getElementById(id);
 
 /* ============================
    履歴モーダル（安全版）
    ============================ */
 function wireHistoryModal() {
-  const modal = byld('historyModal');
+  const modal = byId('historyModal');
   if (!modal) {
     console.warn('[history] historyModal not found');
     return;
   }
 
-  const openBtn  = byld('openHistory');
-  const closeBtn = byld('historyClose'); // ← HTMLに無いなら無くても落ちない
+  const openBtn  = byId('openHistory');
+  const closeBtn = byId('historyClose');
   const back     = modal.querySelector('.back');
 
   const close = () => {
@@ -3300,41 +3300,17 @@ function wireHistoryModal() {
   if (back)     back.onclick = close;
 }
 
-/* ============================
-   履歴を全削除（ボタンがあれば）
-   ============================ */
-async function handleClearHistory(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-
-  const ja = (typeof appLang !== 'undefined' ? appLang : (localStorage.getItem('kukuLang') || 'ja')) === 'ja';
-  const ok = await confirmAsync(ja ? '履歴をすべて削除しますか？' : 'Clear all history?');
-  if (!ok) return;
-
-  // ここはあなたの実装に合わせてキーを削除（例）
-  try {
-    localStorage.removeItem('kukuHistory');
-    [20, 30, 60, 81, 100, 144].forEach(n => localStorage.removeItem('historyRun' + n));
-    for (let d = 1; d <= 12; d++) localStorage.removeItem('historyRunDan' + d);
-  } catch (err) {
-    console.warn('[history] remove failed:', err);
-  }
-
-  try { renderHistory(); } catch (_) {}
-  try { refreshClearHistoryState(); } catch (_) {}
-  alert(ja ? '履歴を削除しました' : 'History cleared');
-}
-
 function wireClearHistoryButton() {
-  const btn = byld('clearHistory');
+  const btn = byId('clearHistory');
   if (!btn) return;
   btn.addEventListener('click', handleClearHistory);
 }
 
-// DOMができてから結線（ここだけ）
 window.addEventListener('DOMContentLoaded', () => {
   wireHistoryModal();
   wireClearHistoryButton();
-});     
+});
+        
         async function handleClearHistory(){
             const ja=(appLang==='ja');
             const ok=await confirmAsync(ja?'履歴をすべて削除しますか？':'Clear all history?');
