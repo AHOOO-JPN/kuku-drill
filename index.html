@@ -1264,6 +1264,22 @@ button.pill.grad,
     </div>
   </div></div>
 
+    <!-- 履歴モーダル -->
+<div class="modal" id="historyModal">
+  <div class="back"></div>
+  <div class="panel">
+    <div class="h" id="histTitle">履歴（直近10件）</div>
+
+    <div id="historyContent" class="small"
+         style="text-align:left; line-height:1.6; white-space:normal;"></div>
+
+    <div class="btnrow">
+      <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
+      <button class="btn grad" id="historyClose" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+    
 <!-- ========================================
      統計画面モーダル（既存のモーダルスタイルに統一）
      ======================================== -->
@@ -3310,24 +3326,21 @@ window.addEventListener('DOMContentLoaded', () => {
   wireHistoryModal();
   wireClearHistoryButton();
 });
-        
-        async function handleClearHistory(){
-            const ja=(appLang==='ja');
-            const ok=await confirmAsync(ja?'履歴をすべて削除しますか？':'Clear all history?');
-            if(!ok) return;
-            
-            [20,30,60,81,100,144].forEach(n=>{ try{ localStorage.removeItem('historyRun'+n); }catch(_){ } });
-            
-            for(let d=1; d<=12; d++){
-                try{ localStorage.removeItem('historyRundan'+d); }catch(_){}
-            }
-            
-            renderHistory();
-            refreshClearHistoryState();
-            alert(ja?'履歴を削除しました':'History cleared');
-        }
-        
-        $('clearHistory').addEventListener('click',(e)=>{ e.preventDefault(); e.stopPropagation(); handleClearHistory(); });
+
+  async function handleClearHistory(e){
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  const ja = (appLang === 'ja');
+  const ok = await confirmAsync(ja ? '履歴をすべて削除しますか？' : 'Clear all history?');
+  if (!ok) return;
+
+  [20,30,60,81,100,144].forEach(n => { try { localStorage.removeItem('historyRun'+n); } catch(_){} });
+  for (let d=1; d<=12; d++) { try { localStorage.removeItem('historyRundan'+d); } catch(_){} }
+
+  renderHistory();
+  refreshClearHistoryState();
+  alert(ja ? '履歴を削除しました' : 'History cleared');
+}
         
         /* 停止FAB */
         const taStopFab=$('taStopFab');
