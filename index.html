@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
     <head>
@@ -991,7 +990,6 @@ button.pill.grad,
         footer {
             touch-action: none;
         }
-        }
         
         /* iOS専用タッチ最適化 */
         @supports (-webkit-touch-callout: none) {
@@ -1901,6 +1899,17 @@ function debounce(fn, ms) {
                 shareAllOk:(n,sec,pts)=>`KuKu ${n}問 完走🏃💨！ ⏱${sec}秒 / ${pts}点`,
                 shareGeneric:(n,sec,pts,ok,total)=>`KuKu ${n}問 ⏱${sec}秒 / ${pts}点 / ${ok}/${total}`,
                 shareUnlimited:(q,sec,pts)=>`KuKu 無制限 ${q}Q ⏱${sec}秒 / ${pts}点`},
+                statsTitle: "統計",
+                statsNoData: "まだ記録がありません！タイムアタックを完了させてください。",
+                statsAttempts: "挑戦回数",
+                statsAvg: "平均",
+                statsBest: "最高",
+                statsFastest: "最速",
+                unitTimes: "回",
+                unitSec: "秒",
+                unitPoints: "点",
+                danSuffix: "の段",
+
             en:{title:'KuKu Drill',answerPH:'answer',score:'Score',streak:'Streak',avg:'Avg time',
                 range:'Range (Multiplicand × Multiplier)',A:'Multiplicand (tables)',B:'Multiplier (1–10)',
                 timer:'Time Trial',notStarted:'Not started',
@@ -1912,7 +1921,18 @@ function debounce(fn, ms) {
                 unlimitedLine:(q,sec,pts)=>`Solved: ${q}Q / Time ${sec}s / ${pts}pts (not recorded)`,
                 shareAllOk:(n,sec,pts)=>`KuKu ${n}Q All correct! ⏱${sec}s / ${pts}pts`,
                 shareGeneric:(n,sec,pts,ok,total)=>`KuKu ${n}Q ⏱${sec}s / ${pts}pts / ${ok}/${total}`,
-                shareUnlimited:(q,sec,pts)=>`KuKu Free ${q}Q ⏱${sec}s / ${pts}pts`}
+                shareUnlimited:(q,sec,pts)=>`KuKu Free ${q}Q ⏱${sec}s / ${pts}pts`,
+                statsTitle: "Statistics",
+                statsNoData: "No records yet. Finish a time trial first.",
+                statsAttempts: "Attempts",
+                statsAvg: "Avg",
+                statsBest: "Best",
+                statsFastest: "Fastest",
+                unitTimes: " times",
+                unitSec: "s",
+                unitPoints: " pts",
+                danSuffix: " Table",
+               }
         };
         let appLang=localStorage.getItem('kukuLang')||'ja';
         function setLang(lang){
