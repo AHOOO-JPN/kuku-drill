@@ -1387,12 +1387,13 @@ function initDB() {
 // ========================================
 
 async function showStats() {
-
+  const t  = i18n[appLang] || i18n.ja;
+  const tx = (k) => (t && t[k]) || (i18n.ja && i18n.ja[k]) || k;
   try {
     const allRecords = await getAllRecords();
     
     if (allRecords.length === 0) {
-      alert('まだ記録がありません！タイムアタックを完了させてください。');
+      alert(tx('statsNoData'));
       return;
     }
     
@@ -1427,18 +1428,23 @@ for (let i = 1; i <= 12; i++) {
       border:1px solid var(--border);
       border-left:4px solid var(--accentA);
     `;
-    danDiv.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${i}の段</strong>
-        <span style="color:var(--muted); font-size:13px;">挑戦回数: ${stats.totalAttempts}回</span>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
-        <div>平均: <strong style="color:var(--text);">${stats.avgScore}点</strong></div>
-        <div>最高: <strong style="color:var(--ok);">${stats.bestScore}点</strong></div>
-        <div>平均: <strong style="color:var(--text);">${stats.avgTime}秒</strong></div>
-        <div>最速: <strong style="color:var(--accentB);">${stats.bestTime}秒</strong></div>
-      </div>
-    `;
+const danLabel = `${i}${tx('danSuffix')}`;
+
+danDiv.innerHTML = `
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${danLabel}</strong>
+    <span style="color:var(--muted); font-size:13px;">
+      ${tx('statsAttempts')}: ${stats.totalAttempts}${tx('unitTimes')}
+    </span>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+    <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgScore}${tx('unitPoints')}</strong></div>
+    <div>${tx('statsBest')}: <strong style="color:var(--ok);">${stats.bestScore}${tx('unitPoints')}</strong></div>
+    <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgTime}${tx('unitSec')}</strong></div>
+    <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${stats.bestTime}${tx('unitSec')}</strong></div>
+  </div>
+`;
     danStatsDiv.appendChild(danDiv);
   }
 }
@@ -1964,7 +1970,7 @@ function debounce(fn, ms) {
         }
         
         function updateLangUI(){
-            const t=i18n[appLang];
+            const t = i18n[appLang] || i18n.ja;
             document.documentElement.lang=(appLang==='ja'?'ja':'en');
             txt($('titleTxt'),t.title);
             const ans=$('answer'); if(ans) ans.placeholder=t.answerPH;
