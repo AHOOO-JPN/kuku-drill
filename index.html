@@ -1394,19 +1394,23 @@ function initDB() {
 // ========================================
 
 async function showStats() {
-  const t  = i18n[appLang] || i18n.ja;
-  const tx = (k) => (t && t[k]) || (i18n.ja && i18n.ja[k]) || k;
-  try {
-    const allRecords = await getAllRecords();
-    
-if (allRecords.length === 0) {
-  const modal = document.getElementById('statsModal');
-  const list  = document.getElementById('danStats');
+  // i18n が既にある前提（無くても動くようにフォールバック）
+  const T  = (window.i18n && (i18n[appLang] || i18n.ja)) || {};
+  const tx = (k) => (T && T[k]) || (i18n && i18n.ja && i18n.ja[k]) || k;
 
-  if (list) list.innerHTML = `<div class="small">No records yet.</div>`;
-  if (modal) modal.classList.add('show');   // 0件でも「枠」は開く
-  return;
-}
+  try {
+    // 1) DBが未初期化で落ちるのを防ぐ（initDBがある場合）
+    if (typeof initDB === 'function') {
+      await initDB();
+    }
+
+    const allRecords = await getAllRecords();
+
+    // 2) 0件でも「開く」：無反応を防止
+    if (!allRecords || allRecords.length === 0) {
+      openStatsModal(`<div class="small">${tx('statsNoData') || 'No records yet.'}</div>`);
+      return;
+    }
     
     // 全体統計を計算
     const totalQuestions = allRecords.reduce((sum, r) => sum + r.questionCount, 0);
@@ -1415,14 +1419,13 @@ if (allRecords.length === 0) {
     const bestScore = Math.max(...allRecords.map(r => r.score));
     const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
     
-    // 全体統計を表示
-    document.getElementById('totalQuestions').innerText = totalQuestions;
-    document.getElementById('avgScore').innerText = avgScore;
-    document.getElementById('avgTime').innerText = avgTime;
-    document.getElementById('bestScore').innerText = bestScore;
-    document.getElementById('bestTime').innerText = bestTime;
+// 全体統計を表示
+safeText('totalQuestions', totalQuestions);
+safeText('avgScore', avgScore);
+safeText('avgTime', avgTime);
+safeText('bestScore', bestScore);
+safeText('bestTime', bestTime);
     
-// 段別統計を表示
 // 段別統計を表示
 const danStatsDiv = document.getElementById('danStats');
 danStatsDiv.innerHTML = '';
@@ -1460,21 +1463,40 @@ danDiv.innerHTML = `
   }
 }
     
-// 統計画面とオーバーレイを表示
-    document.getElementById('statsModal').classList.add('show');
+// 統計画面とオーバーレイを表示（必ず開く）
+openStatsModal();
+console.log('📊 統計画面を表示しました');
     
-    console.log('📊 統計画面を表示しました');
-    
-  } catch (err) {
-    console.error('❌ 統計表示エラー:', err);
-    alert('統計の表示に失敗しました: ' + err.message);
-  }
+ } catch (err) {
+  console.error('❌ showStats error:', err);
+  const msg = (err && err.message) ? err.message : String(err);
+  openStatsModal(`
+    <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
+      Stats error: ${msg}
+    </div>
+  `);
+}
 }
 
 // 統計画面を閉じる
 function closeStats() {
   document.getElementById('statsModal').classList.remove('show');
   console.log('📊 統計画面を閉じました');
+}
+
+function openStatsModal(htmlForDanStats) {
+  const modal = document.getElementById('statsModal');
+  const list  = document.getElementById('danStats');
+
+  if (list && htmlForDanStats !== undefined) {
+    list.innerHTML = htmlForDanStats;
+  }
+  if (modal) modal.classList.add('show');
+}
+
+function safeText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
 }
 
 // 記録を保存
