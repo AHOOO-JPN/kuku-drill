@@ -2204,7 +2204,6 @@ window.appLang = appLang; // 初期値を公開
   const xBtn = document.querySelector('#statsModal .sheet-close');
   if (xBtn) xBtn.setAttribute('aria-label', t.close || (appLang==='ja'?'閉じる':'Close'));
 }
-        } // ★この行を追加: updateLangUI関数の閉じ括弧
         
         /* 出題順トグル */
         let orderMode=localStorage.getItem('kukuOrder')||'random';
