@@ -1940,57 +1940,91 @@ function debounce(fn, ms) {
         paletteBtn.onclick=()=>{ const cur=localStorage.getItem('kukuTheme')||'mix'; setTheme(cur==='mix'?'pink':(cur==='pink'?'blue':'mix')); };
         
         /* 言語 */
-        const i18n={
-            ja:{title:'KuKuドリル',answerPH:'こたえ',score:'スコア',streak:'れんさ',avg:'平均タイム',
-                range:'出題範囲（かけられる数 × かける数）',A:'かけられる数（段）',B:'かける数（1〜10）',
-                timer:'タイムアタック', notStarted:'未開始',
-                speakProb:(a,b)=>`${a} かける ${b}`,
-                remainOk:n=>`のこり ${n} 問（ミスなし）`, remainNg:n=>`のこり ${n} 問（ミスあり：記録外）`,
-                runDone:n=>`${n}問 完走！🏃💨`, runInvalid:`途中でまちがいがありました🤯ざんねん😢`,
-                bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}秒 / ${score}点（${date}）`,
-                thisTime:'今回', bestPrefix:'自己ベスト', secUnit:'秒', ptsUnit:'点',
-                unlimitedLine:(q,sec,pts)=>`解いた数: ${q}問 / 所要 ${sec}秒 / ${pts}点（記録対象外）`,
-                shareAllOk:(n,sec,pts)=>`KuKu ${n}問 完走🏃💨！ ⏱${sec}秒 / ${pts}点`,
-                shareGeneric:(n,sec,pts,ok,total)=>`KuKu ${n}問 ⏱${sec}秒 / ${pts}点 / ${ok}/${total}`,
-                shareUnlimited:(q,sec,pts)=>`KuKu 無制限 ${q}Q ⏱${sec}秒 / ${pts}点`},
-                statsTitle: "統計",
-                statsNoData: "まだ記録がありません！タイムアタックを完了させてください。",
-                statsAttempts: "挑戦回数",
-                statsAvg: "平均",
-                statsBest: "最高",
-                statsFastest: "最速",
-                unitTimes: "回",
-                unitSec: "秒",
-                unitPoints: "点",
-                danSuffix: "の段",
-                },
-            en:{title:'KuKu Drill',answerPH:'answer',score:'Score',streak:'Streak',avg:'Avg time',
-                range:'Range (Multiplicand × Multiplier)',A:'Multiplicand (tables)',B:'Multiplier (1–10)',
-                timer:'Time Trial',notStarted:'Not started',
-                speakProb:(a,b)=>`${a} times ${b}`,
-                remainOk:n=>`${n} left (no miss)`, remainNg:n=>`${n} left (miss: no record)`,
-                runDone:n=>`${n}Q Completed!`, runInvalid:`Record void due to a mistake.`,
-                bestLabel:(sec,score,date)=>`Best: ${sec.toFixed(1)}s / ${score}pts (${date})`,
-                thisTime:'This run', bestPrefix:'Personal best', secUnit:'s', ptsUnit:'pts',
-                unlimitedLine:(q,sec,pts)=>`Solved: ${q}Q / Time ${sec}s / ${pts}pts (not recorded)`,
-                shareAllOk:(n,sec,pts)=>`KuKu ${n}Q All correct! ⏱${sec}s / ${pts}pts`,
-                shareGeneric:(n,sec,pts,ok,total)=>`KuKu ${n}Q ⏱${sec}s / ${pts}pts / ${ok}/${total}`,
-                shareUnlimited:(q,sec,pts)=>`KuKu Free ${q}Q ⏱${sec}s / ${pts}pts`,
-                statsTitle: "Statistics",
-                statsNoData: "No records yet. Finish a time trial first.",
-                statsAttempts: "Attempts",
-                statsAvg: "Avg",
-                statsBest: "Best",
-                statsFastest: "Fastest",
-                unitTimes: " times",
-                unitSec: "s",
-                unitPoints: " pts",
-                danSuffix: " Table",
-                }
-                };
-                window.i18n = i18n;
-        let appLang = localStorage.getItem('kukuLang') || 'ja';
-        window.appLang = appLang; // ★追加（初期値を公開）
+/* 言語 */
+const i18n = {
+  ja: {
+    title: 'KuKuドリル',
+    answerPH: 'こたえ',
+    score: 'スコア',
+    streak: 'れんさ',
+    avg: '平均タイム',
+    range: '出題範囲（かけられる数 × かける数）',
+    A: 'かけられる数（段）',
+    B: 'かける数（1〜10）',
+    timer: 'タイムアタック',
+    notStarted: '未開始',
+    speakProb: (a, b) => `${a} かける ${b}`,
+    remainOk: n => `のこり ${n} 問（ミスなし）`,
+    remainNg: n => `のこり ${n} 問（ミスあり：記録外）`,
+    runDone: n => `${n}問 完走！🏃💨`,
+    runInvalid: `途中でまちがいがありました🤯ざんねん😢`,
+    bestLabel: (sec, score, date) => `Best: ${sec.toFixed(1)}秒 / ${score}点（${date}）`,
+    thisTime: '今回',
+    bestPrefix: '自己ベスト',
+    secUnit: '秒',
+    ptsUnit: '点',
+    unlimitedLine: (q, sec, pts) => `解いた数: ${q}問 / 所要 ${sec}秒 / ${pts}点（記録対象外）`,
+    shareAllOk: (n, sec, pts) => `KuKu ${n}問 完走🏃💨！ ⏱${sec}秒 / ${pts}点`,
+    shareGeneric: (n, sec, pts, ok, total) => `KuKu ${n}問 ⏱${sec}秒 / ${pts}点 / ${ok}/${total}`,
+    shareUnlimited: (q, sec, pts) => `KuKu 無制限 ${q}Q ⏱${sec}秒 / ${pts}点`,
+
+    // ★統計（ここを ja の中に入れる）
+    statsTitle: "統計",
+    statsNoData: "まだ記録がありません！タイムアタックを完了させてください。",
+    statsAttempts: "挑戦回数",
+    statsAvg: "平均",
+    statsBest: "最高",
+    statsFastest: "最速",
+    unitTimes: "回",
+    unitSec: "秒",
+    unitPoints: "点",
+    danSuffix: "の段",
+  },
+
+  en: {
+    title: 'KuKu Drill',
+    answerPH: 'answer',
+    score: 'Score',
+    streak: 'Streak',
+    avg: 'Avg time',
+    range: 'Range (Multiplicand × Multiplier)',
+    A: 'Multiplicand (tables)',
+    B: 'Multiplier (1–10)',
+    timer: 'Time Trial',
+    notStarted: 'Not started',
+    speakProb: (a, b) => `${a} times ${b}`,
+    remainOk: n => `${n} left (no miss)`,
+    remainNg: n => `${n} left (miss: no record)`,
+    runDone: n => `${n}Q Completed!`,
+    runInvalid: `Record void due to a mistake.`,
+    bestLabel: (sec, score, date) => `Best: ${sec.toFixed(1)}s / ${score}pts (${date})`,
+    thisTime: 'This run',
+    bestPrefix: 'Personal best',
+    secUnit: 's',
+    ptsUnit: 'pts',
+    unlimitedLine: (q, sec, pts) => `Solved: ${q}Q / Time ${sec}s / ${pts}pts (not recorded)`,
+    shareAllOk: (n, sec, pts) => `KuKu ${n}Q All correct! ⏱${sec}s / ${pts}pts`,
+    shareGeneric: (n, sec, pts, ok, total) => `KuKu ${n}Q ⏱${sec}s / ${pts}pts / ${ok}/${total}`,
+    shareUnlimited: (q, sec, pts) => `KuKu Free ${q}Q ⏱${sec}s / ${pts}pts`,
+
+    // ★統計（en は元から入っている形にする）
+    statsTitle: "Statistics",
+    statsNoData: "No records yet. Finish a time trial first.",
+    statsAttempts: "Attempts",
+    statsAvg: "Avg",
+    statsBest: "Best",
+    statsFastest: "Fastest",
+    unitTimes: " times",
+    unitSec: "s",
+    unitPoints: " pts",
+    danSuffix: " Table",
+  }
+};
+
+window.i18n = i18n;
+
+let appLang = localStorage.getItem('kukuLang') || 'ja';
+window.appLang = appLang; // 初期値を公開
 
         function setLang(lang){
           appLang = (lang === 'en') ? 'en' : 'ja';
