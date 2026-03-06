@@ -1480,14 +1480,16 @@ for (let i = 1; i <= 12; i++) {
 }
 }
       
-openStatsModal();
-  } catch (err) {
-    console.error('❌ showStats error:', err);
-    const msg = (err && err.message) ? err.message : String(err);
-    openStatsModal(`
-      <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
-        Stats error: ${msg}
-      </div>
+openStatsModal();               // ★ try の中（最後）に置く
+console.log('📊 統計画面を表示しました');
+    
+} catch (err) {
+console.error('❌ showStats error:', err);
+const msg = (err && err.message) ? err.message : String(err);
+openStatsModal(`
+    <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
+    Stats error: ${msg}
+    </div>
     `);
   }
 }
