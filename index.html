@@ -1025,7 +1025,11 @@ button.pill.grad,
       <div class="row">
         <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
         <button id="showStatsBtn" class="badge"
-  onclick="alert('clicked'); if (window.showStats) { window.showStats(); } else { alert('showStats not found'); }">
+  onclick="
+    alert('clicked');
+    alert('window.showStats = ' + (typeof window.showStats));
+    try { showStats(); } catch(e) { alert('showStats error: ' + e); }
+  ">
   📊統計
 </button>
         <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
