@@ -1399,10 +1399,14 @@ async function showStats() {
   try {
     const allRecords = await getAllRecords();
     
-    if (allRecords.length === 0) {
-      alert(tx('statsNoData'));
-      return;
-    }
+if (allRecords.length === 0) {
+  const modal = document.getElementById('statsModal');
+  const list  = document.getElementById('danStats');
+
+  if (list) list.innerHTML = `<div class="small">No records yet.</div>`;
+  if (modal) modal.classList.add('show');   // 0件でも「枠」は開く
+  return;
+}
     
     // 全体統計を計算
     const totalQuestions = allRecords.reduce((sum, r) => sum + r.questionCount, 0);
