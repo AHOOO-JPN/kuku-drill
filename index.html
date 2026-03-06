@@ -1326,7 +1326,7 @@ button.pill.grad,
         <div>
           <div class="small" id="labStatsBestTime" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
           <div style="font-size:16px; font-weight:800; color:var(--accentB);">
-            <span id="statsbestTime">0</span><span id="unitStatsSec2">秒</span>
+            <span id="bestTime">0</span><span id="unitStatsSec2">秒</span>
           </div>
         </div>
       </div>
@@ -1414,11 +1414,11 @@ async function showStats() {
     const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
     
 // 全体統計を表示
-safeText('statstotalQuestions', totalQuestions);
-safeText('statsavgScore', avgScore);
-safeText('statsavgTime', avgTime);
-safeText('statsbestScore', bestScore);
-safeText('statsbestTime', bestTime);
+safeText('totalQuestions', totalQuestions);
+safeText('avgScore', avgScore);
+safeText('avgTime', avgTime);
+safeText('bestScore', bestScore);
+safeText('bestTime', bestTime);
     
 // 段別統計を表示（DBアクセスは allRecords の1回のみ）
 const danStatsDiv = document.getElementById('danStats');
