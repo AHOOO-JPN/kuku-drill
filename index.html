@@ -1394,9 +1394,9 @@ function initDB() {
 // ========================================
 
 async function showStats() {
-  // i18n が既にある前提（無くても動くようにフォールバック）
-  const T  = (window.i18n && (i18n[appLang] || i18n.ja)) || {};
-  const tx = (k) => (T && T[k]) || (i18n && i18n.ja && i18n.ja[k]) || k;
+const I = window.i18n || {};
+const T = I[appLang] || I.ja || {};
+const tx = (k) => T[k] || (I.ja && I.ja[k]) || k;
 
   try {
     // 1) DBが未初期化で落ちるのを防ぐ（initDBがある場合）
@@ -1973,6 +1973,7 @@ function debounce(fn, ms) {
                 danSuffix: " Table",
                }
         };
+        window.i18n = i18n;
         let appLang=localStorage.getItem('kukuLang')||'ja';
         function setLang(lang){
             appLang=(lang==='en')?'en':'ja';
