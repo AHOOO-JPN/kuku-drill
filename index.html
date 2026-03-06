@@ -1433,20 +1433,14 @@ for (const r of allRecords) {
 }
 
 // 2) 段ごとに集計して描画
+const frag = document.createDocumentFragment();
+
 for (let i = 1; i <= 12; i++) {
   const danRecords = byDan[i];
   if (!danRecords || danRecords.length === 0) continue;
 
-  const totalAttempts = danRecords.length;
-
-  const totalScore = danRecords.reduce((sum, r) => sum + Number(r.score || 0), 0);
-  const totalTime  = danRecords.reduce((sum, r) => sum + Number.parseFloat(r.timeTaken || 0), 0);
-
-  const avgScore = (totalScore / totalAttempts).toFixed(1);
-  const avgTime  = (totalTime  / totalAttempts).toFixed(1);
-
-  const bestScore = Math.max(...danRecords.map(r => Number(r.score || 0)));
-  const bestTime  = Math.min(...danRecords.map(r => Number.parseFloat(r.timeTaken || 0))).toFixed(1);
+  // ★ここが最適化ポイント：reduce/mapを毎回作らず、1ループで集計
+  const stats = calcStatsFromRecords(danRecords);
 
   // 既存UI生成（あなたの i18n 対応を維持）
   const danDiv = document.createElement('div');
@@ -1465,20 +1459,24 @@ for (let i = 1; i <= 12; i++) {
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${danLabel}</strong>
       <span style="color:var(--muted); font-size:13px;">
-        ${tx('statsAttempts')}: ${totalAttempts}${tx('unitTimes')}
+        ${tx('statsAttempts')}: ${stats.totalAttempts}${tx('unitTimes')}
       </span>
     </div>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
-      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${avgScore}${tx('unitPoints')}</strong></div>
-      <div>${tx('statsBest')}: <strong style="color:var(--ok);">${bestScore}${tx('unitPoints')}</strong></div>
-      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${avgTime}${tx('unitSec')}</strong></div>
-      <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${bestTime}${tx('unitSec')}</strong></div>
+      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgScore}${tx('unitPoints')}</strong></div>
+      <div>${tx('statsBest')}: <strong style="color:var(--ok);">${stats.bestScore}${tx('unitPoints')}</strong></div>
+      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgTime}${tx('unitSec')}</strong></div>
+      <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${stats.bestTime}${tx('unitSec')}</strong></div>
     </div>
   `;
 
-  danStatsDiv.appendChild(danDiv);
+  // ★ここも最適化ポイント：appendChildを毎回danStatsDivにせず、fragに貯める
+  frag.appendChild(danDiv);
 }
+
+// ★最後に1回だけDOMに反映
+danStatsDiv.appendChild(frag);
       
 openStatsModal();               // ★ try の中（最後）に置く
 console.log('📊 統計画面を表示しました');
@@ -1492,6 +1490,37 @@ openStatsModal(`
     </div>
     `);
   }
+}
+
+function calcStatsFromRecords(danRecords){
+  const totalAttempts = danRecords.length;
+
+  let totalScore = 0;
+  let totalTime  = 0;
+  let bestScore  = -Infinity;
+  let bestTime   = Infinity;
+
+  for(const r of danRecords){
+    const sc = Number(r.score || 0);
+    const tm = Number.parseFloat(r.timeTaken || 0);
+
+    totalScore += sc;
+    totalTime  += tm;
+
+    if(sc > bestScore) bestScore = sc;
+    if(tm < bestTime)  bestTime  = tm;
+  }
+
+  if(!Number.isFinite(bestScore)) bestScore = 0;
+  if(!Number.isFinite(bestTime))  bestTime  = 0;
+
+  return {
+    totalAttempts,
+    avgScore: (totalScore / totalAttempts).toFixed(1),
+    avgTime:  (totalTime  / totalAttempts).toFixed(1),
+    bestScore,
+    bestTime: bestTime.toFixed(1),
+  };
 }
 
 // 統計画面を閉じる
