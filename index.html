@@ -1314,7 +1314,7 @@ button.pill.grad,
         <div>
           <div class="small" id="labStatsAvgTime" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
           <div style="font-size:16px; font-weight:800;">
-            <span id="avgTime">0</span><span id="unitStatsSec1">秒</span>
+            <span id="statsavgTime">0</span><span id="unitStatsSec1">秒</span>
           </div>
         </div>
         <div>
@@ -1416,7 +1416,7 @@ async function showStats() {
 // 全体統計を表示
 safeText('totalQuestions', totalQuestions);
 safeText('avgScore', avgScore);
-safeText('avgTime', avgTime);
+safeText('statsAvgTime', avgTime);
 safeText('bestScore', bestScore);
 safeText('bestTime', bestTime);
     
