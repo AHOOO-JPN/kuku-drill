@@ -1024,7 +1024,10 @@ button.pill.grad,
       <div class="title" id="titleTxt">KuKuドリル</div>
       <div class="row">
         <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
-        <button id="showStatsBtn" class="badge" onclick="showStats()">📊統計</button>
+        <button id="showStatsBtn" class="badge"
+  onclick="alert('clicked'); if (window.showStats) { window.showStats(); } else { alert('showStats not found'); }">
+  📊統計
+</button>
         <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
           <button id="orderSeqBtn" class="ot-btn" aria-pressed="false" title="順番"><span>🔢</span></button>
           <button id="orderRndBtn" class="ot-btn" aria-pressed="true"  title="ランダム"><span>🔀</span></button>
