@@ -1298,13 +1298,13 @@ button.pill.grad,
         <div>
           <div class="small" style="color:var(--muted); margin-bottom:4px;">総問題数</div>
           <div style="font-size:20px; font-weight:900; color:var(--accentA);">
-            <span id="totalQuestions">0</span>問
+            <span id="statstotalQuestions">0</span>問
           </div>
         </div>
         <div>
           <div class="small" style="color:var(--muted); margin-bottom:4px;">平均スコア</div>
           <div style="font-size:20px; font-weight:900; color:var(--accentB);">
-            <span id="avgScore">0</span>点
+            <span id="statsavgScore">0</span>点
           </div>
         </div>
       </div>
@@ -1313,19 +1313,19 @@ button.pill.grad,
         <div>
           <div class="small" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
           <div style="font-size:16px; font-weight:800;">
-            <span id="avgTime">0</span>秒
+            <span id="statsavgTime">0</span>秒
           </div>
         </div>
         <div>
           <div class="small" style="color:var(--muted); margin-bottom:4px;">最高スコア</div>
           <div style="font-size:16px; font-weight:800; color:var(--ok);">
-            <span id="bestScore">0</span>点
+            <span id="statsbestScore">0</span>点
           </div>
         </div>
         <div>
           <div class="small" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
           <div style="font-size:16px; font-weight:800; color:var(--accentB);">
-            <span id="bestTime">0</span>秒
+            <span id="statsbestTime">0</span>秒
           </div>
         </div>
       </div>
@@ -1387,19 +1387,19 @@ function initDB() {
 // ========================================
 
 async function showStats() {
-const I = window.i18n || {};
-const T = I[appLang] || I.ja || {};
-const tx = (k) => T[k] || (I.ja && I.ja[k]) || k;
-
   try {
-    // 1) DBが未初期化で落ちるのを防ぐ（initDBがある場合）
-    if (typeof initDB === 'function') {
-      await initDB();
-    }
+    // ★ここで言語を安全に決める（appLangを直接参照しない）
+    const lang = window.appLang || localStorage.getItem('kukuLang') || 'ja';
 
+    // ★ここで i18n を安全に取得
+    const I  = window.i18n || {};
+    const T  = I[lang] || I.ja || {};
+    const tx = (k) => T[k] || (I.ja && I.ja[k]) || k;
+
+    // 以降はあなたの既存処理のままでOK
+    if (typeof initDB === 'function') await initDB();
     const allRecords = await getAllRecords();
 
-    // 2) 0件でも「開く」：無反応を防止
     if (!allRecords || allRecords.length === 0) {
       openStatsModal(`<div class="small">${tx('statsNoData') || 'No records yet.'}</div>`);
       return;
@@ -1413,62 +1413,83 @@ const tx = (k) => T[k] || (I.ja && I.ja[k]) || k;
     const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
     
 // 全体統計を表示
-safeText('totalQuestions', totalQuestions);
-safeText('avgScore', avgScore);
-safeText('avgTime', avgTime);
-safeText('bestScore', bestScore);
-safeText('bestTime', bestTime);
+safeText('statstotalQuestions', totalQuestions);
+safeText('statsavgScore', avgScore);
+safeText('statsavgTime', avgTime);
+safeText('statsbestScore', bestScore);
+safeText('statsbestTime', bestTime);
     
-// 段別統計を表示
+// 段別統計を表示（DBアクセスは allRecords の1回のみ）
 const danStatsDiv = document.getElementById('danStats');
-danStatsDiv.innerHTML = '';
+if (danStatsDiv) danStatsDiv.innerHTML = '';
 
+// 1) allRecords を段ごとに振り分け（1回走査するだけ）
+const byDan = Array.from({ length: 13 }, () => []); // 0は未使用、1..12を使う
+
+for (const r of allRecords) {
+  const d = Number(r.danNumber);   // danNumber が文字列でも数値化
+  if (d >= 1 && d <= 12) byDan[d].push(r);
+}
+
+// 2) 段ごとに集計して描画
 for (let i = 1; i <= 12; i++) {
-  const stats = await getStatsByDan(i);
-  if (stats) {
-    const danDiv = document.createElement('div');
-    danDiv.style.cssText = `
-      margin:0 0 10px 0; 
-      padding:14px; 
-      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
-      border-radius:12px; 
-      border:1px solid var(--border);
-      border-left:4px solid var(--accentA);
-    `;
-const danLabel = `${i}${tx('danSuffix')}`;
+  const danRecords = byDan[i];
+  if (!danRecords || danRecords.length === 0) continue;
 
-danDiv.innerHTML = `
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-    <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${danLabel}</strong>
-    <span style="color:var(--muted); font-size:13px;">
-      ${tx('statsAttempts')}: ${stats.totalAttempts}${tx('unitTimes')}
-    </span>
-  </div>
+  const totalAttempts = danRecords.length;
 
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
-    <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgScore}${tx('unitPoints')}</strong></div>
-    <div>${tx('statsBest')}: <strong style="color:var(--ok);">${stats.bestScore}${tx('unitPoints')}</strong></div>
-    <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgTime}${tx('unitSec')}</strong></div>
-    <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${stats.bestTime}${tx('unitSec')}</strong></div>
-  </div>
-`;
-    danStatsDiv.appendChild(danDiv);
-  }
-}
-    
-// 統計画面とオーバーレイを表示（必ず開く）
-openStatsModal();
-console.log('📊 統計画面を表示しました');
-    
- } catch (err) {
-  console.error('❌ showStats error:', err);
-  const msg = (err && err.message) ? err.message : String(err);
-  openStatsModal(`
-    <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
-      Stats error: ${msg}
+  const totalScore = danRecords.reduce((sum, r) => sum + Number(r.score || 0), 0);
+  const totalTime  = danRecords.reduce((sum, r) => sum + Number.parseFloat(r.timeTaken || 0), 0);
+
+  const avgScore = (totalScore / totalAttempts).toFixed(1);
+  const avgTime  = (totalTime  / totalAttempts).toFixed(1);
+
+  const bestScore = Math.max(...danRecords.map(r => Number(r.score || 0)));
+  const bestTime  = Math.min(...danRecords.map(r => Number.parseFloat(r.timeTaken || 0))).toFixed(1);
+
+  // 既存UI生成（あなたの i18n 対応を維持）
+  const danDiv = document.createElement('div');
+  danDiv.style.cssText = `
+    margin:0 0 10px 0;
+    padding:14px;
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+    border-radius:12px;
+    border:1px solid var(--border);
+    border-left:4px solid var(--accentA);
+  `;
+
+  const danLabel = `${i}${tx('danSuffix')}`;
+
+  danDiv.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${danLabel}</strong>
+      <span style="color:var(--muted); font-size:13px;">
+        ${tx('statsAttempts')}: ${totalAttempts}${tx('unitTimes')}
+      </span>
     </div>
-  `);
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${avgScore}${tx('unitPoints')}</strong></div>
+      <div>${tx('statsBest')}: <strong style="color:var(--ok);">${bestScore}${tx('unitPoints')}</strong></div>
+      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${avgTime}${tx('unitSec')}</strong></div>
+      <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${bestTime}${tx('unitSec')}</strong></div>
+    </div>
+  `;
+
+  danStatsDiv.appendChild(danDiv);
 }
+}
+      
+openStatsModal();
+  } catch (err) {
+    console.error('❌ showStats error:', err);
+    const msg = (err && err.message) ? err.message : String(err);
+    openStatsModal(`
+      <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
+        Stats error: ${msg}
+      </div>
+    `);
+  }
 }
 
 // 統計画面を閉じる
@@ -1941,7 +1962,7 @@ function debounce(fn, ms) {
                 unitSec: "秒",
                 unitPoints: "点",
                 danSuffix: "の段",
-
+                },
             en:{title:'KuKu Drill',answerPH:'answer',score:'Score',streak:'Streak',avg:'Avg time',
                 range:'Range (Multiplicand × Multiplier)',A:'Multiplicand (tables)',B:'Multiplier (1–10)',
                 timer:'Time Trial',notStarted:'Not started',
@@ -1964,15 +1985,18 @@ function debounce(fn, ms) {
                 unitSec: "s",
                 unitPoints: " pts",
                 danSuffix: " Table",
-               }
-        };
-        window.i18n = i18n;
-        let appLang=localStorage.getItem('kukuLang')||'ja';
+                }
+                };
+                window.i18n = i18n;
+        let appLang = localStorage.getItem('kukuLang') || 'ja';
+        window.appLang = appLang; // ★追加（初期値を公開）
+
         function setLang(lang){
-            appLang=(lang==='en')?'en':'ja';
-            try{ localStorage.setItem('kukuLang',appLang); }catch(_){}
-            updateLangUI();
-            if(typeof refreshFaceButtons==='function') refreshFaceButtons();
+          appLang = (lang === 'en') ? 'en' : 'ja';
+          window.appLang = appLang; // ★追加（切替時も公開）
+          try { localStorage.setItem('kukuLang', appLang); } catch(_){}
+          updateLangUI();
+          if(typeof refreshFaceButtons==='function') refreshFaceButtons();
         }
         on($('langSet'),'click',e=>{
             const b=e.target.closest('button'); if(!b) return;
