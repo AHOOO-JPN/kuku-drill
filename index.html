@@ -1286,7 +1286,7 @@ button.pill.grad,
   <div class="panel" style="display:flex; flex-direction:column; max-height:85vh;">
     <button class="sheet-close" onclick="closeStats()" aria-label="閉じる"></button>
     
-    <div class="h" style="text-align:center; margin-bottom:16px;">📊 統計</div>
+    <div class="h" id="statsModalTitle" style="text-align:center; margin-bottom:16px;">📊 統計</div>
     
     <!-- 全体統計 -->
     <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
@@ -1296,48 +1296,49 @@ button.pill.grad,
                 margin-bottom:16px;">
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
         <div>
-          <div class="small" style="color:var(--muted); margin-bottom:4px;">総問題数</div>
-          <div style="font-size:20px; font-weight:900; color:var(--accentA);">
-            <span id="statstotalQuestions">0</span>問
-          </div>
+        <div class="small" id="labStatsTotalQ" style="color:var(--muted); margin-bottom:4px;">総問題数</div>
+        <div style="font-size:20px; font-weight:900; color:var(--accentA);">
+        <span id="totalQuestions">0</span><span id="unitStatsQ">問</span>
+        </div>
         </div>
         <div>
-          <div class="small" style="color:var(--muted); margin-bottom:4px;">平均スコア</div>
-          <div style="font-size:20px; font-weight:900; color:var(--accentB);">
-            <span id="statsavgScore">0</span>点
+        <div class="small" id="labStatsAvgScore" style="color:var(--muted); margin-bottom:4px;">平均スコア</div>
+        <div style="font-size:20px; font-weight:900; color:var(--accentB);">
+        <span id="avgScore">0</span><span id="unitStatsPoints1">点</span>
+        </div>
           </div>
         </div>
       </div>
       
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
         <div>
-          <div class="small" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
+          <div class="small" id="labStatsAvgTime" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
           <div style="font-size:16px; font-weight:800;">
-            <span id="statsavgTime">0</span>秒
+            <span id="avgTime">0</span><span id="unitStatsSec1">秒</span>
           </div>
         </div>
         <div>
-          <div class="small" style="color:var(--muted); margin-bottom:4px;">最高スコア</div>
+          <div class="small" id="labStatsBestScore" style="color:var(--muted); margin-bottom:4px;">最高スコア</div>
           <div style="font-size:16px; font-weight:800; color:var(--ok);">
-            <span id="statsbestScore">0</span>点
+            <span id="bestScore">0</span><span id="unitStatsPoints2">点</span>
           </div>
         </div>
         <div>
-          <div class="small" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
+          <div class="small" id="labStatsBestTime" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
           <div style="font-size:16px; font-weight:800; color:var(--accentB);">
-            <span id="statsbestTime">0</span>秒
+            <span id="statsbestTime">0</span><span id="unitStatsSec2">秒</span>
           </div>
         </div>
       </div>
     </div>
     
     <!-- 段別成績 -->
-    <div class="h" style="font-size:16px; margin-bottom:12px;">段別成績</div>
+    <div class="h" id="statsByDanTitle" style="font-size:16px; margin-bottom:12px;">段別成績</div>
     <div id="danStats" style="flex-grow:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;"></div>
     
     <!-- 閉じるボタン -->
     <div class="btnrow" style="margin-top:16px;">
-      <button class="btn grad" onclick="closeStats()">閉じる</button>
+      <button class="btn grad" id="statsCloseBtn" onclick="closeStats()">閉じる</button>
     </div>
   </div>
 </div>
@@ -1979,6 +1980,16 @@ const i18n = {
     unitSec: "秒",
     unitPoints: "点",
     danSuffix: "の段",
+    statsBtn: "統計",
+    statsModalTitle: "統計",
+    statsByDanTitle: "段別成績",
+    statsTotalQLabel: "総問題数",
+    statsAvgScoreLabel: "平均スコア",
+    statsAvgTimeLabel: "平均タイム",
+    statsBestScoreLabel: "最高スコア",
+    statsBestTimeLabel: "最速タイム",
+    unitQ: "問",
+    close: "閉じる",
   },
 
   en: {
@@ -2018,6 +2029,16 @@ const i18n = {
     unitSec: "s",
     unitPoints: " pts",
     danSuffix: " Table",
+    statsBtn: "Stats",
+    statsModalTitle: "Statistics",
+    statsByDanTitle: "By table",
+    statsTotalQLabel: "Total questions",
+    statsAvgScoreLabel: "Avg score",
+    statsAvgTimeLabel: "Avg time",
+    statsBestScoreLabel: "Best score",
+    statsBestTimeLabel: "Fastest time",
+    unitQ: "Q",
+    close: "Close",
   }
 };
 
@@ -2154,10 +2175,35 @@ window.appLang = appLang; // 初期値を公開
                 }
                 if($('cameraDeniedModal') && $('cameraDeniedModal').classList.contains('show')){
                     setupCameraDeniedContent();
-                }
-                
-                
+                }       
             })();
+              // ★ここに追加：統計UI（ボタン＋モーダル固定ラベル）を言語切替に追従させる
+  txt($('showStatsBtn'), `📊 ${t.statsBtn || t.statsTitle || (appLang==='ja'?'統計':'Stats')}`);
+
+  txt($('statsModalTitle'), `📊 ${t.statsModalTitle || t.statsTitle || (appLang==='ja'?'統計':'Statistics')}`);
+  txt($('statsByDanTitle'), t.statsByDanTitle || (appLang==='ja'?'段別成績':'By table'));
+
+  // サマリーラベル（※ statsModal側HTMLに id を付けた前提）
+  txt($('labStatsTotalQ'),    t.statsTotalQLabel    || (appLang==='ja'?'総問題数':'Total questions'));
+  txt($('labStatsAvgScore'),  t.statsAvgScoreLabel  || (appLang==='ja'?'平均スコア':'Avg score'));
+  txt($('labStatsAvgTime'),   t.statsAvgTimeLabel   || (appLang==='ja'?'平均タイム':'Avg time'));
+  txt($('labStatsBestScore'), t.statsBestScoreLabel || (appLang==='ja'?'最高スコア':'Best score'));
+  txt($('labStatsBestTime'),  t.statsBestTimeLabel  || (appLang==='ja'?'最速タイム':'Fastest time'));
+
+  // 単位（※ unit 用の span に id を付けた前提）
+  txt($('unitStatsQ'),        t.unitQ      || (appLang==='ja'?'問':'Q'));
+  txt($('unitStatsPoints1'),  t.unitPoints || (appLang==='ja'?'点':'pts'));
+  txt($('unitStatsPoints2'),  t.unitPoints || (appLang==='ja'?'点':'pts'));
+  txt($('unitStatsSec1'),     t.unitSec    || (appLang==='ja'?'秒':'s'));
+  txt($('unitStatsSec2'),     t.unitSec    || (appLang==='ja'?'秒':'s'));
+
+  // 閉じるボタン（下側）
+  txt($('statsCloseBtn'), t.close || (appLang==='ja'?'閉じる':'Close'));
+
+  // 右上×ボタンの aria-label（任意）
+  const xBtn = document.querySelector('#statsModal .sheet-close');
+  if (xBtn) xBtn.setAttribute('aria-label', t.close || (appLang==='ja'?'閉じる':'Close'));
+}
         } // ★この行を追加: updateLangUI関数の閉じ括弧
         
         /* 出題順トグル */
