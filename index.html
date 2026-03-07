@@ -3830,83 +3830,87 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
             // localhost または https の場合のみ登録
             if (location.protocol === 'https:' || location.hostname === 'localhost') {
               navigator.serviceWorker.register('./sw.js', { scope: './' })
-                .then(function(registration) {
-                function showSwUpdateToast() {
-// ★追加：更新トーストを「今出す/あとで出す」を判断する
-window.__swUpdatePending = false;
+.then(function(registration) {
+  console.log('✅ Service Worker 登録成功!');
+  console.log('📍 Scope:', registration.scope);
 
-function requestSwUpdateToast() {
-  const firstModal = document.getElementById('firstLaunchModal');
-  const firstModalOpen = firstModal && firstModal.classList.contains('show');
-
-  if (firstModalOpen) {
-    window.__swUpdatePending = true;
-    console.log('🕓 SW update toast is pending (firstLaunchModal is open)');
-    return;
+  if (registration.active) {
+    console.log('📦 Active Worker:', registration.active.scriptURL);
+    console.log('📦 State:', registration.active.state);
+  } else if (registration.installing) {
+    console.log('⏳ Installing Worker...');
+  } else if (registration.waiting) {
+    console.log('⏸️ Waiting Worker...');
   }
-  showSwUpdateToast();
-}
-  const toast = document.getElementById('swUpdateToast');
-  const msgEl = document.getElementById('swUpdateMsg');
-  const reloadBtn = document.getElementById('swReloadBtn');
-  const laterBtn  = document.getElementById('swLaterBtn');
-  if (!toast || !reloadBtn || !laterBtn) return;
 
-  const ja = (window.appLang || localStorage.getItem('kukuLang') || 'ja') === 'ja';
-  if (msgEl) msgEl.textContent = ja ? '新しいバージョンがあります' : 'Update available';
+  // ===== ここから：更新トースト（重なり回避つき） =====
+  // グローバルに出して、firstLaunchAgree 側からも呼べるようにする
+  window.__swUpdatePending = false;
 
-  toast.style.display = 'block';
+  window.showSwUpdateToast = function showSwUpdateToast() {
+    const toast = document.getElementById('swUpdateToast');
+    const msgEl = document.getElementById('swUpdateMsg');
+    const reloadBtn = document.getElementById('swReloadBtn');
+    const laterBtn  = document.getElementById('swLaterBtn');
+    if (!toast || !reloadBtn || !laterBtn) return;
 
-  laterBtn.onclick = () => { toast.style.display = 'none'; };
+    const ja = (window.appLang || localStorage.getItem('kukuLang') || 'ja') === 'ja';
+    if (msgEl) msgEl.textContent = ja ? '新しいバージョンがあります' : 'Update available';
 
-  reloadBtn.onclick = async () => {
-    toast.style.display = 'none';
-    try {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg && reg.waiting) {
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    toast.style.display = 'block';
+
+    laterBtn.onclick = () => { toast.style.display = 'none'; };
+
+    reloadBtn.onclick = async () => {
+      toast.style.display = 'none';
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg && reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      } catch (e) {
+        console.warn('SW reload prep failed', e);
       }
-    } catch (e) {
-      console.warn('SW reload prep failed', e);
-    }
-    location.reload();
+      location.reload();
+    };
   };
-}
-                  console.log('✅ Service Worker 登録成功!');
-                  console.log('📍 Scope:', registration.scope);
-                  
-                  if (registration.active) {
-                    console.log('📦 Active Worker:', registration.active.scriptURL);
-                    console.log('📦 State:', registration.active.state);
-                  } else if (registration.installing) {
-                    console.log('⏳ Installing Worker...');
-                  } else if (registration.waiting) {
-                    console.log('⏸️ Waiting Worker...');
-                  }
-                  
-                  // 更新チェック
-                  registration.update();
-                  
-                  // 新しいワーカーがインストールされたら通知（UIあり）
-registration.addEventListener('updatefound', () => {
-  console.log('🔄 新しい Service Worker を検出');
-  const newWorker = registration.installing;
-  if (!newWorker) return;
 
-  newWorker.addEventListener('statechange', () => {
-    console.log('📦 SW State changed to:', newWorker.state);
+  window.requestSwUpdateToast = function requestSwUpdateToast() {
+    const firstModal = document.getElementById('firstLaunchModal');
+    const firstModalOpen = firstModal && firstModal.classList.contains('show');
 
-    // 初回インストールではなく、更新時だけトーストを出す
-    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-  requestSwUpdateToast();
-}
-
-    if (newWorker.state === 'activated') {
-      console.log('🎉 新しい Service Worker がアクティブになりました!');
+    if (firstModalOpen) {
+      window.__swUpdatePending = true;
+      console.log('🕓 SW update toast is pending (firstLaunchModal is open)');
+      return;
     }
+    window.showSwUpdateToast();
+  };
+  // ===== ここまで：更新トースト =====
+
+  // 更新チェック
+  registration.update();
+
+  // 新しいワーカーがインストールされたら通知（UIあり）
+  registration.addEventListener('updatefound', () => {
+    console.log('🔄 新しい Service Worker を検出');
+    const newWorker = registration.installing;
+    if (!newWorker) return;
+
+    newWorker.addEventListener('statechange', () => {
+      console.log('📦 SW State changed to:', newWorker.state);
+
+      // 初回インストールではなく、更新時だけトーストを出す
+      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        window.requestSwUpdateToast();
+      }
+
+      if (newWorker.state === 'activated') {
+        console.log('🎉 新しい Service Worker がアクティブになりました!');
+      }
+    });
   });
-});
-                })
+})
                 .catch(function(error) {
                   console.error('❌ Service Worker 登録失敗:', error);
                   console.error('❌ エラーメッセージ:', error.message);
