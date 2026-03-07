@@ -1584,28 +1584,7 @@ async function clearAllRecords() {
     store.clear(); // req.onsuccessではなく tx 完了を待つ
   });
 }
-
-// 段別の統計を取得
-async function getStatsByDan(danNumber) {
-  const allRecords = await getAllRecords();
-  const danRecords = allRecords.filter(r => r.danNumber === danNumber);
-  
-  if (danRecords.length === 0) return null;
-  
-  const totalScore = danRecords.reduce((sum, r) => sum + r.score, 0);
-  const totalTime = danRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0);
-  const avgScore = totalScore / danRecords.length;
-  const avgTime = totalTime / danRecords.length;
-  
-  return {
-    totalAttempts: danRecords.length,
-    avgScore: avgScore.toFixed(1),
-    avgTime: avgTime.toFixed(1),
-    bestScore: Math.max(...danRecords.map(r => r.score)),
-    bestTime: Math.min(...danRecords.map(r => parseFloat(r.timeTaken))).toFixed(1)
-  };
-}
-
+    
 // アプリ起動時にDBを初期化
 initDB().then(() => {
   console.log('✅ IndexedDB initialized');
@@ -3342,50 +3321,6 @@ function confettiBurst(){
             box.appendChild(img);
             document.body.appendChild(box);
             setTimeout(()=>box.remove(),2600);
-        }
-        
-        document.addEventListener('click', async (e)=>{
-            const btn = e.target.closest('#hardResetBtn');
-            if (!btn) return;
-            e.preventDefault(); e.stopPropagation();
-            const ja = (localStorage.getItem('kukuLang') || 'ja') === 'ja';
-            const ok = await confirmAsync(
-                                          ja
-                                          ? '【確認】すべてのデータ（スコア/履歴/設定/背景/顔 等）を削除します。元に戻せません。よろしいですか？'
-                                          : 'CONFIRM: Delete ALL data (scores/history/settings/bg/face etc.). This cannot be undone. Proceed?'
-                                          );
-                                          if (!ok) return;
-                                          await handleHardReset();
-        });
-        
-        async function handleHardReset(){
-            try{
-                endRunNow();
-                const keys=['allowedA','allowedB','kukuTheme','kukuLang','kukuSoundPack','kukuOrder','kukuLite','neonWallData','neonWallOpacity','neonWallSize','kukuFaceData','privacyAgreed'];
-                keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_){ } });
-                ['speak','sfx','cheer'].forEach(f=>{ try{ localStorage.removeItem('kukuFlag_'+f); }catch(_){ } });
-                
-                [20,30,60,81,100,144].forEach(n=>{ try{ localStorage.removeItem('historyRun'+n); }catch(_){ } });
-                
-                for(let d=1; d<=12; d++){
-                    try{ localStorage.removeItem('historyRundan'+d); }catch(_){ }
-                }
-            }finally{
-                allowedA=new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
-                allowedB=new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
-                setTheme('mix');
-                setLang('ja');
-                applyToggleUI();
-                buildPills($('danSet'),'A'); buildPills($('kuSet'),'B');
-                applySavedOrDefaultWall();
-                resetState(); newProblem(true);
-                renderHistory(); refreshClearHistoryState();
-                alert((appLang==='ja')?'すべて削除しました。次回起動時にプライバシー同意が再表示されます。':'All data deleted. Privacy agreement will show on next launch.');
-                
-                setTimeout(()=>{
-                    location.reload();
-                }, 1000);
-            }
         }
         
         /* 設定シート */
