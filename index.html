@@ -3823,6 +3823,33 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
             if (location.protocol === 'https:' || location.hostname === 'localhost') {
               navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then(function(registration) {
+                function showSwUpdateToast() {
+  const toast = document.getElementById('swUpdateToast');
+  const msgEl = document.getElementById('swUpdateMsg');
+  const reloadBtn = document.getElementById('swReloadBtn');
+  const laterBtn  = document.getElementById('swLaterBtn');
+  if (!toast || !reloadBtn || !laterBtn) return;
+
+  const ja = (window.appLang || localStorage.getItem('kukuLang') || 'ja') === 'ja';
+  if (msgEl) msgEl.textContent = ja ? '新しいバージョンがあります' : 'Update available';
+
+  toast.style.display = 'block';
+
+  laterBtn.onclick = () => { toast.style.display = 'none'; };
+
+  reloadBtn.onclick = async () => {
+    toast.style.display = 'none';
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    } catch (e) {
+      console.warn('SW reload prep failed', e);
+    }
+    location.reload();
+  };
+}
                   console.log('✅ Service Worker 登録成功!');
                   console.log('📍 Scope:', registration.scope);
                   
@@ -3838,17 +3865,25 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
                   // 更新チェック
                   registration.update();
                   
-                  // 新しいワーカーがインストールされたら通知
-                  registration.addEventListener('updatefound', () => {
-                    console.log('🔄 新しい Service Worker を検出');
-                    const newWorker = registration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                      console.log('📦 SW State changed to:', newWorker.state);
-                      if (newWorker.state === 'activated') {
-                        console.log('🎉 新しい Service Worker がアクティブになりました!');
-                      }
-                    });
-                  });
+                  // 新しいワーカーがインストールされたら通知（UIあり）
+registration.addEventListener('updatefound', () => {
+  console.log('🔄 新しい Service Worker を検出');
+  const newWorker = registration.installing;
+  if (!newWorker) return;
+
+  newWorker.addEventListener('statechange', () => {
+    console.log('📦 SW State changed to:', newWorker.state);
+
+    // 初回インストールではなく、更新時だけトーストを出す
+    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+      showSwUpdateToast();
+    }
+
+    if (newWorker.state === 'activated') {
+      console.log('🎉 新しい Service Worker がアクティブになりました!');
+    }
+  });
+});
                 })
                 .catch(function(error) {
                   console.error('❌ Service Worker 登録失敗:', error);
@@ -3977,5 +4012,21 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
       </div>
     </div>
 
+<!-- SW Update Toast -->
+<div id="swUpdateToast" style="display:none; position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+  z-index:2000; width:min(92vw,520px); padding:12px 14px; border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+  border:1px solid var(--border); backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(12,4,40,.5);">
+  <div style="display:flex; gap:10px; align-items:center; justify-content:space-between;">
+    <div style="font-weight:900;">
+      <span id="swUpdateMsg">更新があります</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="swReloadBtn" class="btn grad" type="button" style="padding:10px 14px; min-width:auto;">再読み込み</button>
+      <button id="swLaterBtn" class="btn" type="button" style="padding:10px 12px; min-width:auto;">あとで</button>
+    </div>
+  </div>
+</div>
+    
     </body>
     </html>
