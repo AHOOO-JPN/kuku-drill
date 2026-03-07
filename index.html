@@ -1312,7 +1312,7 @@ button.pill.grad,
       
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
         <div>
-          <div class="small" id="labStatsAvgTime" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
+          <div class="small" id="labstatsAvgTime" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
           <div style="font-size:16px; font-weight:800;">
             <span id="statsAvgTime">0</span><span id="unitStatsSec1">秒</span>
           </div>
@@ -1408,7 +1408,7 @@ async function showStats() {
 // 全体統計を表示
 safeText('totalQuestions', totalQuestions);
 safeText('avgScore', avgScore);
-safeText('statsavgTime', avgTime);
+safeText('statsAvgTime', avgTime);
 safeText('bestScore', bestScore);
 safeText('bestTime', bestTime);
     
@@ -2219,7 +2219,7 @@ window.appLang = appLang; // 初期値を公開
   // サマリーラベル（※ statsModal側HTMLに id を付けた前提）
   txt($('labStatsTotalQ'),    t.statsTotalQLabel    || (appLang==='ja'?'総問題数':'Total questions'));
   txt($('labStatsAvgScore'),  t.statsAvgScoreLabel  || (appLang==='ja'?'平均スコア':'Avg score'));
-  txt($('labStatsAvgTime'),   t.statsAvgTimeLabel   || (appLang==='ja'?'平均タイム':'Avg time'));
+  txt($('labstatsAvgTime'),   t.statsAvgTimeLabel   || (appLang==='ja'?'平均タイム':'Avg time'));
   txt($('labStatsBestScore'), t.statsBestScoreLabel || (appLang==='ja'?'最高スコア':'Best score'));
   txt($('labStatsBestTime'),  t.statsBestTimeLabel  || (appLang==='ja'?'最速タイム':'Fastest time'));
 
