@@ -1572,12 +1572,16 @@ async function getAllRecords() {
     // IndexedDB の records を全消去
 async function clearAllRecords() {
   if (!db) await initDB();
+
   return new Promise((resolve, reject) => {
     const tx = db.transaction([STORE_NAME], 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const req = store.clear();
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('tx error'));
+    tx.onabort = () => reject(tx.error || new Error('tx abort'));
+
+    store.clear(); // req.onsuccessではなく tx 完了を待つ
   });
 }
 
@@ -2931,12 +2935,13 @@ function confettiBurst(){
             const msg = (appLang === 'ja')
               ? 'すべてのデータ（履歴・設定・同意状態）を削除します。\nこの操作は取り消せません。'
               : 'Delete all data (history, settings, consent).\nThis cannot be undone.';
-
-              try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed', e); }
               
             const ok = await confirmAsync(msg);
             if(!ok) return;
+              
+            try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed', e); }
             
+            // confirm OK の後に IndexedDB を消す（順序を統一）
             try{
               const keys = [
                 'kukuTheme','kukuLang','kukuOrder','kukuSoundPack','kukuLite',
