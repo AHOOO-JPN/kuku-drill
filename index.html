@@ -2933,8 +2933,9 @@ try {
   const keys = [
     'kukuTheme','kukuLang','kukuOrder','kukuSoundPack','kukuLite',
     'allowedA','allowedB','neonWallData','neonWallOpacity','neonWallSize',
+    'kukuFaceData',                 // ★追加：応援の顔データ本体
     'cheerFaceImg','cameraExplainDontShow','privacyAgreed'
-  ];
+];
   for (const k of keys) localStorage.removeItem(k);
 
   for (const n of [20,30,60,81,100,144]) localStorage.removeItem('historyRun'+n);
