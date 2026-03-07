@@ -1743,6 +1743,14 @@ function debounce(fn, ms) {
               
               firstModal.classList.remove('show');
               setOverlayLock(false);
+                // ★追加：SW更新トーストが保留なら、モーダルを閉じた後に表示
+if (window.__swUpdatePending) {
+  window.__swUpdatePending = false;
+  // DOMが落ち着いてから出す（重なり回避）
+  setTimeout(() => {
+    try { showSwUpdateToast(); } catch (_) {}
+  }, 50);
+}
             };
           }
 
@@ -3824,6 +3832,20 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
               navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then(function(registration) {
                 function showSwUpdateToast() {
+// ★追加：更新トーストを「今出す/あとで出す」を判断する
+window.__swUpdatePending = false;
+
+function requestSwUpdateToast() {
+  const firstModal = document.getElementById('firstLaunchModal');
+  const firstModalOpen = firstModal && firstModal.classList.contains('show');
+
+  if (firstModalOpen) {
+    window.__swUpdatePending = true;
+    console.log('🕓 SW update toast is pending (firstLaunchModal is open)');
+    return;
+  }
+  showSwUpdateToast();
+}
   const toast = document.getElementById('swUpdateToast');
   const msgEl = document.getElementById('swUpdateMsg');
   const reloadBtn = document.getElementById('swReloadBtn');
@@ -3876,8 +3898,8 @@ registration.addEventListener('updatefound', () => {
 
     // 初回インストールではなく、更新時だけトーストを出す
     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-      showSwUpdateToast();
-    }
+  requestSwUpdateToast();
+}
 
     if (newWorker.state === 'activated') {
       console.log('🎉 新しい Service Worker がアクティブになりました!');
