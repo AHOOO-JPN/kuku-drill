@@ -2915,41 +2915,42 @@ function confettiBurst(){
               ? 'すべてのデータ（履歴・設定・同意状態）を削除します。\nこの操作は取り消せません。'
               : 'Delete all data (history, settings, consent).\nThis cannot be undone.';
               
-            const ok = await confirmAsync(msg);
-            if(!ok) return;
-              
-            try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed', e); }
-            
-            // confirm OK の後に IndexedDB を消す（順序を統一）
-            try{
-              const keys = [
-                'kukuTheme','kukuLang','kukuOrder','kukuSoundPack','kukuLite',
-                'allowedA','allowedB','neonWallData','neonWallOpacity','neonWallSize',
-                'cheerFaceImg','cameraExplainDontShow','privacyAgreed'
-              ];
-              
-              for(const k of keys){
-                localStorage.removeItem(k);
-              }
-              
-              for(let n of [20,30,60,81,100,144]){
-                localStorage.removeItem('historyRun'+n);
-              }
-              for(let d=1; d<=12; d++){
-                localStorage.removeItem('historyRundan'+d);
-              }
-              
-              ['speak','sfx','cheer','lite'].forEach(f => localStorage.removeItem('kukuFlag_'+f));
-              
-              alert((appLang === 'ja')
-                ? 'すべてのデータを削除しました。\nページを再読み込みします。'
-                : 'All data deleted.\nReloading page.');
-              
-              location.reload();
-            }catch(e){
-              console.error('Reset error:', e);
-              alert((appLang === 'ja') ? '削除に失敗しました' : 'Failed to delete data');
-            }
+const ok = await confirmAsync(msg);
+if(!ok) return;
+
+// 1) IndexedDB（統計の元）を消す
+try {
+  await clearAllRecords();
+} catch (e) {
+  console.error('clearAllRecords failed', e);
+  // ここで中断したい派なら↓を有効化（部分削除を避ける）
+  // alert((appLang === 'ja') ? 'データ削除に失敗しました（DB）' : 'Failed to delete data (DB)');
+  // return;
+}
+
+// 2) localStorage（設定/履歴）を消す
+try {
+  const keys = [
+    'kukuTheme','kukuLang','kukuOrder','kukuSoundPack','kukuLite',
+    'allowedA','allowedB','neonWallData','neonWallOpacity','neonWallSize',
+    'cheerFaceImg','cameraExplainDontShow','privacyAgreed'
+  ];
+  for (const k of keys) localStorage.removeItem(k);
+
+  for (const n of [20,30,60,81,100,144]) localStorage.removeItem('historyRun'+n);
+  for (let d=1; d<=12; d++) localStorage.removeItem('historyRundan'+d);
+
+  ['speak','sfx','cheer','lite'].forEach(f => localStorage.removeItem('kukuFlag_'+f));
+
+  alert((appLang === 'ja')
+    ? 'すべてのデータを削除しました。\nページを再読み込みします。'
+    : 'All data deleted.\nReloading page.');
+
+  location.reload();
+} catch (e) {
+  console.error('Reset error:', e);
+  alert((appLang === 'ja') ? '削除に失敗しました' : 'Failed to delete data');
+}
           };
         }
 
