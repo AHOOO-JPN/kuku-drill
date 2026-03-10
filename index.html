@@ -2774,7 +2774,12 @@ window.appLang = appLang; // 初期値を公開
         function renderBests(){}
         
         function section(n){
-            const list=rHist(n).slice(0,10); if(list.length===0) return '';
+            let list=rHist(n).slice(0,10); if(list.length===0) return '';
+            const filter = getHistFilter();
+            if (filter === 'success') {
+            list = list.filter(h => !!h.valid);
+            if(list.length===0) return '';
+            }
             const best=(function(){ const a=rHist(n).filter(x=>x.valid); if(!a.length) return null; return a.reduce((p,c)=>p.sec<=c.sec?p:c); })();
             const rows=list.map(h=>{
                 const okRatio=(h.correct!=null&&h.total!=null)?`${h.correct}/${h.total}`:'';
@@ -2801,12 +2806,13 @@ window.appLang = appLang; // 初期値を公開
         
         function sectionDan(dan){
             const key=`dan${dan}`;
-            const list=rHist(key).slice(0,10);
+            let list=rHist(key).slice(0,10);
             if(list.length===0) return '';
 
             const filter = getHistFilter();
             if (filter === 'success') {
             list = list.filter(h => !!h.valid);
+            if(list.length===0) return ''; // ★成功が0件ならこの段は表示しない
             }
             
             const best=(function(){
