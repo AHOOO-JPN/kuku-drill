@@ -3189,7 +3189,22 @@ try {
     'cheerFaceImg','cameraExplainDontShow','privacyAgreed'
 ];
   for (const k of keys) localStorage.removeItem(k);
+ // 追加：タイムアタック達成状況（PB / 節目 / ストリーク）もリセット
+ localStorage.removeItem('kukuTA_pb_overall_sec');
+ for (let d = 1; d <= 12; d++) {
+   localStorage.removeItem(`kukuTA_pb_dan${d}_sec`);
+ }
 
+ for (const thr of [10, 15, 20]) {
+   localStorage.removeItem(`kukuTA_ms_overall_${thr}`);
+   for (let d = 1; d <= 12; d++) {
+     localStorage.removeItem(`kukuTA_ms_dan${d}_${thr}`);
+   }
+ }
+
+ ['kukuTA_streak_lastDate','kukuTA_streak_current','kukuTA_streak_best']
+   .forEach(k => localStorage.removeItem(k));
+    
   for (const n of [20,30,60,81,100,144]) localStorage.removeItem('historyRun'+n);
   for (let d=1; d<=12; d++) localStorage.removeItem('historyRundan'+d);
 
