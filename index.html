@@ -2954,7 +2954,8 @@ function finishRun(){
     
     $('resultModal').classList.add('show');
     setOverlayLock(true);
-
+    
+ const taValid = allOk;            // ★追加：達成トーストは「全問正解（valid）」の時だけ
  const taSec = elapsed;            // 完走秒数（finishRunで計算済み）
  const taDan = run.dan || null;    // 段（無い場合null）
  const closeResultModal = () => {
@@ -2963,7 +2964,7 @@ function finishRun(){
 
    // ★追加: タイムアタック達成トースト（最速→節目→3日連続）
    try {
-     if (!run?.isUnlimited && window.maybeShowTimeAttackAchievementToast) {
+     if (taValid && window.maybeShowTimeAttackAchievementToast) {
        window.maybeShowTimeAttackAchievementToast({ sec: taSec, dan: taDan });
      }
    } catch(e) { console.warn('TA achievement toast failed', e); }
