@@ -2593,9 +2593,10 @@ window.appLang = appLang; // 初期値を公開
                 
                 const label=btn.textContent.trim();
                 const isDigit = /^\d$/.test(label);
-                if (isDigit) armOnFirstDigit();
-
-                if (run || normalStarted) pop();
+                if (isDigit) {
+                    armOnFirstDigit();
+                    pop();
+                }
                 
                 if(label==='⌫'){
                     ans.value=ans.value.slice(0,-1);
@@ -2614,9 +2615,10 @@ window.appLang = appLang; // 初期値を公開
 
                 const label = btn.textContent.trim();
                 const isDigit = /^\d$/.test(label);
-                if (isDigit) armOnFirstDigit();
-
-                if (run || normalStarted) pop();
+                if (isDigit) {
+                    armOnFirstDigit();
+                    pop();
+                }
 
                 if (label === '⌫') {
                 ans.value = ans.value.slice(0, -1);
@@ -2789,7 +2791,7 @@ function armOnFirstDigit() {
   result.className = 'result ng';
   return;
 }
-            if (!state.start) armOnFirstAction();
+            if (!state.start) armOnFirstDigit();
             if(!problemReady || state.correct==null){
                 newProblem(true);
                 result.textContent=(appLang==='ja'?'最初の問題を用意しました！':'Prepared the first problem!');
@@ -3894,7 +3896,7 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
   if (k >= '0' && k <= '9') {
     navigator.vibrate?.(50);
     armOnFirstDigit();
-    if (run || normalStarted) pop();
+    pop();
     ans.value += k;
     return;
   }
