@@ -4208,36 +4208,37 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
     window.__taAchToastTimer = setTimeout(hide, 4200);
   }
 
-  // --- ① Fastest (PB) ---
-  function checkFastest({sec, dan}){
-    const ja = langIsJa();
-    const s = Number(sec);
-    if(!Number.isFinite(s)) return null;
+function readLSNumber(key){
+  const v = localStorage.getItem(key);
+  if (v === null) return NaN;              // ★未設定はNaN扱い
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
+}
 
-    // dan PB を優先して更新・表示（danがある場合）
-    if(dan){
-      const k = LS.PB_DAN(dan);
-      const prev = Number(localStorage.getItem(k));
-      if(!Number.isFinite(prev) || s < prev){
-        localStorage.setItem(k, String(s));
-        return ja
-          ? `最速更新！ ${dan}段 ${fmtSec(s)}秒`
-          : `New fastest! Dan ${dan}: ${fmtSec(s)}s`;
-      }
+function checkFastest({sec, dan}){
+  const ja = langIsJa();
+  const s = Number(sec);
+  if(!Number.isFinite(s)) return null;
+
+  if(dan){
+    const k = LS.PB_DAN(dan);
+    const prev = readLSNumber(k);
+    if(!Number.isFinite(prev) || s < prev){
+      localStorage.setItem(k, String(s));
+      return ja ? `最速更新！ ${dan}段 ${fmtSec(s)}秒`
+                : `New fastest! Dan ${dan}: ${fmtSec(s)}s`;
     }
-
-    // overall PB
-    const ko = LS.PB_OVERALL;
-    const prevO = Number(localStorage.getItem(ko));
-    if(!Number.isFinite(prevO) || s < prevO){
-      localStorage.setItem(ko, String(s));
-      return ja
-        ? `最速更新！ ${fmtSec(s)}秒`
-        : `New fastest! ${fmtSec(s)}s`;
-    }
-
-    return null;
   }
+
+  const ko = LS.PB_OVERALL;
+  const prevO = readLSNumber(ko);
+  if(!Number.isFinite(prevO) || s < prevO){
+    localStorage.setItem(ko, String(s));
+    return ja ? `最速更新！ ${fmtSec(s)}秒`
+              : `New fastest! ${fmtSec(s)}s`;
+  }
+  return null;
+}
 
   // --- ② Milestone: 20/15/10 sec (first time only) ---
   function checkMilestone({sec, dan}){
