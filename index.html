@@ -1267,6 +1267,11 @@ button.pill.grad,
   <div class="back"></div>
   <div class="panel">
     <div class="h" id="histTitle">履歴（直近10件）</div>
+<!-- 履歴フィルタ（成功のみ / すべて） -->
+<div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
+  <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
+  <button class="pill" id="histFilterAll" type="button">すべて</button>
+</div>
 
     <div id="historyContent" class="small"
          style="text-align:left; line-height:1.6; white-space:normal;"></div>
@@ -1621,6 +1626,9 @@ async function showStats() {
     const T  = I[lang] || I.ja || {};
     const tx = (k) => T[k] || (I.ja && I.ja[k]) || k;
 
+    const successRecords = allRecords.filter(r => r.valid === true);
+    const base = successRecords.length ? successRecords : allRecords; // 初期はデータが少ない場合の保険
+
     // 以降はあなたの既存処理のままでOK
     if (typeof initDB === 'function') await initDB();
     const allRecords = await getAllRecords();
@@ -1783,6 +1791,7 @@ async function saveRecord(record) {
       score: record.score,
       danNumber: record.danNumber || null,
       mode: record.mode || 'normal'
+      valid: !!record.valid
     });
     
     request.onsuccess = () => resolve(request.result);
@@ -2794,6 +2803,11 @@ window.appLang = appLang; // 初期値を公開
             const key=`dan${dan}`;
             const list=rHist(key).slice(0,10);
             if(list.length===0) return '';
+
+            const filter = getHistFilter();
+            if (filter === 'success') {
+            list = list.filter(h => !!h.valid);
+            }
             
             const best=(function(){
                 const a=rHist(key).filter(x=>x.valid);
@@ -2945,6 +2959,7 @@ function finishRun(){
         score: gained,
         danNumber: run.dan || null,
         mode: run.problemMode || 'timeattack'
+        valid: allOk
     }).then(() => {
         console.log('✅ Record saved to IndexedDB');
     }).catch(err => {
@@ -3687,6 +3702,51 @@ try {
 // id取得ショートカット（$は既存で使っている可能性があるので別名にする）
 const byId = (id) => document.getElementById(id);
 
+// ===============================
+// History filter: success-only / all
+// ===============================
+const HIST_FILTER_KEY = 'kukuHistFilter'; // 'success' | 'all'
+
+function getHistFilter() {
+  return localStorage.getItem(HIST_FILTER_KEY) || 'success'; // デフォルト：成功のみ
+}
+function setHistFilter(v) {
+  localStorage.setItem(HIST_FILTER_KEY, v);
+}
+
+function applyHistFilterUI() {
+  const succ = document.getElementById('histFilterSuccess');
+  const all  = document.getElementById('histFilterAll');
+  if (!succ || !all) return;
+
+  // 文言（案1）
+  succ.textContent = (appLang === 'ja') ? '成功のみ' : 'Success only';
+  all.textContent  = (appLang === 'ja') ? 'すべて'   : 'All';
+
+  const v = getHistFilter();
+  succ.classList.toggle('active', v === 'success');
+  all.classList.toggle('active',  v === 'all');
+}
+
+function wireHistFilter() {
+  const succ = document.getElementById('histFilterSuccess');
+  const all  = document.getElementById('histFilterAll');
+  if (!succ || !all) return;
+
+  succ.onclick = () => {
+    setHistFilter('success');
+    applyHistFilterUI();
+    try { renderHistory(); } catch (_) {}
+    try { refreshClearHistoryState(); } catch (_) {}
+  };
+  all.onclick = () => {
+    setHistFilter('all');
+    applyHistFilterUI();
+    try { renderHistory(); } catch (_) {}
+    try { refreshClearHistoryState(); } catch (_) {}
+  };
+}
+
 /* ============================
    履歴モーダル（安全版）
    ============================ */
@@ -3707,6 +3767,8 @@ function wireHistoryModal() {
   };
 
   const open = () => {
+    try { applyHistFilterUI(); } catch (_) {}
+    try { wireHistFilter(); } catch (_) {}
     try { renderHistory(); } catch (_) {}
     try { refreshClearHistoryState(); } catch (_) {}
     try { setOverlayLock(true); } catch (_) {}
