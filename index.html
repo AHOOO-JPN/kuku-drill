@@ -2592,6 +2592,7 @@ window.appLang = appLang; // 初期値を公開
                 e.preventDefault();
                 
                 const label=btn.textContent.trim();
+                armOnFirstAction();
                 pop();
                 
                 if(label==='⌫'){
@@ -2705,17 +2706,27 @@ window.appLang = appLang; // 初期値を公開
             
             ans.value = '';
             result.textContent = '';
-            state.start = performance.now();
-            problemReady = true;
-             
+            + problemReady = true;
+            
+ if (run) {
+   // タイムアタック中は従来どおり即開始
+   state.start = performance.now();
+ } else {
+   // 通常モードは「最初のタップまで」開始しない
+   state.start = null;
+ }
+            
             requestAnimationFrame(() => {
                 if(ans) ans.focus({ preventScroll: true });
             });
              
-            if(getFlag('speak') && userInteracted){
-                const txt = i18n[appLang].speakProb(state.a, state.b);
-                speakText(txt);
-            }
+// 読み上げは最初のタップ後に（pendingに積む）
+ if (!run && getFlag('speak') && !userInteracted) {
+   pendingSpeakText = i18n[appLang].speakProb(state.a, state.b);
+ } else if (getFlag('speak') && userInteracted) {
+   const txt = i18n[appLang].speakProb(state.a, state.b);
+   speakText(txt);
+ }
             
             if(run && Number.isFinite(run.target)){
                 const remain = run.target - (state.score - run.scoreStart);
@@ -2725,7 +2736,35 @@ window.appLang = appLang; // 初期値を公開
             }
         }
 
+// ===============================
+// 案C: 最初のタップまで開始しない（通常モードのみ）
+// ===============================
+let pendingSpeakText = null;
+
+function armOnFirstAction() {
+  // タイムアタック中（runあり）は従来どおり即開始
+  if (run) return;
+
+  // まだタイマー開始していないならここで開始
+  if (!state.start) state.start = performance.now();
+
+  // 読み上げ/音声を「ユーザー操作後」に解禁
+  if (!userInteracted) userInteracted = true;
+
+  // 効果音が出る端末は最初の操作でAudioContextを起こす
+  try { ensureAudio(); } catch (_) {}
+
+  // 最初のタップで読み上げ（任意：不要ならこのブロック丸ごと削除OK）
+  try {
+    if (pendingSpeakText && getFlag('speak')) {
+      speakText(pendingSpeakText);
+    }
+  } catch (_) {}
+  pendingSpeakText = null;
+}
+
         function check(){
+            if (!state.start) armOnFirstAction();
             if(!problemReady || state.correct==null){
                 newProblem(true);
                 result.textContent=(appLang==='ja'?'最初の問題を用意しました！':'Prepared the first problem!');
@@ -3826,9 +3865,9 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
         /* 物理キーボード */
         document.addEventListener('keydown',(e)=>{
             const k=e.key;
-            if(k>='0'&&k<='9'){ navigator.vibrate?.(50); pop(); ans.value+=k; return; }
-            if(k==='Enter'){ navigator.vibrate?.(50); pop(); check(); return; }
-            if(k==='Backspace'){ navigator.vibrate?.(50); pop(); ans.value=ans.value.slice(0,-1); return; }
+            if(k>='0'&&k<='9'){ navigator.vibrate?.(50); armOnFirstAction(); pop(); ans.value+=k; return; }
+            if(k==='Enter'){ navigator.vibrate?.(50); armOnFirstAction(); pop(); check(); return; }
+            if(k==='Backspace'){ navigator.vibrate?.(50); armOnFirstAction(); pop(); ans.value=ans.value.slice(0,-1); return; }
             if(e.key==='Escape'){
                 ['startModal','resultModal','historyModal','faceModal','privacyModal','termsModal'].forEach(id=>{ const m=$(id); if(m&&m.classList.contains('show')){ m.classList.remove('show'); setOverlayLock(false); } });
                 if(sheet && sheet.classList.contains('show')){ sheet.classList.remove('show'); setOverlayLock(false); }
