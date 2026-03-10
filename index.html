@@ -2958,7 +2958,7 @@ function finishRun(){
         timeTaken: elapsed.toFixed(1),
         score: gained,
         danNumber: run.dan || null,
-        mode: run.problemMode || 'timeattack'
+        mode: run.problemMode || 'timeattack',
         valid: allOk
     }).then(() => {
         console.log('✅ Record saved to IndexedDB');
