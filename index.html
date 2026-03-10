@@ -2721,12 +2721,22 @@ function finishRun(){
     $('resultModal').classList.add('show');
     setOverlayLock(true);
 
-    const closeResultModal = () => {
-        $('resultModal').classList.remove('show');
-        setOverlayLock(false);
-        newProblem(true); // ★ここで次問をセット（必要なら読み上げもここで発生）
-        setTimeout(()=>{ try{ scrollToInput(); }catch(_){} }, 400);
-    };
+ const taSec = elapsed;            // 完走秒数（finishRunで計算済み）
+ const taDan = run.dan || null;    // 段（無い場合null）
+ const closeResultModal = () => {
+   $('resultModal').classList.remove('show');
+   setOverlayLock(false);
+
+   // ★追加: タイムアタック達成トースト（最速→節目→3日連続）
+   try {
+     if (!run?.isUnlimited && window.maybeShowTimeAttackAchievementToast) {
+       window.maybeShowTimeAttackAchievementToast({ sec: taSec, dan: taDan });
+     }
+   } catch(e) { console.warn('TA achievement toast failed', e); }
+
+   newProblem(true);
+   setTimeout(()=>{ try{ scrollToInput(); }catch(_){} }, 400);
+ };
     $('rpClose').onclick = closeResultModal;
     $('resultModal').querySelector('.back').onclick = closeResultModal;
     $('rpCopy').onclick=()=>navigator.clipboard?.writeText(shareText||body).catch(()=>{});
@@ -3888,6 +3898,234 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
   };
   // ===== ここまで：更新トースト =====
 
+// ===============================
+// TimeAttack Achievements (Toast)
+//  - Priority: Fastest -> Milestone -> 3-day streak
+//  - If multiple achieved: show only the highest priority one
+// ===============================
+(function(){
+  const LS = {
+    PB_OVERALL: 'kukuTA_pb_overall_sec',
+    PB_DAN: (dan)=> `kukuTA_pb_dan${dan}_sec`,
+
+    MS_OVERALL: (thr)=> `kukuTA_ms_overall_${thr}`,         // thr: 20/15/10
+    MS_DAN: (dan,thr)=> `kukuTA_ms_dan${dan}_${thr}`,
+
+    STREAK_LAST: 'kukuTA_streak_lastDate',
+    STREAK_CUR:  'kukuTA_streak_current',
+    STREAK_BEST: 'kukuTA_streak_best'
+  };
+
+  function langIsJa(){
+    return (localStorage.getItem('kukuLang') || window.appLang || 'ja') === 'ja';
+  }
+
+  function fmtSec(sec){
+    const n = Number(sec);
+    return Number.isFinite(n) ? n.toFixed(1) : String(sec);
+  }
+
+  function todayStr(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function yesterdayStr(){
+    const d = new Date();
+    d.setDate(d.getDate()-1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function showTaAchToast(message){
+    const toast = document.getElementById('taAchToast');
+    const msgEl = document.getElementById('taAchMsg');
+    const closeBtn = document.getElementById('taAchCloseBtn');
+    if(!toast || !msgEl || !closeBtn) return;
+
+    msgEl.textContent = message;
+    toast.style.display = 'block';
+
+    const hide = ()=>{ toast.style.display = 'none'; };
+    closeBtn.onclick = hide;
+
+    // 自動で消える（うるささ対策）
+    clearTimeout(window.__taAchToastTimer);
+    window.__taAchToastTimer = setTimeout(hide, 4200);
+  }
+
+  // --- ① Fastest (PB) ---
+  function checkFastest({sec, dan}){
+    const ja = langIsJa();
+    const s = Number(sec);
+    if(!Number.isFinite(s)) return null;
+
+    // dan PB を優先して更新・表示（danがある場合）
+    if(dan){
+      const k = LS.PB_DAN(dan);
+      const prev = Number(localStorage.getItem(k));
+      if(!Number.isFinite(prev) || s < prev){
+        localStorage.setItem(k, String(s));
+        return ja
+          ? `最速更新！ ${dan}段 ${fmtSec(s)}秒`
+          : `New fastest! Dan ${dan}: ${fmtSec(s)}s`;
+      }
+    }
+
+    // overall PB
+    const ko = LS.PB_OVERALL;
+    const prevO = Number(localStorage.getItem(ko));
+    if(!Number.isFinite(prevO) || s < prevO){
+      localStorage.setItem(ko, String(s));
+      return ja
+        ? `最速更新！ ${fmtSec(s)}秒`
+        : `New fastest! ${fmtSec(s)}s`;
+    }
+
+    return null;
+  }
+
+  // --- ② Milestone: 20/15/10 sec (first time only) ---
+  function checkMilestone({sec, dan}){
+    const ja = langIsJa();
+    const s = Number(sec);
+    if(!Number.isFinite(s)) return null;
+
+    // 表示は「より難しい（小さい秒数）」を優先
+    const thresholds = [10,15,20];
+
+    // 保存キー：danがあるなら段別、無ければoverall
+    const keyFor = (thr)=> dan ? LS.MS_DAN(dan,thr) : LS.MS_OVERALL(thr);
+
+    // まず「達成済みフラグ」を更新（secが小さいほど下位も同時に達成扱いにする）
+    // 例: 14.2秒なら 20と15を達成済みにする
+    thresholds.forEach(thr=>{
+      if(s <= thr){
+        localStorage.setItem(keyFor(thr), '1');
+      }
+    });
+
+    // 新規達成の中で最難（10→15→20）を探して表示
+    for(const thr of thresholds){
+      if(s <= thr){
+        // “今回初めて”判定が欲しいので、上でsetする前に判定したいが、
+        // ここでは「直前状態」を見るため、いったん読み直す方式だと常に1になる。
+        // そこで、別途「今回達成」判定を作る（以下）。
+      }
+    }
+
+    // 「今回新規達成」判定（上の更新より前の状態を復元できないので、別ロジックで実装）
+    // -> setする前に見たいので、実際は先に “未達か？” を集めてから set する
+    // ただし既に set 済みなので、この関数は下で正式版に置き換える
+    return null;
+  }
+
+  // Milestone正式版（未達→達成の遷移だけ表示、ただし達成済みフラグは全て更新）
+  function checkMilestone2({sec, dan}){
+    const ja = langIsJa();
+    const s = Number(sec);
+    if(!Number.isFinite(s)) return null;
+
+    const thresholdsShowOrder = [10,15,20];  // 表示優先
+    const thresholdsUpdateOrder = [20,15,10]; // 更新優先（全部達成扱いにする）
+
+    const keyFor = (thr)=> dan ? LS.MS_DAN(dan,thr) : LS.MS_OVERALL(thr);
+
+    // まず「今回新規達成」を判定（表示候補）
+    let newlyAchieved = null; // thr
+    for(const thr of thresholdsShowOrder){
+      if(s <= thr){
+        const already = localStorage.getItem(keyFor(thr)) === '1';
+        if(!already){
+          newlyAchieved = thr;
+          break; // 10が新規ならそれだけ見せる
+        }
+      }
+    }
+
+    // 達成済みフラグ更新（sが小さいなら下位も含めて全部達成扱い）
+    for(const thr of thresholdsUpdateOrder){
+      if(s <= thr){
+        localStorage.setItem(keyFor(thr), '1');
+      }
+    }
+
+    if(!newlyAchieved) return null;
+
+    if(dan){
+      return ja
+        ? `節目達成！ ${dan}段 ${newlyAchieved}秒切り`
+        : `Milestone! Dan ${dan}: under ${newlyAchieved}s`;
+    }
+    return ja
+      ? `節目達成！ ${newlyAchieved}秒切り`
+      : `Milestone! Under ${newlyAchieved}s`;
+  }
+
+  // --- ③ Streak: 3 days (time attack only) ---
+  function checkStreak3(){
+    const ja = langIsJa();
+    const today = todayStr();
+    const yday = yesterdayStr();
+
+    const last = localStorage.getItem(LS.STREAK_LAST);
+    let cur = Number(localStorage.getItem(LS.STREAK_CUR));
+    if(!Number.isFinite(cur) || cur < 0) cur = 0;
+
+    // 同じ日に複数回やっても増やさない
+    if(last === today) return null;
+
+    if(last === yday){
+      cur += 1;
+    }else{
+      cur = 1;
+    }
+    localStorage.setItem(LS.STREAK_LAST, today);
+    localStorage.setItem(LS.STREAK_CUR, String(cur));
+
+    const best = Number(localStorage.getItem(LS.STREAK_BEST));
+    if(!Number.isFinite(best) || cur > best){
+      localStorage.setItem(LS.STREAK_BEST, String(cur));
+    }
+
+    // 3日到達の瞬間だけ通知（以降は通知しない）
+    if(cur === 3){
+      return ja ? '3日連続！すごい！' : '3-day streak! Great job!';
+    }
+    return null;
+  }
+
+  // Public API (finishRunのcloseResultModalから呼ぶ)
+  window.maybeShowTimeAttackAchievementToast = function({sec, dan}){
+    // Priority 1: Fastest
+    const fastestMsg = checkFastest({sec, dan});
+    if(fastestMsg){
+      showTaAchToast(fastestMsg);
+      return;
+    }
+
+    // Priority 2: Milestone (10/15/20)
+    const msMsg = checkMilestone2({sec, dan});
+    if(msMsg){
+      showTaAchToast(msMsg);
+      return;
+    }
+
+    // Priority 3: 3-day streak
+    const stMsg = checkStreak3();
+    if(stMsg){
+      showTaAchToast(stMsg);
+      return;
+    }
+  };
+})();
+
+
   // 更新チェック
   registration.update();
 
@@ -4050,6 +4288,21 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
     <div style="display:flex; gap:8px;">
       <button id="swReloadBtn" class="btn grad" type="button" style="padding:10px 14px; min-width:auto;">再読み込み</button>
       <button id="swLaterBtn" class="btn" type="button" style="padding:10px 12px; min-width:auto;">あとで</button>
+    </div>
+  </div>
+</div>
+
+    <!-- TimeAttack Achievement Toast -->
+<div id="taAchToast" style="display:none; position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+  z-index:2000; width:min(92vw,520px); padding:12px 14px; border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+  border:1px solid var(--border); backdrop-filter:blur(14px); box-shadow:0 12px 30px rgba(12,4,40,.5);">
+  <div style="display:flex; gap:10px; align-items:center; justify-content:space-between;">
+    <div style="font-weight:900; line-height:1.2;">
+      <span id="taAchMsg">達成！</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="taAchCloseBtn" class="btn" type="button" style="padding:10px 12px; min-width:auto;">OK</button>
     </div>
   </div>
 </div>
