@@ -1332,6 +1332,63 @@ button.pill.grad,
       </div>
     </div>
     
+    <!-- =========================
+     Motivation: Streak + Growth
+     ========================= -->
+
+<!-- 連続記録バッジ（タイムアタック） -->
+<div id="taStreakBlock"
+  style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+         padding:14px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
+  <div class="h" style="font-size:16px; margin-bottom:10px;">🔥 連続記録（タイムアタック）</div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+    <div>
+      <div class="small" style="color:var(--muted); margin-bottom:4px;">現在</div>
+      <div style="font-size:18px; font-weight:900; color:var(--accentA);">
+        <span id="taStreakCur">0</span>日
+      </div>
+    </div>
+    <div>
+      <div class="small" style="color:var(--muted); margin-bottom:4px;">最高</div>
+      <div style="font-size:18px; font-weight:900; color:var(--accentB);">
+        <span id="taStreakBest">0</span>日
+      </div>
+    </div>
+    <div>
+      <div class="small" style="color:var(--muted); margin-bottom:4px;">バッジ</div>
+      <div style="font-size:14px; font-weight:900;">
+        <span id="taStreakBadge">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="taStreakBadges"
+    style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+
+  <div class="small" id="taStreakHint" style="margin-top:8px;">
+    ※ タイムアタック完走した日だけカウント（1日1回）
+  </div>
+</div>
+
+<!-- 成長グラフ（直近のタイム推移） -->
+<div id="taGrowthBlock"
+  style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+         padding:14px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
+  <div class="h" style="font-size:16px; margin-bottom:10px;">📈 成長グラフ（直近20回のタイム）</div>
+
+  <svg id="taGrowthSvg" viewBox="0 0 320 120"
+    style="width:100%; height:120px; display:block; border-radius:10px;
+           background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.12);">
+  </svg>
+
+  <div class="small" style="margin-top:8px; display:flex; gap:12px; flex-wrap:wrap;">
+    <span>直近: <b id="taGrowthLast">—</b>秒</span>
+    <span>ベスト: <b id="taGrowthBest">—</b>秒</span>
+    <span id="taGrowthTrend">—</span>
+  </div>
+</div>
+
     <!-- 段別成績 -->
     <div class="h" id="statsByDanTitle" style="font-size:16px; margin-bottom:12px;">段別成績</div>
     <div id="danStats" style="flex-grow:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;"></div>
@@ -1375,6 +1432,181 @@ function initDB() {
   });
 }
 
+// ===============================
+// Motivation UI: Streak Badges + Growth Graph
+// ===============================
+(function(){
+  const LS = {
+    STREAK_LAST: 'kukuTA_streak_lastDate',
+    STREAK_CUR:  'kukuTA_streak_current',
+    STREAK_BEST: 'kukuTA_streak_best'
+  };
+
+  function safeNum(v, fallback=0){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function badgeNameForStreak(days){
+    if(days >= 30) return '🏆 30日レジェンド';
+    if(days >= 14) return '💎 14日マスター';
+    if(days >= 7)  return '⭐ 7日ヒーロー';
+    if(days >= 3)  return '🔥 3日ストリーク';
+    if(days >= 1)  return '🌱 はじめの一歩';
+    return '—';
+  }
+
+  function streakTiers(){
+    return [
+      {d:3,  name:'🔥 3日'},
+      {d:7,  name:'⭐ 7日'},
+      {d:14, name:'💎 14日'},
+      {d:30, name:'🏆 30日'}
+    ];
+  }
+
+  function renderStreakBadges(){
+    const cur  = safeNum(localStorage.getItem(LS.STREAK_CUR), 0);
+    const best = safeNum(localStorage.getItem(LS.STREAK_BEST), 0);
+
+    const elCur  = document.getElementById('taStreakCur');
+    const elBest = document.getElementById('taStreakBest');
+    const elBadge= document.getElementById('taStreakBadge');
+    if(elCur)  elCur.textContent  = String(cur);
+    if(elBest) elBest.textContent = String(best);
+    if(elBadge) elBadge.textContent = badgeNameForStreak(cur);
+
+    const wrap = document.getElementById('taStreakBadges');
+    if(!wrap) return;
+    wrap.innerHTML = '';
+
+    // 達成済みティアを“バッジ風ピル”で表示
+    for(const t of streakTiers()){
+      const achieved = best >= t.d;
+      const chip = document.createElement('div');
+      chip.className = 'pill' + (achieved ? ' active' : '');
+      chip.style.padding = '8px 12px';
+      chip.style.fontSize = '13px';
+      chip.style.opacity = achieved ? '1' : '0.55';
+      chip.textContent = achieved ? `${t.name} 達成` : `${t.name} 目標`;
+      wrap.appendChild(chip);
+    }
+  }
+
+  // ---- Growth graph (sparkline) ----
+  function sparkPath(values, w, h, pad){
+    const vs = values.filter(v => Number.isFinite(v));
+    if(vs.length < 2) return null;
+
+    const minV = Math.min(...vs);
+    const maxV = Math.max(...vs);
+    const span = Math.max(0.001, (maxV - minV));
+
+    const n = values.length;
+    const xStep = (w - pad*2) / Math.max(1, n - 1);
+
+    // 小さい秒ほど“上”に来るように反転
+    const pts = values.map((v, i) => {
+      const x = pad + xStep * i;
+      const t = (v - minV) / span;          // 0..1 (min..max)
+      const y = pad + (h - pad*2) * t;      // minが上ではないので…
+      const yInv = (h - y);                 // 反転
+      return {x, y: yInv};
+    });
+
+    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for(let i=1;i<pts.length;i++){
+      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    }
+    return {d, minV, maxV};
+  }
+
+  function renderGrowthGraph(allRecords){
+    const svg = document.getElementById('taGrowthSvg');
+    if(!svg) return;
+
+    // recordsは finishRun() で saveRecord されるため、基本的に“タイムアタック履歴”として使える想定
+    const rows = (allRecords || [])
+      .slice()
+      .sort((a,b)=> (a.timestamp||0) - (b.timestamp||0));
+
+    const times = rows
+      .map(r => parseFloat(r.timeTaken))
+      .filter(v => Number.isFinite(v));
+
+    // 直近20回
+    const N = 20;
+    const lastN = times.slice(-N);
+    svg.innerHTML = '';
+
+    if(lastN.length < 2){
+      // データ不足表示
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x','12');
+      txt.setAttribute('y','62');
+      txt.setAttribute('fill','rgba(255,255,255,.75)');
+      txt.setAttribute('font-size','14');
+      txt.textContent = 'データが増えるとグラフが表示されます';
+      svg.appendChild(txt);
+      return;
+    }
+
+    const W=320, H=120, P=10;
+    const info = sparkPath(lastN, W, H, P);
+    if(!info) return;
+
+    // grid
+    for(let i=1;i<=3;i++){
+      const y = (H/4)*i;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1','0'); line.setAttribute('x2', String(W));
+      line.setAttribute('y1', String(y)); line.setAttribute('y2', String(y));
+      line.setAttribute('stroke','rgba(255,255,255,.08)');
+      svg.appendChild(line);
+    }
+
+    // path
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', info.d);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke','var(--accentB)');
+    path.setAttribute('stroke-width','3');
+    path.setAttribute('stroke-linecap','round');
+    path.setAttribute('stroke-linejoin','round');
+    svg.appendChild(path);
+
+    // last dot
+    const last = lastN[lastN.length-1];
+    const best = Math.min(...lastN);
+    const elLast = document.getElementById('taGrowthLast');
+    const elBest = document.getElementById('taGrowthBest');
+    if(elLast) elLast.textContent = last.toFixed(1);
+    if(elBest) elBest.textContent = best.toFixed(1);
+
+    // trend（前半平均 vs 後半平均）
+    const half = Math.floor(lastN.length/2);
+    const a1 = lastN.slice(0,half).reduce((s,v)=>s+v,0)/Math.max(1,half);
+    const a2 = lastN.slice(half).reduce((s,v)=>s+v,0)/Math.max(1,lastN.length-half);
+    const diff = (a2 - a1);
+    const trendEl = document.getElementById('taGrowthTrend');
+    if(trendEl){
+      if(Math.abs(diff) < 0.05){
+        trendEl.textContent = '傾向: 横ばい';
+      }else if(diff < 0){
+        trendEl.textContent = `傾向: 平均が ${(Math.abs(diff)).toFixed(1)}秒 速く`;
+      }else{
+        trendEl.textContent = `傾向: 平均が ${(diff).toFixed(1)}秒 遅く`;
+      }
+    }
+  }
+
+  // showStats() から呼べるように公開
+  window.renderMotivationBlocks = function(allRecords){
+    try{ renderStreakBadges(); }catch(e){ console.warn('renderStreakBadges failed', e); }
+    try{ renderGrowthGraph(allRecords); }catch(e){ console.warn('renderGrowthGraph failed', e); }
+  };
+})();
+
 // ========================================
 // 統計画面の表示・非表示
 // ========================================
@@ -1410,7 +1642,9 @@ safeText('totalQuestions', totalQuestions);
 safeText('avgScore', avgScore);
 safeText('statsAvgTime', avgTime);
 safeText('bestScore', bestScore);
-safeText('bestTime', bestTime);
+safeText('bestTime', bestTime); 
+// ★追加: モチベブロック（連続記録バッジ + 成長グラフ）
+if (window.renderMotivationBlocks) window.renderMotivationBlocks(allRecords);
     
 // 段別統計を表示（DBアクセスは allRecords の1回のみ）
 const danStatsDiv = document.getElementById('danStats');
