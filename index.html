@@ -1837,7 +1837,7 @@ initDB().then(() => {
 
 /* ========= 0) 初期ユーティリティ ========= */
     // ユーザーインタラクションフラグ（即座に有効化）
-    let userInteracted = true;  // ★修正: 最初からtrueに設定（待機時間をゼロに）
+    let userInteracted = false;  // ★修正: 最初からtrueに設定（待機時間をゼロに）
     
 function measureFps(n=10){return new Promise(r=>{let f=0,s;function step(t){if(!s)s=t;if(++f<n)requestAnimationFrame(step);else r(1000*f/(t-s));}requestAnimationFrame(step);});}
 function applyLite(v){ document.body.classList.toggle('perf-lite', !!v); localStorage.setItem('kukuLite', v?'1':'0'); }
@@ -2592,38 +2592,42 @@ window.appLang = appLang; // 初期値を公開
                 e.preventDefault();
                 
                 const label=btn.textContent.trim();
-                armOnFirstAction();
-                pop();
+                const isDigit = /^\d$/.test(label);
+                if (isDigit) armOnFirstDigit();
+
+                if (run || normalStarted) pop();
                 
                 if(label==='⌫'){
                     ans.value=ans.value.slice(0,-1);
                 }
                 else if(label==='OK'){
                     check();
-                }
-                else if(/^\d$/.test(label)){
-                    ans.value+=label;
+                } 
+                else if (isDigit) {
+                ans.value += label;
                 }
             }, {passive: false});
             
             keypad.addEventListener('click',(e)=>{
-                const btn=e.target.closest('.key');
-                if(!btn) return;
-                
-                const label=btn.textContent.trim();
-                pop();
-                
-                if(label==='⌫'){
-                    ans.value=ans.value.slice(0,-1);
-                }
-                else if(label==='OK'){
+                const btn = e.target.closest('.key');
+                if (!btn) return;
+
+                const label = btn.textContent.trim();
+                const isDigit = /^\d$/.test(label);
+                if (isDigit) armOnFirstDigit();
+
+                if (run || normalStarted) pop();
+
+                if (label === '⌫') {
+                ans.value = ans.value.slice(0, -1);
+                } else if (label === 'OK') {
                     check();
-                }
-                else if(/^\d$/.test(label)){
-                    ans.value+=label;
-                }
-            }, {passive: true});
-        }
+                } else if (isDigit) {
+                    ans.value += label;
+                  }
+                }, { passive: true });
+
+            }
 
         function resetState(){ state.score=0; state.streak=0; state.times=[]; scoreEl.textContent='0'; streakEl.textContent='0'; avgTimeEl.textContent='—'; }
         
@@ -2706,27 +2710,34 @@ window.appLang = appLang; // 初期値を公開
             
             ans.value = '';
             result.textContent = '';
-            problemReady = true;
-            
- if (run) {
-   // タイムアタック中は従来どおり即開始
-   state.start = performance.now();
- } else {
-   // 通常モードは「最初のタップまで」開始しない
-   state.start = null;
- }
-            
-            requestAnimationFrame(() => {
-                if(ans) ans.focus({ preventScroll: true });
-            });
-             
-// 読み上げは最初のタップ後に（pendingに積む）
- if (!run && getFlag('speak') && !userInteracted) {
-   pendingSpeakText = i18n[appLang].speakProb(state.a, state.b);
- } else if (getFlag('speak') && userInteracted) {
-   const txt = i18n[appLang].speakProb(state.a, state.b);
-   speakText(txt);
- }
+// ---- 案C：通常モードは最初の数字タップまで開始しない ----
+problemReady = true;
+
+if (run) {
+  // タイムアタック中は従来どおり即開始
+  state.start = performance.now();
+} else {
+  // 通常モード：開始前はタイマーを動かさない
+  if (normalStarted) {
+    state.start = performance.now(); // 2問目以降は従来どおり
+  } else {
+    state.start = null;              // 最初の数字タップまで未開始
+  }
+}
+
+requestAnimationFrame(() => {
+  if (ans) ans.focus({ preventScroll: true });
+});
+
+// 読み上げ：通常モードで未開始なら pending に積む（最初の数字タップで読む）
+if (getFlag('speak')) {
+  const txt = i18n[appLang].speakProb(state.a, state.b);
+  if (!run && !normalStarted) {
+    pendingSpeakText = txt;
+  } else if (userInteracted) {
+    speakText(txt);
+  }
+}
             
             if(run && Number.isFinite(run.target)){
                 const remain = run.target - (state.score - run.scoreStart);
@@ -2737,24 +2748,33 @@ window.appLang = appLang; // 初期値を公開
         }
 
 // ===============================
-// 案C: 最初のタップまで開始しない（通常モードのみ）
+// 案C: 最初の「数字」タップで開始（通常モードのみ）
+//  - タイマー(state.start)
+//  - 読み上げ(userInteracted + pendingSpeakText)
+//  - 効果音(ensureAudio)
 // ===============================
-let pendingSpeakText = null;
+let normalStarted = false;     // 通常モードの開始済みフラグ
+let pendingSpeakText = null;   // 最初の数字タップ時に読み上げる問題文（1回分）
 
-function armOnFirstAction() {
-  // タイムアタック中（runあり）は従来どおり即開始
+function armOnFirstDigit() {
+  // タイムアタック中は従来どおり（遅延開始はしない）
   if (run) return;
 
-  // まだタイマー開始していないならここで開始
+  // すでに開始済みなら何もしない
+  if (normalStarted) return;
+
+  normalStarted = true;
+
+  // タイマー開始（問題表示直後ではなく、最初の数字タップで）
   if (!state.start) state.start = performance.now();
 
-  // 読み上げ/音声を「ユーザー操作後」に解禁
-  if (!userInteracted) userInteracted = true;
+  // 読み上げ解禁
+  userInteracted = true;
 
-  // 効果音が出る端末は最初の操作でAudioContextを起こす
+  // 効果音用 AudioContext をユーザー操作内で起こす
   try { ensureAudio(); } catch (_) {}
 
-  // 最初のタップで読み上げ（任意：不要ならこのブロック丸ごと削除OK）
+  // 最初の数字タップで、その問題を1回だけ読み上げ（任意）
   try {
     if (pendingSpeakText && getFlag('speak')) {
       speakText(pendingSpeakText);
@@ -2762,8 +2782,13 @@ function armOnFirstAction() {
   } catch (_) {}
   pendingSpeakText = null;
 }
-
         function check(){
+            if (!run && !normalStarted) {
+  // まだ最初の数字タップ前
+  result.textContent = (appLang === 'ja') ? '数字をタップしてスタート' : 'Tap a number to start';
+  result.className = 'result ng';
+  return;
+}
             if (!state.start) armOnFirstAction();
             if(!problemReady || state.correct==null){
                 newProblem(true);
@@ -3864,15 +3889,30 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
         
         /* 物理キーボード */
         document.addEventListener('keydown',(e)=>{
-            const k=e.key;
-            if(k>='0'&&k<='9'){ navigator.vibrate?.(50); armOnFirstAction(); pop(); ans.value+=k; return; }
-            if(k==='Enter'){ navigator.vibrate?.(50); armOnFirstAction(); pop(); check(); return; }
-            if(k==='Backspace'){ navigator.vibrate?.(50); armOnFirstAction(); pop(); ans.value=ans.value.slice(0,-1); return; }
-            if(e.key==='Escape'){
-                ['startModal','resultModal','historyModal','faceModal','privacyModal','termsModal'].forEach(id=>{ const m=$(id); if(m&&m.classList.contains('show')){ m.classList.remove('show'); setOverlayLock(false); } });
-                if(sheet && sheet.classList.contains('show')){ sheet.classList.remove('show'); setOverlayLock(false); }
-            }
-        });
+            const k = e.key;
+
+  if (k >= '0' && k <= '9') {
+    navigator.vibrate?.(50);
+    armOnFirstDigit();
+    if (run || normalStarted) pop();
+    ans.value += k;
+    return;
+  }
+
+  if (k === 'Enter') {
+    navigator.vibrate?.(50);
+    if (run || normalStarted) pop();
+    check();
+    return;
+  }
+
+  if (k === 'Backspace') {
+    navigator.vibrate?.(50);
+    if (run || normalStarted) pop();
+    ans.value = ans.value.slice(0, -1);
+    return;
+  }
+});
         
         try{ window.webkit?.messageHandlers?.lang?.postMessage({ lang: appLang }); }catch(_){}
         
