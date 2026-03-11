@@ -1638,11 +1638,11 @@ async function showStats() {
     const base = successRecords.length ? successRecords : allRecords;
 
     // 全体統計（base を使う）
-    const totalQuestions = base.reduce((sum, r) => sum + Number(r.questionCount || 0), 0);
-    const avgScore = (base.reduce((sum, r) => sum + Number(r.score || 0), 0) / base.length).toFixed(1);
-    const avgTime  = (base.reduce((sum, r) => sum + parseFloat(r.timeTaken || 0), 0) / base.length).toFixed(1);
-    const bestScore = Math.max(...base.map(r => Number(r.score || 0)));
-    const bestTime  = Math.min(...base.map(r => parseFloat(r.timeTaken || 0))).toFixed(1);
+    const totalQuestions = base.reduce((sum, r) => sum + Number(r.questionCount||0), 0);
+    const avgScore = (base.reduce((sum, r) => sum + Number(r.score||0), 0) / base.length).toFixed(1);
+    const avgTime  = (base.reduce((sum, r) => sum + parseFloat(r.timeTaken||0), 0) / base.length).toFixed(1);
+    const bestScore = Math.max(...base.map(r => Number(r.score||0)));
+    const bestTime  = Math.min(...base.map(r => parseFloat(r.timeTaken||0))).toFixed(1);
 
     safeText('totalQuestions', totalQuestions);
     safeText('avgScore', avgScore);
