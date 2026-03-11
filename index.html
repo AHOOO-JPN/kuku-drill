@@ -1618,18 +1618,13 @@ function initDB() {
 
 async function showStats() {
   try {
-    // ★ここで言語を安全に決める（appLangを直接参照しない）
+    // 言語（安全に取得）
     const lang = window.appLang || localStorage.getItem('kukuLang') || 'ja';
-
-    // ★ここで i18n を安全に取得
     const I  = window.i18n || {};
     const T  = I[lang] || I.ja || {};
     const tx = (k) => T[k] || (I.ja && I.ja[k]) || k;
 
-    const successRecords = allRecords.filter(r => r.valid === true);
-    const base = successRecords.length ? successRecords : allRecords; // 初期はデータが少ない場合の保険
-
-    // 以降はあなたの既存処理のままでOK
+    // ★最初にDB & レコード取得（ここが先）
     if (typeof initDB === 'function') await initDB();
     const allRecords = await getAllRecords();
 
@@ -1637,91 +1632,86 @@ async function showStats() {
       openStatsModal(`<div class="small">${tx('statsNoData') || 'No records yet.'}</div>`);
       return;
     }
-    
-    // 全体統計を計算
-    const totalQuestions = allRecords.reduce((sum, r) => sum + r.questionCount, 0);
-    const avgScore = (allRecords.reduce((sum, r) => sum + r.score, 0) / allRecords.length).toFixed(1);
-    const avgTime = (allRecords.reduce((sum, r) => sum + parseFloat(r.timeTaken), 0) / allRecords.length).toFixed(1);
-    const bestScore = Math.max(...allRecords.map(r => r.score));
-    const bestTime = Math.min(...allRecords.map(r => parseFloat(r.timeTaken))).toFixed(1);
-    
-// 全体統計を表示
-safeText('totalQuestions', totalQuestions);
-safeText('avgScore', avgScore);
-safeText('statsAvgTime', avgTime);
-safeText('bestScore', bestScore);
-safeText('bestTime', bestTime); 
-// ★追加: モチベブロック（連続記録バッジ + 成長グラフ）
-if (window.renderMotivationBlocks) window.renderMotivationBlocks(allRecords);
-    
-// 段別統計を表示（DBアクセスは allRecords の1回のみ）
-const danStatsDiv = document.getElementById('danStats');
-if (danStatsDiv) danStatsDiv.innerHTML = '';
 
-// 1) allRecords を段ごとに振り分け（1回走査するだけ）
-const byDan = Array.from({ length: 13 }, () => []); // 0は未使用、1..12を使う
+    // ★成功のみを優先（0件なら全件）
+    const successRecords = allRecords.filter(r => r.valid === true);
+    const base = successRecords.length ? successRecords : allRecords;
 
-for (const r of allRecords) {
-  const d = Number(r.danNumber);   // danNumber が文字列でも数値化
-  if (d >= 1 && d <= 12) byDan[d].push(r);
-}
+    // 全体統計（base を使う）
+    const totalQuestions = base.reduce((sum, r) => sum + Number(r.questionCount || 0), 0);
+    const avgScore = (base.reduce((sum, r) => sum + Number(r.score || 0), 0) / base.length).toFixed(1);
+    const avgTime  = (base.reduce((sum, r) => sum + parseFloat(r.timeTaken || 0), 0) / base.length).toFixed(1);
+    const bestScore = Math.max(...base.map(r => Number(r.score || 0)));
+    const bestTime  = Math.min(...base.map(r => parseFloat(r.timeTaken || 0))).toFixed(1);
 
-// 2) 段ごとに集計して描画
-const frag = document.createDocumentFragment();
+    safeText('totalQuestions', totalQuestions);
+    safeText('avgScore', avgScore);
+    safeText('statsAvgTime', avgTime);
+    safeText('bestScore', bestScore);
+    safeText('bestTime', bestTime);
 
-for (let i = 1; i <= 12; i++) {
-  const danRecords = byDan[i];
-  if (!danRecords || danRecords.length === 0) continue;
+    // モチベUI（グラフは “全件(allRecords)” のままでもOK。成功のみ基準にしたいなら base を渡す）
+    if (window.renderMotivationBlocks) window.renderMotivationBlocks(allRecords);
 
-  // ★ここが最適化ポイント：reduce/mapを毎回作らず、1ループで集計
-  const stats = calcStatsFromRecords(danRecords);
+    // 段別（base を段別集計に使う）
+    const danStatsDiv = document.getElementById('danStats');
+    if (danStatsDiv) danStatsDiv.innerHTML = '';
 
-  // 既存UI生成（あなたの i18n 対応を維持）
-  const danDiv = document.createElement('div');
-  danDiv.style.cssText = `
-    margin:0 0 10px 0;
-    padding:14px;
-    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border-radius:12px;
-    border:1px solid var(--border);
-    border-left:4px solid var(--accentA);
-  `;
+    const byDan = Array.from({ length: 13 }, () => []);
+    for (const r of base) {
+      const d = Number(r.danNumber);
+      if (d >= 1 && d <= 12) byDan[d].push(r);
+    }
 
-  const danLabel = `${i}${tx('danSuffix')}`;
+    const frag = document.createDocumentFragment();
+    for (let i = 1; i <= 12; i++) {
+      const danRecords = byDan[i];
+      if (!danRecords.length) continue;
 
-  danDiv.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${danLabel}</strong>
-      <span style="color:var(--muted); font-size:13px;">
-        ${tx('statsAttempts')}: ${stats.totalAttempts}${tx('unitTimes')}
-      </span>
-    </div>
+      const stats = calcStatsFromRecords(danRecords);
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
-      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgScore}${tx('unitPoints')}</strong></div>
-      <div>${tx('statsBest')}: <strong style="color:var(--ok);">${stats.bestScore}${tx('unitPoints')}</strong></div>
-      <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgTime}${tx('unitSec')}</strong></div>
-      <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${stats.bestTime}${tx('unitSec')}</strong></div>
-    </div>
-  `;
+      const danDiv = document.createElement('div');
+      danDiv.style.cssText = `
+        margin:0 0 10px 0;
+        padding:14px;
+        background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+        border-radius:12px;
+        border:1px solid var(--border);
+        border-left:4px solid var(--accentA);
+      `;
 
-  // ★ここも最適化ポイント：appendChildを毎回danStatsDivにせず、fragに貯める
-  frag.appendChild(danDiv);
-}
+      const danLabel = `${i}${tx('danSuffix')}`;
 
-// ★最後に1回だけDOMに反映
-danStatsDiv.appendChild(frag);
-      
-openStatsModal();               // ★ try の中（最後）に置く
-console.log('📊 統計画面を表示しました');
-    
-} catch (err) {
-console.error('❌ showStats error:', err);
-const msg = (err && err.message) ? err.message : String(err);
-openStatsModal(`
-    <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
-    Stats error: ${msg}
-    </div>
+      danDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:var(--accentA); font-size:16px; font-weight:900;">${danLabel}</strong>
+          <span style="color:var(--muted); font-size:13px;">
+            ${tx('statsAttempts')}: ${stats.totalAttempts}${tx('unitTimes')}
+          </span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+          <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgScore}${tx('unitPoints')}</strong></div>
+          <div>${tx('statsBest')}: <strong style="color:var(--ok);">${stats.bestScore}${tx('unitPoints')}</strong></div>
+          <div>${tx('statsAvg')}: <strong style="color:var(--text);">${stats.avgTime}${tx('unitSec')}</strong></div>
+          <div>${tx('statsFastest')}: <strong style="color:var(--accentB);">${stats.bestTime}${tx('unitSec')}</strong></div>
+        </div>
+      `;
+      frag.appendChild(danDiv);
+    }
+
+    if (danStatsDiv) danStatsDiv.appendChild(frag);
+
+    openStatsModal();
+    console.log('📊 統計画面を表示しました');
+
+  } catch (err) {
+    console.error('❌ showStats error:', err);
+    const msg = (err && err.message) ? err.message : String(err);
+    openStatsModal(`
+      <div class="small" style="color:#ffb4b4;font-weight:800;line-height:1.6;">
+        Stats error: ${msg}
+      </div>
     `);
   }
 }
