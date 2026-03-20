@@ -68,7 +68,6 @@ a, button, input, select, textarea, [role="button"] {
   touch-action: manipulation;
 }
 
-
 html {
   height: 100%;
   margin: 0;
@@ -1009,6 +1008,92 @@ button.pill.grad,
             -webkit-tap-highlight-color: rgba(255,255,255,0.15);
           }
         }
+        /* =========================
+   Stats/History modal compact look
+   ========================= */
+#statsModal .panel{
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+
+/* タブ/フィルタのピルを“軽く” */
+#statsModal .pill{
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 999px;
+  box-shadow: none;              /* 発光を減らす */
+  background: rgba(255,255,255,.06);
+}
+
+#statsModal .pill.active{
+  outline: none;                 /* 太いアウトラインを消す */
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+  background: linear-gradient(90deg,
+    color-mix(in oklab, var(--accentA) 18%, transparent),
+    color-mix(in oklab, var(--accentB) 18%, transparent)
+  );
+}
+
+/* 見出しの余白を詰める（縦を短く） */
+#statsModal .h{
+  margin: 4px 0 10px;
+}
+#statsModal #statsModalTitle{
+  margin-bottom: 10px !important;
+  font-size: 18px;
+}
+
+/* 履歴テーブルを読みやすく（線を減らして、行をコンパクトに） */
+#statsModal .history-table{
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+#statsModal .history-table th,
+#statsModal .history-table td{
+  padding: 6px 6px;              /* 横を少し増やして詰まり感を減らす */
+  border-bottom: 1px solid rgba(255,255,255,.10); /* 線を薄く */
+}
+#statsModal .history-table thead th{
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.75);
+}
+
+/* セクション区切りを“カード”ではなく“薄い帯”へ */
+#statsModal .table-wrap{
+  margin-top: 10px;
+}
+#statsModal .table-wrap h4{
+  margin: 10px 0 6px !important;
+  font-weight: 800;
+  color: rgba(255,255,255,.85);
+}
+
+/* 統計側の“箱の中に箱”感を弱める（段別成績カード） */
+#statsModal #danStats > div{
+  padding: 12px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: rgba(255,255,255,.06) !important;  /* 1段落ち着かせる */
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-left-width: 3px !important;             /* 左ラインだけ残す */
+}
+
+/* グラフ枠も薄く */
+#statsModal #taGrowthSvg{
+  background: rgba(0,0,0,.12) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+}
+
+/* フッターボタン行を詰める */
+#statsModal .btnrow{
+  margin-top: 12px;
+  gap: 8px;
+}
+#statsModal .btn{
+  padding: 10px 14px;
+  min-width: 92px;
+  box-shadow: none;              /* 影を減らす */
+}
         
 </style>
 </head>
