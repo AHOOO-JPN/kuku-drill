@@ -1094,6 +1094,17 @@ button.pill.grad,
   min-width: 92px;
   box-shadow: none;              /* 影を減らす */
 }
+/* statsModal内の×ボタンをスクロール追従に */
+#statsModal .sheet-close{
+  position: sticky;
+  top: 8px;
+  align-self: flex-end;
+  z-index: 20;
+
+  /* 背景が完全透明だと見失いやすいので薄く面を付ける */
+  background: rgba(0,0,0,.12) !important;
+  backdrop-filter: blur(6px);
+}
         
 </style>
 </head>
@@ -1368,17 +1379,17 @@ button.pill.grad,
       <div class="h" id="histTitle">履歴（直近10件）</div>
 
       <div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
-        <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
-        <button class="pill" id="histFilterAll" type="button">すべて</button>
-      </div>
+  <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
+  <button class="pill" id="histFilterAll" type="button">すべて</button>
+
+  <!-- ★追加：同じ色味（grad）で横に置く -->
+  <button class="pill grad" id="clearHistory" type="button" style="margin-left:auto;">
+    履歴をクリア
+  </button>
+</div>
 
       <div id="historyContent" class="small"
            style="text-align:left; line-height:1.6; white-space:normal;"></div>
-
-      <div class="btnrow">
-  <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
-  <button class="btn grad" id="historyClose" type="button" onclick="closeStats()">閉じる</button>
-</div>
 
     <div id="shPanelStats">
     <!-- 全体統計 -->
@@ -1791,6 +1802,7 @@ async function showStats() {
     if (danStatsDiv) danStatsDiv.appendChild(frag);
 
     openStatsModal();
+setStatsHistoryTab('stats'); // ★統計をデフォルトに固定
     console.log('📊 統計画面を表示しました');
 
   } catch (err) {
@@ -1866,8 +1878,16 @@ function setStatsHistoryTab(tab){ // 'stats' | 'hist'
 window.addEventListener('DOMContentLoaded', () => {
   const bs = document.getElementById('shTabStats');
   const bh = document.getElementById('shTabHist');
-  if(bs) bs.onclick = async ()=>{ await showStats(); setStatsHistoryTab('stats'); };
-  if(bh) bh.onclick = async ()=>{ await showStats(); setStatsHistoryTab('hist'); };
+
+  if (bs) bs.addEventListener('click', (e) => {
+    e.preventDefault();
+    setStatsHistoryTab('stats');
+  });
+
+  if (bh) bh.addEventListener('click', (e) => {
+    e.preventDefault();
+    setStatsHistoryTab('hist'); // ここでrenderHistory等は setStatsHistoryTab 内が実行
+  });
 });
 
 function openStatsModal(htmlForDanStats) {
