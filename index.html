@@ -1285,32 +1285,32 @@ button.pill.grad,
   <div class="back" onclick="closeStats()"></div>
   <div class="panel" style="display:flex; flex-direction:column; max-height:85vh;">
     <button class="sheet-close" onclick="closeStats()" aria-label="閉じる"></button>
-    
+
     <div class="h" id="statsModalTitle" style="text-align:center; margin-bottom:16px;">📊 統計</div>
 
-      <div class="pillset" id="shTabs" style="justify-content:center; margin:6px 0 12px;">
+    <!-- tabs -->
+    <div class="pillset" id="shTabs" style="justify-content:center; margin:6px 0 12px;">
       <button class="pill active" id="shTabStats" type="button">📊 統計</button>
       <button class="pill" id="shTabHist" type="button">🕘 履歴</button>
     </div>
 
+ <div id="shPanelHist" style="display:none;">
+      <div class="h" id="histTitle">履歴（直近10件）</div>
+
+      <div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
+        <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
+        <button class="pill" id="histFilterAll" type="button">すべて</button>
+      </div>
+
+      <div id="historyContent" class="small"
+           style="text-align:left; line-height:1.6; white-space:normal;"></div>
+
+      <div class="btnrow">
+        <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
+      </div>
+    </div>
+
     <div id="shPanelStats">
-
-        <div id="shPanelHist" style="display:none;">
-  <div class="h" id="histTitle">履歴（直近10件）</div>
-
-  <div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
-    <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
-    <button class="pill" id="histFilterAll" type="button">すべて</button>
-  </div>
-
-  <div id="historyContent" class="small"
-       style="text-align:left; line-height:1.6; white-space:normal;"></div>
-
-  <div class="btnrow">
-    <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
-  </div>
-</div>
-        
     <!-- 全体統計 -->
     <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
                 padding:16px; 
@@ -1421,7 +1421,6 @@ button.pill.grad,
   <button class="btn grad" id="statsCloseBtn" onclick="closeStats()">閉じる</button>
 </div>
   </div>
-</div>
 </div>
     
 <script>
