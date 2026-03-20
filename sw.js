@@ -1,5 +1,5 @@
 // KuKu Drill service worker - 最適化版
-const CACHE_VERSION = 'kuku-v59';  // バージョン統一
+const CACHE_VERSION = 'kuku-v60';  // バージョン統一
 const ASSETS = [
   './',
   './index.html',
