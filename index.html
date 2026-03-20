@@ -3878,6 +3878,12 @@ function wireClearHistoryButton() {
 window.addEventListener('DOMContentLoaded', () => {
   wireHistoryModal();
   wireClearHistoryButton();
+
+  // ★追加：履歴フィルタ（成功のみ / すべて）のクリックを有効化
+  wireHistFilter();
+
+  // ★任意：初期状態の見た目を合わせる（特にSafariで安定）
+  try { applyHistFilterUI(); } catch (_) {}
 });
 
   async function handleClearHistory(e){
