@@ -1367,15 +1367,9 @@ button.pill.grad,
   <div class="panel" style="display:flex; flex-direction:column; max-height:85vh;">
     <button class="sheet-close" onclick="closeStats()" aria-label="閉じる"></button>
 
-    <div class="h" id="statsModalTitle" style="text-align:center; margin-bottom:16px;">📊 統計</div>
+    <div class="h" id="statsModalTitle" style="text-align:center; margin-bottom:16px;">📊 学習サマリー</div>
 
-    <!-- tabs -->
-    <div class="pillset" id="shTabs" style="justify-content:center; margin:6px 0 12px;">
-      <button class="pill active" id="shTabStats" type="button">📊 統計</button>
-      <button class="pill" id="shTabHist" type="button">🕘 履歴</button>
-    </div>
-
- <div id="shPanelHist" style="display:none;">
+ <div id="shPanelHist">
       <div class="h" id="histTitle">履歴（直近10件）</div>
 
     <div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
@@ -1801,6 +1795,12 @@ async function showStats() {
     if (danStatsDiv) danStatsDiv.appendChild(frag);
 
     openStatsModal();
+
+      // ★履歴も同じ画面に出すのでここで描画しておく
+try { renderHistory(); } catch(e){ console.warn('renderHistory failed', e); }
+try { applyHistFilterUI(); } catch(_) {}
+try { refreshClearHistoryState(); } catch(_) {}
+      
 　setStatsHistoryTab('stats'); // ★統計をデフォルトに固定
     console.log('📊 統計画面を表示しました');
 
@@ -1873,20 +1873,6 @@ function setStatsHistoryTab(tab){ // 'stats' | 'hist'
     try { applyHistFilterUI(); } catch(_) {}
   }
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-  const bs = document.getElementById('shTabStats');
-  const bh = document.getElementById('shTabHist');
-
-  if (bs) bs.addEventListener('click', (e) => {
-    e.preventDefault();
-    setStatsHistoryTab('stats');
-  });
-
-  if (bh) bh.addEventListener('click', (e) => {
-    e.preventDefault();
-    setStatsHistoryTab('hist');
-  });
 });
 
 function openStatsModal(htmlForDanStats) {
@@ -3957,11 +3943,17 @@ function wireHistoryModal() {
   if (!openBtn) return;
 
   openBtn.onclick = async () => {
-    await showStats();              // statsModal を開く（openStatsModalが呼ばれる）
-    setStatsHistoryTab('hist');     // 履歴タブに切替
+    await showStats(); // サマリーを開く（統計＋履歴が描画される）
+
+    // 履歴セクションへスクロール（モーダル内）
+    const wrap = document.querySelector('#statsModal .panel');
+    const target = document.getElementById('shPanelHist');
+    if (wrap && target) {
+      wrap.scrollTo({ top: target.offsetTop - 10, behavior: 'smooth' });
+    }
   };
 }
-
+        
 function wireClearHistoryButton() {
   const btn = byId('clearHistory');
   if (!btn) return;
