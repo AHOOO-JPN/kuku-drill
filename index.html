@@ -1100,8 +1100,6 @@ button.pill.grad,
   top: 8px;
   align-self: flex-end;
   z-index: 20;
-
-  /* 背景が完全透明だと見失いやすいので薄く面を付ける */
   background: rgba(0,0,0,.12) !important;
   backdrop-filter: blur(6px);
 }
@@ -1120,7 +1118,7 @@ button.pill.grad,
       <div class="title" id="titleTxt">KuKuドリル</div>
       <div class="row">
         <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
-        <button id="showStatsBtn" class="badge" onclick="showStats()">📊統計</button>
+        <button id="showStatsBtn" class="badge" onclick="showStats()">📊学習サマリー</button>
         <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
           <button id="orderSeqBtn" class="ot-btn" aria-pressed="false" title="順番"><span>🔢</span></button>
           <button id="orderRndBtn" class="ot-btn" aria-pressed="true"  title="ランダム"><span>🔀</span></button>
@@ -1802,7 +1800,7 @@ try { applyHistFilterUI(); } catch(_) {}
 try { refreshClearHistoryState(); } catch(_) {}
       
 　setStatsHistoryTab('stats'); // ★統計をデフォルトに固定
-    console.log('📊 統計画面を表示しました');
+    console.log('📊 学習サマリーを表示しました');
 
   } catch (err) {
     console.error('❌ showStats error:', err);
@@ -1849,7 +1847,7 @@ function calcStatsFromRecords(danRecords){
 // 統計画面を閉じる
 function closeStats() {
   document.getElementById('statsModal').classList.remove('show');
-  console.log('📊 統計画面を閉じました');
+  console.log('📊 学習サマリーを閉じました');
 }
 
 function setStatsHistoryTab(tab){ // 'stats' | 'hist'
