@@ -1432,7 +1432,6 @@ button.pill.grad,
 
     <div class="h" id="statsModalTitle" style="text-align:center; margin-bottom:16px;">📊 学習サマリー</div>
 
- <div id="shPanelHist">
       <div class="h" id="histTitle">履歴（直近10件）</div>
 
     <div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
@@ -1918,26 +1917,16 @@ function closeStats() {
   console.log('📊 学習サマリーを閉じました');
 }
 
-function setStatsHistoryTab(tab){ // 'stats' | 'hist'
+function setStatsHistoryTab(tab){
+  // 統合ビュー：タブなし。常に両パネルを表示する。
   const ps = document.getElementById('shPanelStats');
   const ph = document.getElementById('shPanelHist');
-  const bs = document.getElementById('shTabStats');
-  const bh = document.getElementById('shTabHist');
-  if(!ps || !ph || !bs || !bh) return;
-
-  const isStats = (tab === 'stats');
-  ps.style.display = isStats ? '' : 'none';
-  ph.style.display = isStats ? 'none' : '';
-
-  bs.classList.toggle('active', isStats);
-  bh.classList.toggle('active', !isStats);
-
-  // 履歴タブに切り替えた瞬間に描画
-  if(!isStats){
-    try { renderHistory(); } catch(e) { console.warn('renderHistory failed', e); }
-    try { refreshClearHistoryState(); } catch(_) {}
-    try { applyHistFilterUI(); } catch(_) {}
-  }
+  if(ps) ps.style.display = '';
+  if(ph) ph.style.display = '';
+  // 履歴データを必ず描画
+  try { renderHistory(); } catch(e){ console.warn('renderHistory failed', e); }
+  try { refreshClearHistoryState(); } catch(_){}
+  try { applyHistFilterUI(); } catch(_){}
 }
 
 function openStatsModal(htmlForDanStats) {
