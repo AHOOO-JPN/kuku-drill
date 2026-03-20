@@ -1103,6 +1103,71 @@ button.pill.grad,
   background: rgba(0,0,0,.12) !important;
   backdrop-filter: blur(6px);
 }
+/* ===== Stats summary: compact & balanced ===== */
+#statsModal .statsSummaryCard{
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+#statsModal .statsGrid{
+  display: grid;
+  gap: 12px;
+}
+
+#statsModal .statsGrid2{
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#statsModal .statsGrid3{
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#statsModal .statsItem{
+  text-align: center;
+}
+
+#statsModal .statsLabel{
+  font-size: 12px;
+  color: rgba(255,255,255,.70);
+  margin-bottom: 4px;
+  letter-spacing: .02em;
+}
+
+#statsModal .statsValue{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-weight: 900;
+  font-size: 18px;
+  color: rgba(255,255,255,.92);
+}
+
+#statsModal .statsUnit{
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255,255,255,.65);
+}
+
+/* 色の役割を整理（強調は必要最小限） */
+#statsModal .statsA{ color: var(--accentA); }
+#statsModal .statsB{ color: var(--accentB); }
+#statsModal .statsOK{ color: var(--ok); }
+
+#statsModal .statsDivider{
+  height: 1px;
+  background: rgba(255,255,255,.10);
+  margin: 12px 0;
+}
+
+/* 小さい画面：2段目は2カラムにして詰まりを防ぐ */
+@media (max-width: 420px){
+  #statsModal .statsGrid2{ grid-template-columns: 1fr; }
+  #statsModal .statsGrid3{ grid-template-columns: 1fr 1fr; }
+  #statsModal .statsItem:last-child{ grid-column: 1 / -1; } /* 最速タイムを下段中央に */
+}
         
 </style>
 </head>
@@ -1384,48 +1449,51 @@ button.pill.grad,
 
     <div id="shPanelStats">
     <!-- 全体統計 -->
-    <div style="background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); 
-                padding:16px; 
-                border-radius:12px; 
-                border:1px solid var(--border); 
-                margin-bottom:16px;">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
-        <div>
-        <div class="small" id="labStatsTotalQ" style="color:var(--muted); margin-bottom:4px;">総問題数</div>
-        <div style="font-size:20px; font-weight:900; color:var(--accentA);">
-        <span id="totalQuestions">0</span><span id="unitStatsQ">問</span>
-        </div>
-        </div>
-        <div>
-        <div class="small" id="labStatsAvgScore" style="color:var(--muted); margin-bottom:4px;">平均スコア</div>
-        <div style="font-size:20px; font-weight:900; color:var(--accentB);">
-        <span id="avgScore">0</span><span id="unitStatsPoints1">点</span>
-        </div>
-          </div>
-        </div>
-      </div>
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-        <div>
-          <div class="small" id="labstatsAvgTime" style="color:var(--muted); margin-bottom:4px;">平均タイム</div>
-          <div style="font-size:16px; font-weight:800;">
-            <span id="statsAvgTime">0</span><span id="unitStatsSec1">秒</span>
-          </div>
-        </div>
-        <div>
-          <div class="small" id="labStatsBestScore" style="color:var(--muted); margin-bottom:4px;">最高スコア</div>
-          <div style="font-size:16px; font-weight:800; color:var(--ok);">
-            <span id="bestScore">0</span><span id="unitStatsPoints2">点</span>
-          </div>
-        </div>
-        <div>
-          <div class="small" id="labStatsBestTime" style="color:var(--muted); margin-bottom:4px;">最速タイム</div>
-          <div style="font-size:16px; font-weight:800; color:var(--accentB);">
-            <span id="bestTime">0</span><span id="unitStatsSec2">秒</span>
-          </div>
-        </div>
+<!-- 全体統計（整形版） -->
+<div class="statsSummaryCard">
+
+  <div class="statsGrid statsGrid2">
+    <div class="statsItem">
+      <div class="statsLabel" id="labStatsTotalQ">総問題数</div>
+      <div class="statsValue statsA">
+        <span id="totalQuestions">0</span><span class="statsUnit" id="unitStatsQ">問</span>
       </div>
     </div>
+
+    <div class="statsItem">
+      <div class="statsLabel" id="labStatsAvgScore">平均スコア</div>
+      <div class="statsValue statsB">
+        <span id="avgScore">0</span><span class="statsUnit" id="unitStatsPoints1">点</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="statsDivider"></div>
+
+  <div class="statsGrid statsGrid3">
+    <div class="statsItem">
+      <div class="statsLabel" id="labstatsAvgTime">平均タイム</div>
+      <div class="statsValue">
+        <span id="statsAvgTime">0</span><span class="statsUnit" id="unitStatsSec1">秒</span>
+      </div>
+    </div>
+
+    <div class="statsItem">
+      <div class="statsLabel" id="labStatsBestScore">最高スコア</div>
+      <div class="statsValue statsOK">
+        <span id="bestScore">0</span><span class="statsUnit" id="unitStatsPoints2">点</span>
+      </div>
+    </div>
+
+    <div class="statsItem">
+      <div class="statsLabel" id="labStatsBestTime">最速タイム</div>
+      <div class="statsValue statsB">
+        <span id="bestTime">0</span><span class="statsUnit" id="unitStatsSec2">秒</span>
+      </div>
+    </div>
+  </div>
+
+</div>
     
     <!-- =========================
      Motivation: Streak + Growth
