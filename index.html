@@ -1261,21 +1261,6 @@ button.pill.grad,
       <button class="btn grad" id="rpClose">OK</button>
     </div>
   </div></div>
-
-<!-- 履歴フィルタ（成功のみ / すべて） -->
-<div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
-  <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
-  <button class="pill" id="histFilterAll" type="button">すべて</button>
-</div>
-
-    <div id="historyContent" class="small"
-         style="text-align:left; line-height:1.6; white-space:normal;"></div>
-
-    <div class="btnrow">
-      <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
-      <button class="btn grad" id="historyClose" type="button">閉じる</button>
-    </div>
-  </div>
 </div>
     
 <!-- ========================================
@@ -1306,9 +1291,9 @@ button.pill.grad,
            style="text-align:left; line-height:1.6; white-space:normal;"></div>
 
       <div class="btnrow">
-        <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
-      </div>
-    </div>
+  <button class="btn" id="clearHistory" type="button">履歴をクリア</button>
+  <button class="btn grad" id="historyClose" type="button" onclick="closeStats()">閉じる</button>
+</div>
 
     <div id="shPanelStats">
     <!-- 全体統計 -->
@@ -2973,6 +2958,10 @@ function armOnFirstDigit() {
             }
             return false;
         }
+        // --- expose for tab switcher (outside IIFE) ---
+window.renderHistory = renderHistory;
+window.refreshClearHistoryState = refreshClearHistoryState;
+window.hasAnyHistory = hasAnyHistory;
         
         /* タイムアタック */
         let run = null;
