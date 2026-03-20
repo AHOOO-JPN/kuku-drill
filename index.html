@@ -3868,26 +3868,6 @@ function wireHistoryModal() {
     setStatsHistoryTab('hist');     // 履歴タブに切替
   };
 }
-  const back     = modal.querySelector('.back');
-
-  const close = () => {
-    modal.classList.remove('show');
-    try { setOverlayLock(false); } catch (_) {}
-  };
-
-  const open = () => {
-    try { applyHistFilterUI(); } catch (_) {}
-    try { wireHistFilter(); } catch (_) {}
-    try { renderHistory(); } catch (_) {}
-    try { refreshClearHistoryState(); } catch (_) {}
-    try { setOverlayLock(true); } catch (_) {}
-    modal.classList.add('show');
-  };
-
-  if (openBtn)  openBtn.onclick = open;
-  if (closeBtn) closeBtn.onclick = close;
-  if (back)     back.onclick = close;
-}
 
 function wireClearHistoryButton() {
   const btn = byId('clearHistory');
