@@ -3398,13 +3398,13 @@ function confettiBurst(){
             ? `${dan}段（${actualQuestions}問）をスタートします。`
                : (n===81 ? '九九(81問)をスタートします。'
                   : (n===100 ? '10×10(100問)をスタートします。'
-                     : (n===144 ? '12×12(144問)をスタートします。' : (n+'問でスタートします。')))));
+                     : (n===144 ? '12×12(144問)をスタートします。' : (n+'問でスタートします。'))));
                      
             const msgEn = dan
             ? `Start ${dan}× table (${actualQuestions}Q).`
                 : (n===81 ? 'Start All 9×9.'
                    : (n===100 ? 'Start All 10×10.'
-                      : (n===144 ? 'Start All 12×12.' : ('Start with '+n+' questions.')))));
+                      : (n===144 ? 'Start All 12×12.' : ('Start with '+n+' questions.'))));
                       
             desc.textContent = (appLang==='ja') ? msgJa : msgEn;
             count.textContent='⏱';
