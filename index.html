@@ -4899,6 +4899,25 @@ function parseSpoken(str) {
   });
 })();
 
+// ★ OKボタンのイベントを直接バインド（keypadの外に出したため）
+(function(){
+  const okBtn = document.querySelector('.key.ok');
+  if (!okBtn) return;
+
+  // iPhone PWA 対応：touchend で確実に発火
+  okBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    check();
+  }, { passive: false });
+
+  // Mac Safari / Chrome 対応
+  okBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    check();
+  });
+})();
+    
 </script>
 
     <!-- プライバシーポリシーモーダル -->
