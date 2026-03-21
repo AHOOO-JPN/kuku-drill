@@ -1288,7 +1288,6 @@ body.voice-mode #voiceModeIndicator {
               <button class="pill" id="timer100">10×10(100問)</button><span class="pill small" id="best100" style="opacity:.65">Best: —</span>
               <!-- ★追加: 144問ボタン -->
               <button class="pill" id="timer144">12×12(144問)</button><span class="pill small" id="best144" style="opacity:.65">Best: —</span>
-              <button class="pill" id="timerFree">無制限</button>
             </div>
 
           <div class="label" id="labDanTT" style="margin-top:10px">段タイムアタック</div>
@@ -2614,9 +2613,7 @@ window.appLang = appLang; // 初期値を公開
                 $('timer60').textContent=(appLang==='ja')?'60問':'60Q';
                 $('timer81').textContent=(appLang==='ja')?'九九(81問)':'All 9×9';
                 $('timer100').textContent=(appLang==='ja')?'10×10(100問)':'10×10 (100Q)';
-                // ★追加: 144問ラベル
                 $('timer144').textContent=(appLang==='ja')?'12×12(144問)':'12×12 (144Q)';
-                $('timerFree').textContent=(appLang==='ja')?'無制限':'Unlimited';
                 const labDan=$('labDanTT');
                 if(labDan){
                     labDan.textContent=(appLang==='ja')?'段タイムアタック':'Per-table trial';
@@ -3399,14 +3396,12 @@ function confettiBurst(){
             
             const msgJa = dan
             ? `${dan}段（${actualQuestions}問）をスタートします。`
-            : (n===Infinity ? '無制限でスタートします。'
                : (n===81 ? '九九(81問)をスタートします。'
                   : (n===100 ? '10×10(100問)をスタートします。'
                      : (n===144 ? '12×12(144問)をスタートします。' : (n+'問でスタートします。')))));
                      
             const msgEn = dan
             ? `Start ${dan}× table (${actualQuestions}Q).`
-            : (n===Infinity ? 'Start Unlimited.'
                 : (n===81 ? 'Start All 9×9.'
                    : (n===100 ? 'Start All 10×10.'
                       : (n===144 ? 'Start All 12×12.' : ('Start with '+n+' questions.')))));
