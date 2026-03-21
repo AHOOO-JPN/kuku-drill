@@ -4884,19 +4884,20 @@ function startVoiceInput() {
   const mvb = document.getElementById('modeVoice');
   if (!mvb) return;
 
-  mvb.addEventListener('touchend', (e) => {
+mvb.addEventListener('touchend', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // user gestureの直後に直接recog.startを呼ぶ（許可ポップアップ対策）
-    if (!voiceModeActive && !activeRecog) {
-      voiceAutoMode = true;
-      startVoiceInput(); // ← 許可ポップアップはここで出る
-    } else if (voiceModeActive) {
+    if (!voiceModeActive) {
+      // ★ activeボタンUIを先に更新
+      document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
+      mvb.classList.add('active');
+      // ★ activateVoiceMode()を直接呼ぶ
+      // → 内部でstartVoiceInput()→recog.start()が呼ばれる（user gestureチェーン内）
+      activateVoiceMode();
+    } else {
       deactivateVoiceMode();
     }
-    // clickイベントはmodeSetハンドラが残りのUI処理を行う
   }, { passive: false });
-})();
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
