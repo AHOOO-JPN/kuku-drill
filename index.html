@@ -4954,7 +4954,8 @@ function startVoiceInput() {
     }
   }, { passive: false });
 })();
-
+    
+function startVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     alert(appLang === 'ja'
