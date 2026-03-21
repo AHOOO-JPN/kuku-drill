@@ -1168,6 +1168,12 @@ button.pill.grad,
   #statsModal .statsGrid3{ grid-template-columns: 1fr 1fr; }
   #statsModal .statsItem:last-child{ grid-column: 1 / -1; } /* 最速タイムを下段中央に */
 }
+
+#shPanelHist {
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 14px;
+}
         
 </style>
 </head>
@@ -1432,8 +1438,6 @@ button.pill.grad,
 
     <div class="h" id="statsModalTitle" style="text-align:center; margin-bottom:16px;">📊 学習サマリー</div>
 
-      <div class="h" id="histTitle">履歴（直近10件）</div>
-
     <div class="pillset" id="histFilterPills" style="justify-content:center; margin:6px 0 10px;">
   <button class="pill active" id="histFilterSuccess" type="button">成功のみ</button>
   <button class="pill" id="histFilterAll" type="button">すべて</button>
@@ -1551,7 +1555,7 @@ button.pill.grad,
 
     <!-- 段別成績 -->
     <div class="h" id="statsByDanTitle" style="font-size:16px; margin-bottom:12px;">段別成績</div>
-    <div id="danStats" style="flex-grow:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px;"></div>
+    <div id="danStats" style="padding-right:4px;"></div>
     
     <!-- 閉じるボタン -->
    <div class="btnrow" style="margin-top:16px;">
@@ -3077,7 +3081,6 @@ function armOnFirstDigit() {
         }
         
         function renderHistory(){
-            $('histTitle').textContent=(appLang==='ja'?'履歴（直近10件）':'History (last 10)');
             let html='';
             
             for(let d=1; d<=12; d++) html+=sectionDan(d);
