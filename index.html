@@ -4865,39 +4865,95 @@ function deactivateVoiceMode() {
 }
     
 function startVoiceInput() {
-  const voiceBtn = document.getElementById('voiceBtn');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert(appLang === 'ja'
+      ? 'このブラウザは音声認識に対応していません'
+      : 'Speech recognition is not supported');
+    return;
+  }
 
-  // 録音中なら停止（自動モードも解除）
-  if (activeRecog) {
-    voiceAutoMode = false;
-    try { activeRecog.stop(); } catch(_) {}
+  voiceAutoMode = true;
+
+  const recog = new SpeechRecognition();
+  activeRecog = recog;
+
+  recog.lang            = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
+  recog.interimResults  = true;
+  recog.continuous      = false;
+  recog.maxAlternatives = 1;
+
+  recog.onstart = () => {
+    if (voiceBtn) {
+      voiceBtn.textContent = '🔴';
+      voiceBtn.dataset.listening = 'true';
+    }
+  };
+
+  recog.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      const spoken = e.results[i][0].transcript.trim();
+      const num = parseSpoken(spoken);
+      if (!isNaN(num) && num >= 1 && num <= 144) {
+        try { if (activeRecog) activeRecog.stop(); } catch(_) {}
+        const ans = document.getElementById('answer');
+        if (ans) {
+          ans.value = String(num);
+          check();
+          if (voiceAutoMode) {
+            setTimeout(() => {
+              if (voiceAutoMode && !activeRecog) startVoiceInput();
+            }, 600);
+          }
+        }
+        return;
+      }
+    }
+  };
+
+  recog.onend = () => {
     activeRecog = null;
     if (voiceBtn) {
       voiceBtn.textContent = '🎤';
       voiceBtn.dataset.listening = 'false';
     }
-    return;
+  };
+
+  recog.onerror = (e) => {
+    console.warn('音声認識エラー:', e.error);
+    activeRecog = null;
+    voiceAutoMode = false;
+    if (voiceBtn) {
+      voiceBtn.textContent = '🎤';
+      voiceBtn.dataset.listening = 'false';
+    }
+  };
+
+  try {
+    recog.start();
+  } catch(e) {
+    console.warn('recog.start error:', e);
+    activeRecog = null;
   }
+}
 
 // 🎤 声で答えるボタン専用 touchend（Safari user gesture対応）
 (function(){
   const mvb = document.getElementById('modeVoice');
   if (!mvb) return;
-
-mvb.addEventListener('touchend', (e) => {
+  mvb.addEventListener('touchend', (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (!voiceModeActive) {
-      // ★ activeボタンUIを先に更新
       document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
       mvb.classList.add('active');
-      // ★ activateVoiceMode()を直接呼ぶ
-      // → 内部でstartVoiceInput()→recog.start()が呼ばれる（user gestureチェーン内）
       activateVoiceMode();
     } else {
       deactivateVoiceMode();
     }
   }, { passive: false });
+})();
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
