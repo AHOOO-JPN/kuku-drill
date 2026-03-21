@@ -4858,80 +4858,6 @@ function deactivateVoiceMode() {
 
   updateStats();
 }
-    
-function startVoiceInput() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert(appLang === 'ja'
-      ? 'このブラウザは音声認識に対応していません'
-      : 'Speech recognition is not supported');
-    return;
-  }
-
-  voiceAutoMode = true;
-
-  const recog = new SpeechRecognition();
-  activeRecog = recog;
-
-  recog.lang            = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
-  recog.interimResults  = true;
-  recog.continuous      = false;
-  recog.maxAlternatives = 1;
-
-  recog.onstart = () => {
-    if (voiceBtn) {
-      voiceBtn.textContent = '🔴';
-      voiceBtn.dataset.listening = 'true';
-    }
-  };
-
-  recog.onresult = (e) => {
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (!e.results[i].isFinal) continue;
-      const spoken = e.results[i][0].transcript.trim();
-      const num = parseSpoken(spoken);
-      if (!isNaN(num) && num >= 1 && num <= 144) {
-        try { if (activeRecog) activeRecog.stop(); } catch(_) {}
-        const ans = document.getElementById('answer');
-        if (ans) {
-          ans.value = String(num);
-          check();
-          if (voiceAutoMode) {
-            setTimeout(() => {
-              if (voiceAutoMode && !activeRecog) startVoiceInput();
-            }, 600);
-          }
-        }
-        return;
-      }
-    }
-  };
-
-  recog.onend = () => {
-    activeRecog = null;
-    if (voiceBtn) {
-      voiceBtn.textContent = '🎤';
-      voiceBtn.dataset.listening = 'false';
-    }
-  };
-
-  recog.onerror = (e) => {
-    console.warn('音声認識エラー:', e.error);
-    activeRecog = null;
-    voiceAutoMode = false;
-    if (voiceBtn) {
-      voiceBtn.textContent = '🎤';
-      voiceBtn.dataset.listening = 'false';
-    }
-  };
-
-  try {
-    recog.start();
-  } catch(e) {
-    console.warn('recog.start error:', e);
-    activeRecog = null;
-  }
-}
 
 // 🎤 声で答えるボタン専用 touchend（Safari user gesture対応）
 (function(){
@@ -5015,12 +4941,15 @@ function startVoiceInput() {
   recog.onerror = (e) => {
     console.warn('音声認識エラー:', e.error);
     activeRecog = null;
-    voiceAutoMode = false;
+    // ★ 'aborted'はstop()による正常停止なのでvoiceAutoModeはリセットしない
+    if (e.error !== 'aborted') {
+      voiceAutoMode = false;
+    }
     if (voiceBtn) {
       voiceBtn.textContent = '🎤';
       voiceBtn.dataset.listening = 'false';
     }
-  };
+};
 
   try {
     recog.start();
