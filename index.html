@@ -4839,9 +4839,16 @@ function activateVoiceMode() {
   }
   if (!state.correct) newProblem(true);
 
-  // マイクを自動ON
+    // 🎤 マイクを最初に起動（newProblem()より前 = user gestureのスタック内）
   voiceAutoMode = true;
   if (!activeRecog) startVoiceInput();
+
+  // 通常モードを開始（まだ未開始の場合）
+  if (!normalStarted) {
+    normalStarted = true;
+    userInteracted = true;
+  }
+  if (!state.correct) newProblem(true);
 }
 
 function deactivateVoiceMode() {
@@ -4878,6 +4885,25 @@ function startVoiceInput() {
     }
     return;
   }
+
+// 🎤 声で答えるボタン専用 touchend（Safari user gesture対応）
+(function(){
+  const mvb = document.getElementById('modeVoice');
+  if (!mvb) return;
+
+  mvb.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // user gestureの直後に直接recog.startを呼ぶ（許可ポップアップ対策）
+    if (!voiceModeActive && !activeRecog) {
+      voiceAutoMode = true;
+      startVoiceInput(); // ← 許可ポップアップはここで出る
+    } else if (voiceModeActive) {
+      deactivateVoiceMode();
+    }
+    // clickイベントはmodeSetハンドラが残りのUI処理を行う
+  }, { passive: false });
+})();
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
