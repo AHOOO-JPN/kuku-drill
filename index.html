@@ -1201,20 +1201,26 @@ button.pill.grad,
       <div id="problem" class="problem" aria-live="assertive" aria-atomic="true">— × — = ?</div>
       <input id="answer" class="kuku-input" type="text" inputmode="none" placeholder="こたえ" readonly aria-labelledby="problem">
 
-      <div class="keypad">
-        <button type="button" class="key">7</button><button type="button" class="key">8</button><button type="button" class="key">9</button>
-        <button type="button" class="key">4</button><button type="button" class="key">5</button><button type="button" class="key">6</button>
-        <button type="button" class="key">1</button><button type="button" class="key">2</button><button type="button" class="key">3</button>
-        <!-- ★追加：マイクボタン（OKボタンの直前） -->
-<button id="voiceBtn" class="key"
-        style="font-size:26px;" aria-label="声で答える">🎤</button>
+<div class="keypad">
+  <button type="button" class="key">7</button>
+  <button type="button" class="key">8</button>
+  <button type="button" class="key">9</button>
+  <button type="button" class="key">4</button>
+  <button type="button" class="key">5</button>
+  <button type="button" class="key">6</button>
+  <button type="button" class="key">1</button>
+  <button type="button" class="key">2</button>
+  <button type="button" class="key">3</button>
+  <button id="voiceBtn" class="key" style="font-size:26px;" aria-label="声で答える">🎤</button>
+  <button type="button" class="key">0</button>
+  <button type="button" class="key">⌫</button>
+</div><!-- ★ keypad ここで閉じる -->
 
-<button class="key" onclick="/* 0の処理 */">0</button>
-<button class="key" onclick="/* ⌫の処理 */">⌫</button>
+<!-- ★ OKボタンはkeypadの外に出す -->
+<button class="key ok" style="width:100%; margin-top:10px; border-radius:14px;">OK</button>
 
-<!-- OKボタンを3列全幅に -->
-<button class="key ok" style="grid-column: 1 / -1;">OK</button>
-
+<div id="result" class="result"></div>
+<div class="statrow">
       <div id="result" class="result"></div>
       <div class="statrow">
         <div class="stat"><small id="labScore">スコア</small><b id="score">0</b></div>
