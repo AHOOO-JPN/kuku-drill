@@ -1209,8 +1209,11 @@ button.pill.grad,
 <button id="voiceBtn" class="key"
         style="font-size:26px;" aria-label="声で答える">🎤</button>
 
-        <button type="button" class="key">0</button><button type="button" class="key">⌫</button><button type="button" class="key ok" id="okKey">OK</button>
-      </div>
+<button class="key" onclick="/* 0の処理 */">0</button>
+<button class="key" onclick="/* ⌫の処理 */">⌫</button>
+
+<!-- OKボタンを3列全幅に -->
+<button class="key ok" style="grid-column: 1 / -1;">OK</button>
 
       <div id="result" class="result"></div>
       <div class="statrow">
@@ -4782,6 +4785,9 @@ function startVoiceInput() {
 
   recog.onresult = (e) => {
     for (let i = e.resultIndex; i < e.results.length; i++) {
+          // ★ isFinal = true（確定結果）のみ使う
+    if (!e.results[i].isFinal) continue;
+        
       const spoken = e.results[i][0].transcript.trim();
       const num = parseSpoken(spoken);
 
