@@ -494,8 +494,6 @@ body.theme-mix{ --accentA:#ff4dc4; --accentB:#3bc7ff; }
 body.theme-pink{ --accentA:#ff7adf; --accentB:#ff5ea6; }
 body.theme-blue{ --accentA:#7ad3ff; --accentB:#3bc7ff; }
 
-#timerFree{ display:none !important }
-
 .modal{
   position: fixed;
   inset: 0;
@@ -1257,7 +1255,6 @@ button.pill.grad,
               <!-- ★追加: 144問ボタン -->
               <button class="pill" id="timer144">12×12(144問)</button><span class="pill small" id="best144" style="opacity:.65">Best: —</span>
               <button class="pill" id="timerFree">無制限</button>
-              <button class="pill grad" id="openHistory">履歴</button>
             </div>
 
           <div class="label" id="labDanTT" style="margin-top:10px">段タイムアタック</div>
@@ -2586,7 +2583,6 @@ window.appLang = appLang; // 初期値を公開
                 // ★追加: 144問ラベル
                 $('timer144').textContent=(appLang==='ja')?'12×12(144問)':'12×12 (144Q)';
                 $('timerFree').textContent=(appLang==='ja')?'無制限':'Unlimited';
-                $('openHistory').textContent=(appLang==='ja')?'履歴':'History';
                 const labDan=$('labDanTT');
                 if(labDan){
                     labDan.textContent=(appLang==='ja')?'段タイムアタック':'Per-table trial';
@@ -4877,6 +4873,25 @@ function parseSpoken(str) {
     return tens * 10 + ones;
   }
   if (jaMap[str] !== undefined) return jaMap[str];
+
+  // ④ ひらがな直接マッチ（1〜9、10の倍数）
+  const hiDirect = {
+    'ぜろ':0,'いち':1,'に':2,'さん':3,'し':4,'よん':4,
+    'ご':5,'ろく':6,'なな':7,'しち':7,'はち':8,'く':9,'きゅう':9,
+    'じゅう':10,'にじゅう':20,'さんじゅう':30,'よんじゅう':40,
+    'ごじゅう':50,'ろくじゅう':60,'ななじゅう':70,'はちじゅう':80,'きゅうじゅう':90
+  };
+  if (hiDirect[str] !== undefined) return hiDirect[str];
+
+  // ⑤ ひらがな合成（にじゅうよん→24、じゅういち→11 など）
+  const hiT = {'に':2,'さん':3,'よん':4,'ご':5,'ろく':6,'なな':7,'はち':8,'きゅう':9};
+  const hiO = {'いち':1,'に':2,'さん':3,'し':4,'よん':4,'ご':5,'ろく':6,'なな':7,'しち':7,'はち':8,'く':9,'きゅう':9};
+  // XじゅうY 形式（20〜99）例：にじゅうよん→24
+  const m2 = str.match(/^(に|さん|よん|ご|ろく|なな|はち|きゅう)じゅう(いち|に|さん|し|よん|ご|ろく|なな|しち|はち|く|きゅう)?$/);
+  if (m2) return hiT[m2[1]] * 10 + (m2[2] ? (hiO[m2[2]] ?? 0) : 0);
+  // じゅうY 形式（11〜19）例：じゅうに→12
+  const m1 = str.match(/^じゅう(いち|に|さん|し|よん|ご|ろく|なな|しち|はち|く|きゅう)$/);
+  if (m1) return 10 + (hiO[m1[1]] ?? 0);
 
   return NaN;
 }
