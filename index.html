@@ -4906,16 +4906,16 @@ function parseSpoken(str) {
 
   // iPhone PWA 対応：touchend で確実に発火
   okBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    check();
-  }, { passive: false });
+  e.preventDefault();
+  e.stopPropagation();
+  if (typeof window.check === 'function') window.check();
+}, { passive: false });
 
   // Mac Safari / Chrome 対応
   okBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    check();
-  });
+  e.stopPropagation();
+  if (typeof window.check === 'function') window.check();
+});
 })();
     
 </script>
