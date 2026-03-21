@@ -1217,7 +1217,7 @@ button.pill.grad,
 </div><!-- ★ keypad ここで閉じる -->
 
 <!-- ★ OKボタンはkeypadの外に出す -->
-<button class="key ok" style="width:100%; margin-top:10px; border-radius:14px;">OK</button>
+<button class="key ok" onclick="check()" style="width:100%; margin-top:10px; border-radius:14px;">OK</button>
 
       <div id="result" class="result"></div>
       <div class="statrow">
@@ -3012,6 +3012,7 @@ function armOnFirstDigit() {
                 });
             }, 400);
         }
+        window.check = check;
         
         const bestEls={20:$('best20'),30:$('best30'),60:$('best60'),81:$('best81'),100:$('best100'),144:$('best144')};
         function rHist(n){ try{ return JSON.parse(localStorage.getItem('historyRun'+n)||'[]'); }catch(e){ return []; } }
@@ -4904,18 +4905,16 @@ function parseSpoken(str) {
   const okBtn = document.querySelector('.key.ok');
   if (!okBtn) return;
 
-  // iPhone PWA 対応：touchend で確実に発火
   okBtn.addEventListener('touchend', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (typeof window.check === 'function') window.check();
-}, { passive: false });
+    e.preventDefault();
+    e.stopPropagation();
+    check();  // ← window.check() ではなく直接 check() を呼ぶ
+  }, { passive: false });
 
-  // Mac Safari / Chrome 対応
   okBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (typeof window.check === 'function') window.check();
-});
+    e.stopPropagation();
+    check();  // ← window.check() ではなく直接 check()
+  });
 })();
     
 </script>
