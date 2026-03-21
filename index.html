@@ -1206,8 +1206,9 @@ button.pill.grad,
         <button type="button" class="key">4</button><button type="button" class="key">5</button><button type="button" class="key">6</button>
         <button type="button" class="key">1</button><button type="button" class="key">2</button><button type="button" class="key">3</button>
         <!-- ★追加：マイクボタン（OKボタンの直前） -->
-<button id="voiceBtn" class="key" onclick="startVoiceInput()"
+<button id="voiceBtn" class="key"
         style="font-size:26px;" aria-label="声で答える">🎤</button>
+
         <button type="button" class="key">0</button><button type="button" class="key">⌫</button><button type="button" class="key ok" id="okKey">OK</button>
       </div>
 
@@ -4736,29 +4737,38 @@ function checkFastest({sec, dan}){
 
                 })();
 
-    /* ========== 音声認識 ========== */
-function startVoiceInput() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* ========== 音声認識 ========== */
+let activeRecog = null; // ★グローバルで recog を保持
 
-  // ブラウザが非対応の場合
-  if (!SpeechRecognition) {
-    alert(appLang === 'ja'
-      ? 'このブラウザは音声認識に対応していません'
-      : 'Speech recognition is not supported in this browser');
+function startVoiceInput() {
+  const voiceBtn = document.getElementById('voiceBtn');
+
+  // ★録音中なら停止する
+  if (activeRecog) {
+    try { activeRecog.stop(); } catch(_) {}
+    activeRecog = null;
+    if (voiceBtn) {
+      voiceBtn.textContent = '🎤';
+      voiceBtn.dataset.listening = 'false';
+    }
     return;
   }
 
-  const voiceBtn = document.getElementById('voiceBtn');
-
-  // すでに録音中なら何もしない
-  if (voiceBtn && voiceBtn.dataset.listening === 'true') return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert(appLang === 'ja'
+      ? 'このブラウザは音声認識に対応していません'
+      : 'Speech recognition is not supported');
+    return;
+  }
 
   const recog = new SpeechRecognition();
-  recog.lang            = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
-  recog.interimResults  = false;  // 確定した結果のみ取得
-  recog.maxAlternatives = 3;      // 候補を3つ取得して精度アップ
+  activeRecog = recog; // ★グローバルに保存
 
-  // 録音開始：ボタンの見た目を変える
+  recog.lang           = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
+  recog.interimResults = false;
+  recog.maxAlternatives = 3;
+
   recog.onstart = () => {
     if (voiceBtn) {
       voiceBtn.textContent = '🔴';
@@ -4766,40 +4776,44 @@ function startVoiceInput() {
     }
   };
 
-  // 認識完了：答えを取得して送信
   recog.onresult = (e) => {
     for (let i = 0; i < e.results[0].length; i++) {
       const spoken = e.results[0][i].transcript.trim();
-      const num    = parseSpoken(spoken);
+      const num = parseSpoken(spoken);
       if (!isNaN(num) && num >= 1 && num <= 144) {
         const ans = document.getElementById('answer');
         if (ans) {
-          ans.value = String(num);   // 入力欄に数字をセット
-          check();                   // 既存の答え送信処理を呼ぶ
+          ans.value = String(num);
+          check();
         }
         break;
       }
     }
   };
 
-  // 録音終了：ボタンを元に戻す
   recog.onend = () => {
+    activeRecog = null; // ★終了時にクリア
     if (voiceBtn) {
       voiceBtn.textContent = '🎤';
       voiceBtn.dataset.listening = 'false';
     }
   };
 
-  // エラー処理
   recog.onerror = (e) => {
     console.warn('音声認識エラー:', e.error);
+    activeRecog = null;
     if (voiceBtn) {
       voiceBtn.textContent = '🎤';
       voiceBtn.dataset.listening = 'false';
     }
   };
 
-  recog.start();
+  try {
+    recog.start();
+  } catch(e) {
+    console.warn('recog.start error:', e);
+    activeRecog = null;
+  }
 }
 
 // 発話テキスト → 数字に変換する関数
@@ -4841,7 +4855,26 @@ function parseSpoken(str) {
   return NaN;
 }
 
-            </script>
+// ★ voiceBtn のタッチ・クリックを直接バインド（iPhone PWA対応）
+(function(){
+  const vb = document.getElementById('voiceBtn');
+  if (!vb) return;
+
+  // iPhone PWA 対応：touchend で確実に発火
+  vb.addEventListener('touchend', (e) => {
+    e.preventDefault();    // デフォルト動作をキャンセル
+    e.stopPropagation();   // keypad の touchstart に邪魔されないようにする
+    startVoiceInput();
+  }, { passive: false });
+
+  // Mac Safari / Chrome 対応
+  vb.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startVoiceInput();
+  });
+})();
+
+</script>
 
     <!-- プライバシーポリシーモーダル -->
     <!-- ★追加: 初回起動時のプライバシー同意画面 -->
