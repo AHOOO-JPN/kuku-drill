@@ -3084,7 +3084,8 @@ function armOnFirstDigit() {
             }
             $('historyContent').innerHTML=html;
             $('clearHistory').textContent=(appLang==='ja'?'履歴をクリア':'Clear history');
-            $('historyClose').textContent=(appLang==='ja'?'閉じる':'Close');
+            const hc=$('historyClose'); if(hc) hc.textContent=(appLang==='ja'?'閉じる':'Close');
+
         }
         
         function refreshClearHistoryState(){
