@@ -1172,6 +1172,38 @@ button.pill.grad,
   margin-top: 14px;
   padding-top: 14px;
 }
+
+/* ========== 🎤 音声モード ========== */
+/* テンキー・OKボタンを半透明無効化 */
+body.voice-mode .keypad {
+  opacity: 0.25;
+  pointer-events: none;
+}
+body.voice-mode .key.ok {
+  opacity: 0.25;
+  pointer-events: none;
+}
+/* 音声モード中はマイクボタンを非表示（常にON状態のため不要） */
+body.voice-mode #voiceBtn {
+  display: none !important;
+}
+/* 音声モード中のマイクアイコン（ヘッダー付近に常時表示） */
+#voiceModeIndicator {
+  display: none;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ok);
+  margin: 6px 0 2px;
+  font-weight: 700;
+  animation: voicePulse 1.2s ease-in-out infinite;
+}
+body.voice-mode #voiceModeIndicator {
+  display: block;
+}
+@keyframes voicePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
         
 </style>
 </head>
@@ -1218,6 +1250,7 @@ button.pill.grad,
 <button class="key ok" onclick="check()" style="width:100%; margin-top:10px; border-radius:14px;">OK</button>
 
       <div id="result" class="result"></div>
+            <div id="voiceModeIndicator">🔴 声で答えてね！マイクに向かって話してください</div>
       <div class="statrow">
         <div class="stat"><small id="labScore">スコア</small><b id="score">0</b></div>
         <div class="stat"><small id="labStreak">れんさ</small><b id="streak">0</b></div>
@@ -1239,7 +1272,8 @@ button.pill.grad,
         <div class="section-body pillset" id="modeSet">
           <button class="pill active" data-mode="product" id="modeP">答えを入力（標準）</button>
           <button class="pill" data-mode="missingB" id="modeMB">□ × B = ?（左を入力）</button>
-          <button class="pill" data-mode="missingA" id="modeMA">A × □ = ?（右を入力）</button>
+                    <button class="pill" data-mode="missingA" id="modeMA">A × □ = ?（右を入力）</button>
+          <button class="pill" data-mode="voice" id="modeVoice">🎤 声で答える</button>
         </div>
       </details>
 
@@ -2826,11 +2860,30 @@ window.appLang = appLang; // 初期値を公開
             return q;
         }
         
-        modeSet.addEventListener('click', e=>{
-            const t=e.target.closest('.pill'); if(!t) return;
-            [...modeSet.querySelectorAll('.pill')].forEach(p=>p.classList.remove('active'));
-            t.classList.add('active'); state.mode=t.dataset.mode; pop(); newProblem(true);
-        });
+modeSet.addEventListener('click', e=>{
+  const t = e.target.closest('.pill'); if (!t) return;
+  [...modeSet.querySelectorAll('.pill')].forEach(p => p.classList.remove('active'));
+  t.classList.add('active');
+
+  if (t.dataset.mode === 'voice') {
+    // 🎤 音声モード切り替え
+    if (voiceModeActive) {
+      deactivateVoiceMode();
+      // 標準モードに戻す
+      const defBtn = document.getElementById('modeP');
+      if (defBtn) { defBtn.classList.add('active'); state.mode = 'product'; }
+      t.classList.remove('active');
+    } else {
+      activateVoiceMode();
+    }
+  } else {
+    // 通常モード選択時は音声モード解除
+    if (voiceModeActive) deactivateVoiceMode();
+    state.mode = t.dataset.mode;
+    pop();
+    newProblem(true);
+  }
+});
         
         function randFrom(set){ const a=[...set]; return a.length?a[(Math.random()*a.length)|0]:1; }
         function nextSequentialFromSets(){
@@ -2854,10 +2907,21 @@ window.appLang = appLang; // 初期値を公開
         function showMsg(t,ok){ result.textContent=t; result.className='result '+(ok?'ok':'ng'); }
         function answerText(){ return (state.mode==='product')?state.correct:(state.mode==='missingB')?state.a:state.b; }
         function updateStats(){
-            scoreEl.textContent=state.score; streakEl.textContent=state.streak;
-            const n=state.times.length;
-            avgTimeEl.textContent = n ? (state.times.reduce((a,b)=>a+b,0)/n).toFixed(1)+(appLang==='ja'?'秒':'s') : '—';
-        }
+  scoreEl.textContent  = state.score;
+  streakEl.textContent = state.streak;
+  if (voiceModeActive) {
+    // 🎤 音声モード：正答率を表示
+    const rate = voiceTotal > 0 ? Math.round(voiceCorrect / voiceTotal * 100) : null;
+    avgTimeEl.textContent = rate !== null
+      ? rate + '%　(' + voiceCorrect + '/' + voiceTotal + ')'
+      : '—';
+  } else {
+    const n = state.times.length;
+    avgTimeEl.textContent = n
+      ? (state.times.reduce((a,b)=>a+b,0)/n).toFixed(1) + (appLang==='ja'?'秒':'s')
+      : '—';
+  }
+}
         
         let problemReady=false;
         
@@ -2990,7 +3054,15 @@ function armOnFirstDigit() {
                 if(getFlag('cheer')) try{ showMascot('cry'); }catch(_){}
                 if(run) run.hasMiss=true;
             }
-            state.times.push(sec); if(state.times.length>40) state.times.shift(); updateStats();
+            // 🎤 音声モード：正答率カウント（タイムは記録しない）
+            if (voiceModeActive) {
+              voiceTotal++;
+              if (ok) voiceCorrect++;
+            } else {
+              state.times.push(sec);
+              if (state.times.length > 40) state.times.shift();
+            }
+            updateStats();
             
             if(run && Number.isFinite(run.target)){
                 const solved=state.score-run.scoreStart; if(solved>=run.target){ finishRun(); return; }
@@ -4741,9 +4813,57 @@ function checkFastest({sec, dan}){
         
                 })();
 /* ========== 音声認識（高速版） ========== */
-let activeRecog = null;
-let voiceAutoMode = false; // 自動再開モードのフラグ
+let activeRecog   = null;
+let voiceAutoMode = false;     // 自動再開モードのフラグ
+let voiceModeActive = false;   // 🎤 音声モードフラグ
+let voiceTotal      = 0;       // 音声モード：合計回答数
+let voiceCorrect    = 0;       // 音声モード：正解数
 
+/* ========== 🎤 音声モード ON/OFF ========== */
+function activateVoiceMode() {
+  voiceModeActive = true;
+  voiceTotal      = 0;
+  voiceCorrect    = 0;
+  document.body.classList.add('voice-mode');
+
+  // ラベルを「正答率」に切り替え
+  const labAvg = document.getElementById('labAvg');
+  if (labAvg) labAvg.textContent = (appLang === 'ja') ? '正答率' : 'Accuracy';
+  const avgTimeEl = document.getElementById('avgTime');
+  if (avgTimeEl) avgTimeEl.textContent = '—';
+
+  // 通常モードを開始（まだ未開始の場合）
+  if (!normalStarted) {
+    normalStarted = true;
+    userInteracted = true;
+  }
+  if (!state.correct) newProblem(true);
+
+  // マイクを自動ON
+  voiceAutoMode = true;
+  if (!activeRecog) startVoiceInput();
+}
+
+function deactivateVoiceMode() {
+  voiceModeActive = false;
+  document.body.classList.remove('voice-mode');
+
+  // ラベルを「平均タイム」に戻す
+  const labAvg = document.getElementById('labAvg');
+  if (labAvg) labAvg.textContent = (appLang === 'ja') ? '平均タイム' : 'Avg Time';
+
+  // マイクOFF
+  voiceAutoMode = false;
+  if (activeRecog) {
+    try { activeRecog.stop(); } catch(_) {}
+    activeRecog = null;
+  }
+  const vb = document.getElementById('voiceBtn');
+  if (vb) { vb.textContent = '🎤'; vb.dataset.listening = 'false'; }
+
+  updateStats();
+}
+    
 function startVoiceInput() {
   const voiceBtn = document.getElementById('voiceBtn');
 
