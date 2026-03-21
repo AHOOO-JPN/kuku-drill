@@ -4832,14 +4832,7 @@ function activateVoiceMode() {
   const avgTimeEl = document.getElementById('avgTime');
   if (avgTimeEl) avgTimeEl.textContent = '—';
 
-  // 通常モードを開始（まだ未開始の場合）
-  if (!normalStarted) {
-    normalStarted = true;
-    userInteracted = true;
-  }
-  if (!state.correct) newProblem(true);
-
-    // 🎤 マイクを最初に起動（newProblem()より前 = user gestureのスタック内）
+  // 🎤 マイクを最初に起動（user gestureのスタック内で確実に呼ぶ）
   voiceAutoMode = true;
   if (!activeRecog) startVoiceInput();
 
