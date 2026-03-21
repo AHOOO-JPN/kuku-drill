@@ -1183,7 +1183,7 @@ button.pill.grad,
       <div class="title" id="titleTxt">KuKuドリル</div>
       <div class="row">
         <button id="paletteBtn" class="badge"><span id="paletteEmoji">💙×💖</span><span id="paletteLabel">MIX</span></button>
-        <button id="showStatsBtn" class="badge" onclick="showStats()">📊学習サマリー</button>
+        <button id="showStatsBtn" class="badge" onclick="showStats()">📊 <span id="statsBtnLabel">学習サマリー</span></button>
         <div class="order-toggle" id="orderToggle" role="group" aria-label="出題順トグル">
           <button id="orderSeqBtn" class="ot-btn" aria-pressed="false" title="順番"><span>🔢</span></button>
           <button id="orderRndBtn" class="ot-btn" aria-pressed="true"  title="ランダム"><span>🔀</span></button>
@@ -1857,7 +1857,11 @@ async function showStats() {
 
     if (danStatsDiv) danStatsDiv.appendChild(frag);
 
-    openStatsModal();
+openStatsModal();
+
+// ★追加：モーダルタイトルを言語に合わせて更新
+const titleEl = document.getElementById('statsModalTitle');
+if(titleEl) titleEl.textContent = tx('statsModalTitle') || '📊 学習サマリー';
 
       // ★履歴も同じ画面に出すのでここで描画しておく
 try { renderHistory(); } catch(e){ console.warn('renderHistory failed', e); }
@@ -2411,8 +2415,8 @@ const i18n = {
     unitSec: "秒",
     unitPoints: "点",
     danSuffix: "の段",
-    statsBtn: "統計",
-    statsModalTitle: "統計",
+    statsBtn: "学習サマリー",
+    statsModalTitle: "📊 学習サマリー",
     statsByDanTitle: "段別成績",
     statsTotalQLabel: "総問題数",
     statsAvgScoreLabel: "平均スコア",
@@ -2460,8 +2464,8 @@ const i18n = {
     unitSec: "s",
     unitPoints: " pts",
     danSuffix: " Table",
-    statsBtn: "Stats",
-    statsModalTitle: "Statistics",
+    statsBtn: "Summary",
+    statsModalTitle: "📊 Summary",
     statsByDanTitle: "By table",
     statsTotalQLabel: "Total questions",
     statsAvgScoreLabel: "Avg score",
@@ -2610,7 +2614,7 @@ window.appLang = appLang; // 初期値を公開
             })();
               // ★ここに追加：統計UI（ボタン＋モーダル固定ラベル）を言語切替に追従させる
   txt($('showStatsBtn'), `📊 ${t.statsBtn || t.statsTitle || (appLang==='ja'?'統計':'Stats')}`);
-
+  txt($('openHistory'),  appLang==='ja' ? '履歴' : 'History');  // ★追加
   txt($('statsModalTitle'), `📊 ${t.statsModalTitle || t.statsTitle || (appLang==='ja'?'統計':'Statistics')}`);
   txt($('statsByDanTitle'), t.statsByDanTitle || (appLang==='ja'?'段別成績':'By table'));
 
