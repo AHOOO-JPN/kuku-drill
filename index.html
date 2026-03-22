@@ -1467,6 +1467,50 @@ body.voice-mode #voiceModeIndicator {
     </div>
   </div></div>
 </div>
+
+
+<!-- 🎤 声で答えるモード：開始確認モーダル -->
+<div class="modal" id="voiceStartModal">
+  <div class="back"></div>
+  <div class="panel" style="text-align:center">
+    <div class="h" id="voiceStartTitle">🎤 声で答えるモード</div>
+    <div class="small" id="voiceStartDesc" style="line-height:1.9;margin:8px 0">
+      マイクに向かって答えを声に出してください<br>
+      タイムは記録されません<br>
+      正答率を記録します
+    </div>
+    <div id="voiceCountNum" style="font-size:46px;font-weight:900;margin:8px 0">🎤</div>
+    <div class="btnrow">
+      <button class="btn" id="voiceStartCancel">キャンセル</button>
+      <button class="btn grad" id="voiceStartGo">スタート</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🎤 声で答えるモード：終了サマリーモーダル -->
+<div class="modal" id="voiceSummaryModal">
+  <div class="back"></div>
+  <div class="panel" style="text-align:center">
+    <div class="h" id="voiceSummaryTitle">🎤 声で答えるモード 結果</div>
+    <div style="margin:16px 0">
+      <div class="stat" style="display:inline-block;min-width:80px;margin:4px">
+        <small id="vsLab1">正答率</small>
+        <b id="vsAccuracy">—</b>
+      </div>
+      <div class="stat" style="display:inline-block;min-width:80px;margin:4px">
+        <small id="vsLab2">回答数</small>
+        <b id="vsTotal">—</b>
+      </div>
+      <div class="stat" style="display:inline-block;min-width:80px;margin:4px">
+        <small id="vsLab3">正解数</small>
+        <b id="vsCorrect">—</b>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn grad" id="voiceSummaryClose">閉じる</button>
+    </div>
+  </div>
+</div>
     
 <!-- ========================================
      統計画面モーダル（既存のモーダルスタイルに統一）
@@ -4122,14 +4166,17 @@ try { await clearAllRecords(); } catch(e){ console.error('clearAllRecords failed
   alert(ja ? '履歴を削除しました' : 'History cleared');
 }
         
-        /* 停止FAB */
-        const taStopFab=$('taStopFab');
-        if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); if(!run) return;
-            const ja=(appLang==='ja');
-            const ok=await confirmAsync(ja?'タイムアタックを終了しますか？\n（今回の記録は残りません）':'End the time trial?\n(This run will not be recorded)');
-            if(!ok) return;
-            document.body.classList.remove('ta-on'); taStopFab.style.display='none'; run=null; const ai=$('answer'); if(ai) ai.value=''; $('orderToggle').classList.remove('disabled'); clearTimerStatus(); newProblem(true);
-        }); }
+/* 停止FAB */
+const taStopFab=$('taStopFab');
+if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation();
+    // ★ 声モード中は声モード終了処理へ
+    if(voiceModeActive){ deactivateVoiceMode(); return; }
+    if(!run) return;
+    const ja=(appLang==='ja');
+    const ok=await confirmAsync(ja?'タイムアタックを終了しますか？\n（今回の記録は残りません）':'End the time trial?\n(This run will not be recorded)');
+    if(!ok) return;
+    document.body.classList.remove('ta-on'); taStopFab.style.display='none'; run=null; const ai=$('answer'); if(ai) ai.value=''; $('orderToggle').classList.remove('disabled'); clearTimerStatus(); newProblem(true);
+}); }
         
         /* 物理キーボード */
         document.addEventListener('keydown',(e)=>{
@@ -4767,7 +4814,6 @@ function checkFastest({sec, dan}){
   };
 })();
 
-
   // 更新チェック
   registration.update();
 
@@ -4816,36 +4862,108 @@ let voiceCorrect    = 0;       // 音声モード：正解数
 
 /* ========== 🎤 音声モード ON/OFF ========== */
 function activateVoiceMode() {
-  voiceModeActive = true;
-  voiceTotal      = 0;
-  voiceCorrect    = 0;
-  document.body.classList.add('voice-mode');
+  // ★ ポップアップを表示してカウントダウン後に開始
+  const modal = document.getElementById('voiceStartModal');
+  if (!modal) return;
 
-  // ラベルを「正答率」に切り替え
-  const labAvg = document.getElementById('labAvg');
-  if (labAvg) labAvg.textContent = (appLang === 'ja') ? '正答率' : 'Accuracy';
-  const avgTimeEl = document.getElementById('avgTime');
-  if (avgTimeEl) avgTimeEl.textContent = '—';
+  // i18n対応テキスト設定
+  const isJa = (appLang === 'ja');
+  document.getElementById('voiceStartTitle').textContent =
+    isJa ? '🎤 声で答えるモード' : '🎤 Voice Mode';
+  document.getElementById('voiceStartDesc').innerHTML = isJa
+    ? 'マイクに向かって答えを声に出してください<br>タイムは記録されません<br>正答率を記録します'
+    : 'Say your answer into the microphone<br>Time is not recorded<br>Accuracy will be tracked';
+  document.getElementById('voiceStartCancel').textContent =
+    isJa ? 'キャンセル' : 'Cancel';
+  document.getElementById('voiceStartGo').textContent =
+    isJa ? 'スタート' : 'Start';
 
-  // 🎤 マイクを最初に起動（user gestureのスタック内で確実に呼ぶ）
-  voiceAutoMode = true;
-  if (!activeRecog) startVoiceInput();
+  const countEl = document.getElementById('voiceCountNum');
+  countEl.textContent = '🎤';
+  modal.classList.add('show');
+  setOverlayLock(true);
 
-  // 通常モードを開始（まだ未開始の場合）
-  if (!normalStarted) {
-    normalStarted = true;
-    userInteracted = true;
-  }
-  if (!state.correct) newProblem(true);
+  const closeModal = () => {
+    modal.classList.remove('show');
+    setOverlayLock(false);
+    // ★ モード選択をvoiceから外す（キャンセル時）
+    document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
+    const def = document.querySelector('#modeSet .pill[data-mode="normal"]');
+    if (def) def.classList.add('active');
+  };
+
+  document.getElementById('voiceStartCancel').onclick = closeModal;
+  modal.querySelector('.back').onclick = closeModal;
+
+  document.getElementById('voiceStartGo').onclick = () => {
+    ensureAudio();
+    // カウントダウン 3・2・1
+    let i = 0;
+    const seq = ['3', '2', '1'];
+    const tick = () => {
+      countEl.textContent = seq[i];
+      countEl.classList.remove('pop-grow');
+      void countEl.offsetWidth;
+      countEl.classList.add('pop-grow');
+      ensureAudio(); tone(700, .12, 'sine', .9);
+      i++;
+      if (i < seq.length) {
+        setTimeout(tick, 650);
+      } else {
+        setTimeout(() => {
+          modal.classList.remove('show');
+          setOverlayLock(false);
+
+          // ★ 本体の声モード開始処理
+          voiceModeActive = true;
+          voiceTotal      = 0;
+          voiceCorrect    = 0;
+          document.body.classList.add('voice-mode');
+
+          const labAvg = document.getElementById('labAvg');
+          if (labAvg) labAvg.textContent = isJa ? '正答率' : 'Accuracy';
+          const avgTimeEl = document.getElementById('avgTime');
+          if (avgTimeEl) avgTimeEl.textContent = '—';
+
+          // ★ normalStartedを先に設定
+          if (!normalStarted) {
+            normalStarted = true;
+            userInteracted = true;
+          }
+          if (!state.correct) newProblem(true);
+
+          // ★ 停止FABを「終了」表示で出す
+          const fab = document.getElementById('taStopFab');
+          if (fab) {
+            fab.textContent = isJa ? '⏹ 終了' : '⏹ Stop';
+            fab.style.display = 'flex';
+          }
+
+          // ★ テンキーエリアへ自動スクロール
+          setTimeout(() => {
+            const ansEl = document.getElementById('answer');
+            if (ansEl) ansEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 200);
+
+          // 🎤 マイク起動（最後に呼ぶ）
+          voiceAutoMode = true;
+          if (!activeRecog) startVoiceInput();
+
+        }, 650);
+      }
+    };
+    setTimeout(tick, 220);
+  };
 }
-
 function deactivateVoiceMode() {
   voiceModeActive = false;
   document.body.classList.remove('voice-mode');
 
+  const isJa = (appLang === 'ja');
+
   // ラベルを「平均タイム」に戻す
   const labAvg = document.getElementById('labAvg');
-  if (labAvg) labAvg.textContent = (appLang === 'ja') ? '平均タイム' : 'Avg Time';
+  if (labAvg) labAvg.textContent = isJa ? '平均タイム' : 'Avg Time';
 
   // マイクOFF
   voiceAutoMode = false;
@@ -4855,6 +4973,42 @@ function deactivateVoiceMode() {
   }
   const vb = document.getElementById('voiceBtn');
   if (vb) { vb.textContent = '🎤'; vb.dataset.listening = 'false'; }
+
+  // ★ 停止FABを隠す
+  const fab = document.getElementById('taStopFab');
+  if (fab) fab.style.display = 'none';
+
+  // ★ 声モード専用サマリーを表示
+  const accuracy = voiceTotal > 0
+    ? Math.round(voiceCorrect / voiceTotal * 100) : 0;
+
+  document.getElementById('voiceSummaryTitle').textContent =
+    isJa ? '🎤 声で答えるモード 結果' : '🎤 Voice Mode Results';
+  document.getElementById('vsLab1').textContent = isJa ? '正答率' : 'Accuracy';
+  document.getElementById('vsLab2').textContent = isJa ? '回答数' : 'Total';
+  document.getElementById('vsLab3').textContent = isJa ? '正解数' : 'Correct';
+  document.getElementById('vsAccuracy').textContent = accuracy + '%';
+  document.getElementById('vsTotal').textContent = voiceTotal + (isJa ? '問' : 'Q');
+  document.getElementById('vsCorrect').textContent = voiceCorrect + (isJa ? '問' : 'Q');
+
+  const summaryModal = document.getElementById('voiceSummaryModal');
+  if (summaryModal) {
+    summaryModal.classList.add('show');
+    setOverlayLock(true);
+    document.getElementById('voiceSummaryClose').onclick = () => {
+      summaryModal.classList.remove('show');
+      setOverlayLock(false);
+    };
+    summaryModal.querySelector('.back').onclick = () => {
+      summaryModal.classList.remove('show');
+      setOverlayLock(false);
+    };
+  }
+
+  // ★ モード選択ボタンをデフォルトに戻す
+  document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
+  const def = document.querySelector('#modeSet .pill[data-mode="normal"]');
+  if (def) def.classList.add('active');
 
   updateStats();
 }
