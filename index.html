@@ -4863,10 +4863,8 @@ let voiceCorrect    = 0;       // 音声モード：正解数
 function activateVoiceMode() {
   const modal = document.getElementById('voiceStartModal');
   if (!modal) return;
-  // ★ 既にモーダル表示中なら二重起動を防ぐ
   if (modal.classList.contains('show')) return;
 
-  // i18n対応テキスト設定
   const isJa = (appLang === 'ja');
   document.getElementById('voiceStartTitle').textContent =
     isJa ? '🎤 声で答えるモード' : '🎤 Voice Mode';
@@ -4881,19 +4879,16 @@ function activateVoiceMode() {
   const countEl = document.getElementById('voiceCountNum');
   countEl.textContent = '🎤';
   modal.classList.add('show');
-  setOverlayLock(true);
+  document.body.style.overflow = 'hidden';   // ★変更① setOverlayLock(true) → overflow hidden
 
   const closeModal = () => {
     modal.classList.remove('show');
-    setOverlayLock(false);
-    // ★ モード選択をvoiceから外す（キャンセル時）
+    document.body.style.overflow = '';        // ★変更② setOverlayLock(false) → overflow 解除
     document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
     const def = document.querySelector('#modeSet .pill[data-mode="normal"]');
     if (def) def.classList.add('active');
   };
 
-  // ★ onclickの代わりにaddEventListener({once:true})を使う
-  // → 二重呼び出しでも上書きされず、一度だけ確実に発火する
   document.getElementById('voiceStartCancel')
     .addEventListener('click', closeModal, { once: true });
   modal.querySelector('.back')
@@ -4902,63 +4897,58 @@ function activateVoiceMode() {
   document.getElementById('voiceStartGo')
     .addEventListener('click', () => {
       ensureAudio();
-    // カウントダウン 3・2・1
-    let i = 0;
-    const seq = ['3', '2', '1'];
-    const tick = () => {
-      countEl.textContent = seq[i];
-      countEl.classList.remove('pop-grow');
-      void countEl.offsetWidth;
-      countEl.classList.add('pop-grow');
-      ensureAudio(); tone(700, .12, 'sine', .9);
-      i++;
-      if (i < seq.length) {
-        setTimeout(tick, 650);
-      } else {
-        setTimeout(() => {
-          modal.classList.remove('show');
-          setOverlayLock(false);
-
-          // ★ 本体の声モード開始処理
-          voiceModeActive = true;
-          voiceTotal      = 0;
-          voiceCorrect    = 0;
-          document.body.classList.add('voice-mode');
-
-          const labAvg = document.getElementById('labAvg');
-          if (labAvg) labAvg.textContent = isJa ? '正答率' : 'Accuracy';
-          const avgTimeEl = document.getElementById('avgTime');
-          if (avgTimeEl) avgTimeEl.textContent = '—';
-
-          // ★ normalStartedを先に設定
-          if (!normalStarted) {
-            normalStarted = true;
-            userInteracted = true;
-          }
-          if (!state.correct) newProblem(true);
-
-          // ★ 停止FABを「終了」表示で出す
-          const fab = document.getElementById('taStopFab');
-          if (fab) {
-            fab.textContent = isJa ? '⏹ 終了' : '⏹ Stop';
-            fab.style.display = 'flex';
-          }
-
-          // ★ テンキーエリアへ自動スクロール
+      let i = 0;
+      const seq = ['3', '2', '1'];
+      const tick = () => {
+        countEl.textContent = seq[i];
+        countEl.classList.remove('pop-grow');
+        void countEl.offsetWidth;
+        countEl.classList.add('pop-grow');
+        ensureAudio(); tone(700, .12, 'sine', .9);
+        i++;
+        if (i < seq.length) {
+          setTimeout(tick, 650);
+        } else {
           setTimeout(() => {
-            const ansEl = document.getElementById('answer');
-            if (ansEl) ansEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 200);
+            modal.classList.remove('show');
+            document.body.style.overflow = '';   // ★変更③ setOverlayLock(false) → overflow 解除
 
-          // 🎤 マイク起動（最後に呼ぶ）
-          voiceAutoMode = true;
-          if (!activeRecog) startVoiceInput();
+            // ★ 本体の声モード開始処理
+            voiceModeActive = true;
+            voiceTotal      = 0;
+            voiceCorrect    = 0;
+            document.body.classList.add('voice-mode');
 
-        }, 650);
-      }
-    };
-    setTimeout(tick, 220);
-      }, { once: true });
+            const labAvg = document.getElementById('labAvg');
+            if (labAvg) labAvg.textContent = isJa ? '正答率' : 'Accuracy';
+            const avgTimeEl = document.getElementById('avgTime');
+            if (avgTimeEl) avgTimeEl.textContent = '—';
+
+            if (!normalStarted) {
+              normalStarted = true;
+              userInteracted = true;
+            }
+            if (!state.correct) newProblem(true);
+
+            const fab = document.getElementById('taStopFab');
+            if (fab) {
+              fab.textContent = isJa ? '⏹ 終了' : '⏹ Stop';
+              fab.style.display = 'flex';
+            }
+
+            setTimeout(() => {
+              const ansEl = document.getElementById('answer');
+              if (ansEl) ansEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 200);
+
+            voiceAutoMode = true;
+            if (!activeRecog) startVoiceInput();
+
+          }, 650);
+        }
+      };
+      setTimeout(tick, 220);
+    }, { once: true });
 }
 function deactivateVoiceMode() {
   voiceModeActive = false;
