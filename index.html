@@ -4861,9 +4861,10 @@ let voiceCorrect    = 0;       // 音声モード：正解数
 
 /* ========== 🎤 音声モード ON/OFF ========== */
 function activateVoiceMode() {
-  // ★ ポップアップを表示してカウントダウン後に開始
   const modal = document.getElementById('voiceStartModal');
   if (!modal) return;
+  // ★ 既にモーダル表示中なら二重起動を防ぐ
+  if (modal.classList.contains('show')) return;
 
   // i18n対応テキスト設定
   const isJa = (appLang === 'ja');
@@ -4891,11 +4892,16 @@ function activateVoiceMode() {
     if (def) def.classList.add('active');
   };
 
-  document.getElementById('voiceStartCancel').onclick = closeModal;
-  modal.querySelector('.back').onclick = closeModal;
+  // ★ onclickの代わりにaddEventListener({once:true})を使う
+  // → 二重呼び出しでも上書きされず、一度だけ確実に発火する
+  document.getElementById('voiceStartCancel')
+    .addEventListener('click', closeModal, { once: true });
+  modal.querySelector('.back')
+    .addEventListener('click', closeModal, { once: true });
 
-  document.getElementById('voiceStartGo').onclick = () => {
-    ensureAudio();
+  document.getElementById('voiceStartGo')
+    .addEventListener('click', () => {
+      ensureAudio();
     // カウントダウン 3・2・1
     let i = 0;
     const seq = ['3', '2', '1'];
@@ -4952,7 +4958,7 @@ function activateVoiceMode() {
       }
     };
     setTimeout(tick, 220);
-  };
+      }, { once: true });
 }
 function deactivateVoiceMode() {
   voiceModeActive = false;
