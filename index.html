@@ -1204,6 +1204,55 @@ body.voice-mode #voiceModeIndicator {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
+
+/* ===== Voice modal touch fix ===== */
+#voiceStartModal {
+  pointer-events: none;
+}
+
+#voiceStartModal.show {
+  pointer-events: auto;
+}
+
+#voiceStartModal .back {
+  z-index: 0;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+#voiceStartModal .panel {
+  z-index: 1;
+  pointer-events: auto;
+  touch-action: auto;
+  position: absolute;
+}
+
+#voiceStartModal .btnrow,
+#voiceStartModal .btn {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+}
+
+#voiceSummaryModal {
+  pointer-events: none;
+}
+
+#voiceSummaryModal.show {
+  pointer-events: auto;
+}
+
+#voiceSummaryModal .panel {
+  z-index: 1;
+  pointer-events: auto;
+  touch-action: auto;
+}
+
+#voiceSummaryModal .btn {
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+}
         
 </style>
 </head>
@@ -4983,12 +5032,10 @@ function activateVoiceMode() {
     setTimeout(tick, 220);
   };
 
-  cancelBtn.addEventListener('touchend', onVoiceCancel, { passive: false });
-  cancelBtn.addEventListener('click', onVoiceCancel);
-  backBtn.addEventListener('touchend', onVoiceCancel, { passive: false });
-  backBtn.addEventListener('click', onVoiceCancel);
-  goBtn.addEventListener('touchend', onVoiceGo, { passive: false });
-  goBtn.addEventListener('click', onVoiceGo);
+  cancelBtn.onclick = onVoiceCancel;
+  backBtn.onclick   = onVoiceCancel;
+  goBtn.onclick     = onVoiceGo;
+  goBtn.ontouchend  = onVoiceGo;
 }
 
 function deactivateVoiceMode() {
