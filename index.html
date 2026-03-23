@@ -4957,7 +4957,8 @@ const onVoiceGo = (e) => {
 const goBtn = document.getElementById('voiceStartGo');
 goBtn.addEventListener('touchend', onVoiceGo, { once: true });  // ★ iOS優先
 goBtn.addEventListener('click',    onVoiceGo, { once: true });  // ★ PC用フォールバック
-    
+}
+
 function deactivateVoiceMode() {
   voiceModeActive = false;
   document.body.classList.remove('voice-mode');
