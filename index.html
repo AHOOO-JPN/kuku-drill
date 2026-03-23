@@ -1204,55 +1204,6 @@ body.voice-mode #voiceModeIndicator {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
-
-/* ===== Voice modal touch fix ===== */
-#voiceStartModal {
-  pointer-events: none;
-}
-
-#voiceStartModal.show {
-  pointer-events: auto;
-}
-
-#voiceStartModal .back {
-  z-index: 0;
-  pointer-events: auto;
-  touch-action: manipulation;
-}
-
-#voiceStartModal .panel {
-  z-index: 1;
-  pointer-events: auto;
-  touch-action: auto;
-  position: absolute;
-}
-
-#voiceStartModal .btnrow,
-#voiceStartModal .btn {
-  position: relative;
-  z-index: 2;
-  pointer-events: auto !important;
-  touch-action: manipulation !important;
-}
-
-#voiceSummaryModal {
-  pointer-events: none;
-}
-
-#voiceSummaryModal.show {
-  pointer-events: auto;
-}
-
-#voiceSummaryModal .panel {
-  z-index: 1;
-  pointer-events: auto;
-  touch-action: auto;
-}
-
-#voiceSummaryModal .btn {
-  pointer-events: auto !important;
-  touch-action: manipulation !important;
-}
         
 </style>
 </head>
@@ -2950,28 +2901,20 @@ window.appLang = appLang; // 初期値を公開
         }
         
 modeSet.addEventListener('click', e=>{
-  const t = e.target.closest('.pill'); if (!t) return;
+  const t = e.target.closest('.pill');
+  if (!t) return;
+
+  // ★ voice は親clickでは処理しない
+  if (t.dataset.mode === 'voice') return;
+
   [...modeSet.querySelectorAll('.pill')].forEach(p => p.classList.remove('active'));
   t.classList.add('active');
 
-  if (t.dataset.mode === 'voice') {
-    // 🎤 音声モード切り替え
-    if (voiceModeActive) {
-      deactivateVoiceMode();
-      // 標準モードに戻す
-      const defBtn = document.getElementById('modeP');
-      if (defBtn) { defBtn.classList.add('active'); state.mode = 'product'; }
-      t.classList.remove('active');
-    } else {
-      activateVoiceMode();
-    }
-  } else {
-    // 通常モード選択時は音声モード解除
-    if (voiceModeActive) deactivateVoiceMode();
-    state.mode = t.dataset.mode;
-    pop();
-    newProblem(true);
-  }
+  if (voiceModeActive) deactivateVoiceMode();
+
+  state.mode = t.dataset.mode;
+  pop();
+  newProblem(true);
 });
         
         function randFrom(set){ const a=[...set]; return a.length?a[(Math.random()*a.length)|0]:1; }
@@ -4908,13 +4851,13 @@ let voiceModeActive = false;   // 🎤 音声モードフラグ
 let voiceTotal      = 0;       // 音声モード：合計回答数
 let voiceCorrect    = 0;       // 音声モード：正解数
 
-/* ========== 🎤 音声モード ON/OFF ========== */
 function activateVoiceMode() {
   const modal = document.getElementById('voiceStartModal');
   if (!modal) return;
   if (modal.classList.contains('show')) return;
 
   const isJa = (appLang === 'ja');
+
   document.getElementById('voiceStartTitle').textContent =
     isJa ? '🎤 声で答えるモード' : '🎤 Voice Mode';
   document.getElementById('voiceStartDesc').innerHTML = isJa
@@ -4925,55 +4868,33 @@ function activateVoiceMode() {
   document.getElementById('voiceStartGo').textContent =
     isJa ? 'スタート' : 'Start';
 
-  const countEl = document.getElementById('voiceCountNum');
-  countEl.textContent = '🎤';
-  modal.classList.add('show');
-  document.body.style.overflow = 'hidden';   // ★変更① setOverlayLock(true) → overflow hidden
-
-  const closeModal = () => {
-    modal.classList.remove('show');
-    document.body.style.overflow = '';        // ★変更② setOverlayLock(false) → overflow 解除
-    document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
-    const def = document.querySelector('#modeSet .pill[data-mode="normal"]');
-    if (def) def.classList.add('active');
-  };
-
+  const countEl   = document.getElementById('voiceCountNum');
   const cancelBtn = document.getElementById('voiceStartCancel');
   const backBtn   = modal.querySelector('.back');
   const goBtn     = document.getElementById('voiceStartGo');
 
-  let voiceGoFired = false;
-  let voiceClosed  = false;
+  countEl.textContent = '🎤';
+  countEl.classList.remove('pop-grow');
 
-  const cleanupVoiceModalHandlers = () => {
-    cancelBtn.removeEventListener('touchend', onVoiceCancel);
-    cancelBtn.removeEventListener('click', onVoiceCancel);
-    backBtn.removeEventListener('touchend', onVoiceCancel);
-    backBtn.removeEventListener('click', onVoiceCancel);
-    goBtn.removeEventListener('touchend', onVoiceGo);
-    goBtn.removeEventListener('click', onVoiceGo);
-  };
+  modal.classList.add('show');
+  setOverlayLock(true);
 
-  const onVoiceCancel = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (voiceClosed || voiceGoFired) return;
-    voiceClosed = true;
-    cleanupVoiceModalHandlers();
-    closeModal();
-  };
+const closeModal = () => {
+  modal.classList.remove('show');
+  setOverlayLock(false);
 
-  const onVoiceGo = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (voiceGoFired || voiceClosed) return;
-    voiceGoFired = true;
-    cleanupVoiceModalHandlers();
+  document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
 
+  const defBtn = document.getElementById('modeP');
+  if (defBtn) defBtn.classList.add('active');
+
+  state.mode = 'product';
+};
+
+  cancelBtn.onclick = closeModal;
+  backBtn.onclick   = closeModal;
+
+  goBtn.onclick = () => {
     ensureAudio();
 
     let i = 0;
@@ -4984,6 +4905,7 @@ function activateVoiceMode() {
       countEl.classList.remove('pop-grow');
       void countEl.offsetWidth;
       countEl.classList.add('pop-grow');
+
       ensureAudio();
       tone(700, .12, 'sine', .9);
       i++;
@@ -4991,13 +4913,15 @@ function activateVoiceMode() {
       if (i < seq.length) {
         setTimeout(tick, 650);
       } else {
-        setTimeout(() => {
-          modal.classList.remove('show');
-          document.body.style.overflow = '';
+        const proceed = () => {
+          try {
+            modal.classList.remove('show');
+            setOverlayLock(false);
+          } catch (_) {}
 
           voiceModeActive = true;
-          voiceTotal      = 0;
-          voiceCorrect    = 0;
+          voiceTotal = 0;
+          voiceCorrect = 0;
           document.body.classList.add('voice-mode');
 
           const labAvg = document.getElementById('labAvg');
@@ -5010,6 +4934,7 @@ function activateVoiceMode() {
             normalStarted = true;
             userInteracted = true;
           }
+
           if (!state.correct) newProblem(true);
 
           const fab = document.getElementById('taStopFab');
@@ -5025,17 +4950,14 @@ function activateVoiceMode() {
 
           voiceAutoMode = true;
           if (!activeRecog) startVoiceInput();
-        }, 650);
+        };
+
+        setTimeout(proceed, 650);
       }
     };
 
     setTimeout(tick, 220);
   };
-
-  cancelBtn.onclick = onVoiceCancel;
-  backBtn.onclick   = onVoiceCancel;
-  goBtn.onclick     = onVoiceGo;
-  goBtn.ontouchend  = onVoiceGo;
 }
 
 function deactivateVoiceMode() {
@@ -5100,17 +5022,25 @@ function deactivateVoiceMode() {
 (function(){
   const mvb = document.getElementById('modeVoice');
   if (!mvb) return;
-  mvb.addEventListener('touchend', (e) => {
+
+  const openVoice = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     if (!voiceModeActive) {
       document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
       mvb.classList.add('active');
       activateVoiceMode();
     } else {
       deactivateVoiceMode();
+      const defBtn = document.getElementById('modeP');
+      if (defBtn) defBtn.classList.add('active');
+      state.mode = 'product';
     }
-  }, { passive: false });
+  };
+
+  mvb.addEventListener('touchend', openVoice, { passive: false });
+  mvb.addEventListener('click', openVoice);
 })();
     
 function startVoiceInput() {
