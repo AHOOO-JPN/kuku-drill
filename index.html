@@ -2383,6 +2383,7 @@ if (window.__swUpdatePending) {
                 body.style.position=''; body.style.top=''; body.style.width='';
                 if(y) window.scrollTo(0,parseInt(y,10));
             }
+            window.setOverlayLock = setOverlayLock;
         }
         
         async function confirmAsync(message){
@@ -4857,7 +4858,6 @@ function activateVoiceMode() {
   if (modal.classList.contains('show')) return;
 
   const isJa = (appLang === 'ja');
-
   document.getElementById('voiceStartTitle').textContent =
     isJa ? '🎤 声で答えるモード' : '🎤 Voice Mode';
   document.getElementById('voiceStartDesc').innerHTML = isJa
@@ -4877,19 +4877,17 @@ function activateVoiceMode() {
   countEl.classList.remove('pop-grow');
 
   modal.classList.add('show');
-  setOverlayLock(true);
+  window.setOverlayLock(true);
 
-const closeModal = () => {
-  modal.classList.remove('show');
-  setOverlayLock(false);
+  const closeModal = () => {
+    modal.classList.remove('show');
+    window.setOverlayLock(false);
 
-  document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
-
-  const defBtn = document.getElementById('modeP');
-  if (defBtn) defBtn.classList.add('active');
-
-  state.mode = 'product';
-};
+    document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
+    const defBtn = document.getElementById('modeP');
+    if (defBtn) defBtn.classList.add('active');
+    state.mode = 'product';
+  };
 
   cancelBtn.onclick = closeModal;
   backBtn.onclick   = closeModal;
@@ -4905,7 +4903,6 @@ const closeModal = () => {
       countEl.classList.remove('pop-grow');
       void countEl.offsetWidth;
       countEl.classList.add('pop-grow');
-
       ensureAudio();
       tone(700, .12, 'sine', .9);
       i++;
@@ -4913,11 +4910,9 @@ const closeModal = () => {
       if (i < seq.length) {
         setTimeout(tick, 650);
       } else {
-        const proceed = () => {
-          try {
-            modal.classList.remove('show');
-            setOverlayLock(false);
-          } catch (_) {}
+        setTimeout(() => {
+          modal.classList.remove('show');
+          window.setOverlayLock(false);
 
           voiceModeActive = true;
           voiceTotal = 0;
@@ -4934,7 +4929,6 @@ const closeModal = () => {
             normalStarted = true;
             userInteracted = true;
           }
-
           if (!state.correct) newProblem(true);
 
           const fab = document.getElementById('taStopFab');
@@ -4950,9 +4944,7 @@ const closeModal = () => {
 
           voiceAutoMode = true;
           if (!activeRecog) startVoiceInput();
-        };
-
-        setTimeout(proceed, 650);
+        }, 650);
       }
     };
 
@@ -5012,8 +5004,9 @@ function deactivateVoiceMode() {
 
   // ★ モード選択ボタンをデフォルトに戻す
   document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
-  const def = document.querySelector('#modeSet .pill[data-mode="normal"]');
-  if (def) def.classList.add('active');
+  const defBtn = document.getElementById('modeP');
+  if (defBtn) defBtn.classList.add('active');
+  state.mode = 'product';
 
   updateStats();
 }
