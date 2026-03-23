@@ -4877,11 +4877,11 @@ function activateVoiceMode() {
   countEl.classList.remove('pop-grow');
 
   modal.classList.add('show');
-  window.setOverlayLock(true);
+  setOverlayLock(true);
 
   const closeModal = () => {
     modal.classList.remove('show');
-    window.setOverlayLock(false);
+    setOverlayLock(false);
 
     document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
     const defBtn = document.getElementById('modeP');
@@ -4912,7 +4912,7 @@ function activateVoiceMode() {
       } else {
         setTimeout(() => {
           modal.classList.remove('show');
-          window.setOverlayLock(false);
+          setOverlayLock(false);
 
           voiceModeActive = true;
           voiceTotal = 0;
@@ -5034,7 +5034,6 @@ function deactivateVoiceMode() {
 
   mvb.addEventListener('touchend', openVoice, { passive: false });
   mvb.addEventListener('click', openVoice);
-})();
     
 function startVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5044,7 +5043,8 @@ function startVoiceInput() {
       : 'Speech recognition is not supported');
     return;
   }
-
+})();
+    
   voiceAutoMode = true; // 自動再開ON
 
   const recog = new SpeechRecognition();
