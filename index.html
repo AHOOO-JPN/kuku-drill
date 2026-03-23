@@ -4894,62 +4894,70 @@ function activateVoiceMode() {
   modal.querySelector('.back')
     .addEventListener('click', closeModal, { once: true });
 
-  document.getElementById('voiceStartGo')
-    .addEventListener('click', () => {
-      ensureAudio();
-      let i = 0;
-      const seq = ['3', '2', '1'];
-      const tick = () => {
-        countEl.textContent = seq[i];
-        countEl.classList.remove('pop-grow');
-        void countEl.offsetWidth;
-        countEl.classList.add('pop-grow');
-        ensureAudio(); tone(700, .12, 'sine', .9);
-        i++;
-        if (i < seq.length) {
-          setTimeout(tick, 650);
-        } else {
-          setTimeout(() => {
-            modal.classList.remove('show');
-            document.body.style.overflow = '';   // ★変更③ setOverlayLock(false) → overflow 解除
+  // ★ Safari合成click対策：touchend + click のフラグ制御
+let voiceGoFired = false;
+const onVoiceGo = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (voiceGoFired) return;
+  voiceGoFired = true;
+  ensureAudio();
+  let i = 0;
+  const seq = ['3', '2', '1'];
+  const tick = () => {
+    countEl.textContent = seq[i];
+    countEl.classList.remove('pop-grow');
+    void countEl.offsetWidth;
+    countEl.classList.add('pop-grow');
+    ensureAudio(); tone(700, .12, 'sine', .9);
+    i++;
+    if (i < seq.length) {
+      setTimeout(tick, 650);
+    } else {
+      setTimeout(() => {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
 
-            // ★ 本体の声モード開始処理
-            voiceModeActive = true;
-            voiceTotal      = 0;
-            voiceCorrect    = 0;
-            document.body.classList.add('voice-mode');
+        voiceModeActive = true;
+        voiceTotal      = 0;
+        voiceCorrect    = 0;
+        document.body.classList.add('voice-mode');
 
-            const labAvg = document.getElementById('labAvg');
-            if (labAvg) labAvg.textContent = isJa ? '正答率' : 'Accuracy';
-            const avgTimeEl = document.getElementById('avgTime');
-            if (avgTimeEl) avgTimeEl.textContent = '—';
+        const labAvg = document.getElementById('labAvg');
+        if (labAvg) labAvg.textContent = isJa ? '正答率' : 'Accuracy';
+        const avgTimeEl = document.getElementById('avgTime');
+        if (avgTimeEl) avgTimeEl.textContent = '—';
 
-            if (!normalStarted) {
-              normalStarted = true;
-              userInteracted = true;
-            }
-            if (!state.correct) newProblem(true);
-
-            const fab = document.getElementById('taStopFab');
-            if (fab) {
-              fab.textContent = isJa ? '⏹ 終了' : '⏹ Stop';
-              fab.style.display = 'flex';
-            }
-
-            setTimeout(() => {
-              const ansEl = document.getElementById('answer');
-              if (ansEl) ansEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 200);
-
-            voiceAutoMode = true;
-            if (!activeRecog) startVoiceInput();
-
-          }, 650);
+        if (!normalStarted) {
+          normalStarted = true;
+          userInteracted = true;
         }
-      };
-      setTimeout(tick, 220);
-    }, { once: true });
-}
+        if (!state.correct) newProblem(true);
+
+        const fab = document.getElementById('taStopFab');
+        if (fab) {
+          fab.textContent = isJa ? '⏹ 終了' : '⏹ Stop';
+          fab.style.display = 'flex';
+        }
+
+        setTimeout(() => {
+          const ansEl = document.getElementById('answer');
+          if (ansEl) ansEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+
+        voiceAutoMode = true;
+        if (!activeRecog) startVoiceInput();
+
+      }, 650);
+    }
+  };
+  setTimeout(tick, 220);
+};
+
+const goBtn = document.getElementById('voiceStartGo');
+goBtn.addEventListener('touchend', onVoiceGo, { once: true });  // ★ iOS優先
+goBtn.addEventListener('click',    onVoiceGo, { once: true });  // ★ PC用フォールバック
+    
 function deactivateVoiceMode() {
   voiceModeActive = false;
   document.body.classList.remove('voice-mode');
