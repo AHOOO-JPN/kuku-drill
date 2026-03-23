@@ -5034,89 +5034,7 @@ function deactivateVoiceMode() {
 
   mvb.addEventListener('touchend', openVoice, { passive: false });
   mvb.addEventListener('click', openVoice);
-    
-function startVoiceInput() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert(appLang === 'ja'
-      ? 'このブラウザは音声認識に対応していません'
-      : 'Speech recognition is not supported');
-    return;
-  }
-    
-  voiceAutoMode = true; // 自動再開ON
-
-  const recog = new SpeechRecognition();
-  activeRecog = recog;
-
-  recog.lang            = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
-  recog.interimResults  = true;  // ★ true に変更：途中結果を受け取る
-  recog.continuous      = false;
-  recog.maxAlternatives = 1;     // 速度優先で候補を1つに絞る
-
-  recog.onstart = () => {
-    if (voiceBtn) {
-      voiceBtn.textContent = '🔴';
-      voiceBtn.dataset.listening = 'true';
-    }
-  };
-
-  recog.onresult = (e) => {
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-          // ★ isFinal = true（確定結果）のみ使う
-    if (!e.results[i].isFinal) continue;
-        
-      const spoken = e.results[i][0].transcript.trim();
-      const num = parseSpoken(spoken);
-
-      // ★ 数字が見つかったら即座に停止して判定
-      if (!isNaN(num) && num >= 1 && num <= 144) {
-        try { if (activeRecog) activeRecog.stop(); } catch(_) {}
-        const ans = document.getElementById('answer');
-        if (ans) {
-          ans.value = String(num);
-          check(); // 判定実行
-
-          // ★ 600ms後に自動再開（次の問題の読み上げが終わるタイミング）
-          if (voiceAutoMode) {
-            setTimeout(() => {
-              if (voiceAutoMode && !activeRecog) startVoiceInput();
-            }, 600);
-          }
-        }
-        return;
-      }
-    }
-  };
-
-  recog.onend = () => {
-    activeRecog = null;
-    if (voiceBtn) {
-      voiceBtn.textContent = '🎤';
-      voiceBtn.dataset.listening = 'false';
-    }
-  };
-
-  recog.onerror = (e) => {
-    console.warn('音声認識エラー:', e.error);
-    activeRecog = null;
-    // ★ 'aborted'はstop()による正常停止なのでvoiceAutoModeはリセットしない
-    if (e.error !== 'aborted') {
-      voiceAutoMode = false;
-    }
-    if (voiceBtn) {
-      voiceBtn.textContent = '🎤';
-      voiceBtn.dataset.listening = 'false';
-    }
-};
-
-  try {
-    recog.start();
-  } catch(e) {
-    console.warn('recog.start error:', e);
-    activeRecog = null;
-  }
-}
+})();
 
 // 発話テキスト → 数字に変換する関数
 function parseSpoken(str) {
@@ -5195,7 +5113,91 @@ function parseSpoken(str) {
   });
 })();
 
-// ★ OKボタンのイベントを直接バインド（keypadの外に出したため）
+(function(){
+  const mvb = document.getElementById('modeVoice');
+  if (!mvb) return;
+
+  const openVoice = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    activateVoiceMode();
+  };
+
+  mvb.addEventListener('touchend', openVoice, { passive: false });
+  mvb.addEventListener('click', openVoice);
+})();
+
+function startVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert(appLang === 'ja'
+      ? 'このブラウザは音声認識に対応していません'
+      : 'Speech recognition is not supported');
+    return;
+  }
+
+  voiceAutoMode = true;
+  const recog = new SpeechRecognition();
+  activeRecog = recog;
+
+  recog.lang = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
+  recog.interimResults = true;
+
+  recog.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+
+      const spoken = e.results[i][0].transcript.trim();
+      const num = parseSpoken(spoken);
+
+      if (!isNaN(num)) {
+        try { recog.stop(); } catch (_) {}
+        document.getElementById('answer').value = String(num);
+        check();
+
+        if (voiceAutoMode) {
+          setTimeout(() => {
+            if (voiceAutoMode && !activeRecog) startVoiceInput();
+          }, 600);
+        }
+        return;
+      }
+    }
+  };
+
+  recog.onerror = (e) => {
+    console.warn(e.error);
+    activeRecog = null;
+  };
+
+  recog.onend = () => {
+    activeRecog = null;
+  };
+
+  try {
+    recog.start();
+  } catch (e) {
+    console.warn('recog.start error:', e);
+    activeRecog = null;
+  }
+}
+
+(function(){
+  const vb = document.getElementById('voiceBtn');
+  if (!vb) return;
+
+  vb.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startVoiceInput();
+  }, { passive: false });
+
+  vb.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startVoiceInput();
+  });
+})();
+
 (function(){
   const okBtn = document.querySelector('.key.ok');
   if (!okBtn) return;
@@ -5203,12 +5205,12 @@ function parseSpoken(str) {
   okBtn.addEventListener('touchend', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    check();  // ← window.check() ではなく直接 check() を呼ぶ
+    check();
   }, { passive: false });
 
   okBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    check();  // ← window.check() ではなく直接 check()
+    check();
   });
 })();
     
