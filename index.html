@@ -4510,6 +4510,318 @@ if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault
             boot();
         })();
 
+         /* ========== 音声認識（修正版 / IIFE内に置く） ========== */
+        let activeRecog = null;
+        let voiceAutoMode = false;
+        let voiceModeActive = false;
+        let voiceTotal = 0;
+        let voiceCorrect = 0;
+
+        function activateVoiceMode() {
+          const modal = document.getElementById('voiceStartModal');
+          if (!modal) return;
+
+          const countEl = document.getElementById('voiceCountNum');
+          const cancelBtn = document.getElementById('voiceStartCancel');
+          const goBtn = document.getElementById('voiceStartGo');
+          const backBtn = modal.querySelector('.back');
+
+          if (!countEl || !cancelBtn || !goBtn || !backBtn) return;
+
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRecognition) {
+            alert(appLang === 'ja'
+              ? 'このブラウザは音声認識に対応していません'
+              : 'Speech recognition is not supported');
+            return;
+          }
+
+          if (activeRecog) {
+            try { activeRecog.stop(); } catch (_) {}
+            activeRecog = null;
+          }
+
+          voiceAutoMode = false;
+
+          modal.classList.add('show');
+          setOverlayLock(true);
+
+          countEl.textContent = ' ';
+          countEl.classList.remove('pop-grow');
+
+          let voiceClosed = false;
+          let voiceGoFired = false;
+
+          const cleanupVoiceModalHandlers = () => {
+            cancelBtn.removeEventListener('touchend', onVoiceCancel);
+            cancelBtn.removeEventListener('click', onVoiceCancel);
+            backBtn.removeEventListener('touchend', onVoiceCancel);
+            backBtn.removeEventListener('click', onVoiceCancel);
+            goBtn.removeEventListener('touchend', onVoiceGo);
+            goBtn.removeEventListener('click', onVoiceGo);
+          };
+
+          const closeModal = () => {
+            if (voiceClosed) return;
+            voiceClosed = true;
+
+            cleanupVoiceModalHandlers();
+            modal.classList.remove('show');
+            setOverlayLock(false);
+
+            document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
+            const defBtn = document.getElementById('modeP');
+            if (defBtn) defBtn.classList.add('active');
+            state.mode = 'product';
+          };
+
+          function onVoiceCancel(e) {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            closeModal();
+          }
+
+          function onVoiceGo(e) {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            if (voiceGoFired) return;
+            voiceGoFired = true;
+
+            cleanupVoiceModalHandlers();
+            ensureAudio();
+
+            let i = 0;
+            const seq = ['3', '2', '1'];
+
+            const tick = () => {
+              countEl.textContent = seq[i];
+              countEl.classList.remove('pop-grow');
+              void countEl.offsetWidth;
+              countEl.classList.add('pop-grow');
+
+              ensureAudio();
+              tone(700, 0.12, 'sine', 0.9);
+              i++;
+
+              if (i < seq.length) {
+                setTimeout(tick, 650);
+              } else {
+                setTimeout(() => {
+                  modal.classList.remove('show');
+                  setOverlayLock(false);
+
+                  voiceModeActive = true;
+                  voiceAutoMode = true;
+                  voiceTotal = 0;
+                  voiceCorrect = 0;
+                  document.body.classList.add('voice-mode');
+
+                  const labAvg = document.getElementById('labAvg');
+                  if (labAvg) {
+                    labAvg.textContent = (appLang === 'ja') ? '正答率' : 'Accuracy';
+                  }
+
+                  const avgTime = document.getElementById('avgTime');
+                  if (avgTime) avgTime.textContent = '0%';
+
+                  const stopFab = document.getElementById('taStopFab');
+                  if (stopFab) stopFab.style.display = 'flex';
+
+                  const answerEl = document.getElementById('answer');
+                  if (answerEl && answerEl.scrollIntoView) {
+                    answerEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                  }
+
+                  startVoiceInput();
+                }, 650);
+              }
+            };
+
+            setTimeout(tick, 220);
+          }
+
+          cancelBtn.addEventListener('touchend', onVoiceCancel, { passive: false });
+          cancelBtn.addEventListener('click', onVoiceCancel);
+          backBtn.addEventListener('touchend', onVoiceCancel, { passive: false });
+          backBtn.addEventListener('click', onVoiceCancel);
+          goBtn.addEventListener('touchend', onVoiceGo, { passive: false });
+          goBtn.addEventListener('click', onVoiceGo);
+        }
+
+        function deactivateVoiceMode() {
+          voiceModeActive = false;
+          voiceAutoMode = false;
+          document.body.classList.remove('voice-mode');
+
+          const modal = document.getElementById('voiceStartModal');
+          if (modal) modal.classList.remove('show');
+          setOverlayLock(false);
+
+          if (activeRecog) {
+            try { activeRecog.stop(); } catch (_) {}
+            activeRecog = null;
+          }
+
+          const stopFab = document.getElementById('taStopFab');
+          if (stopFab) stopFab.style.display = 'none';
+
+          const voiceBtn = document.getElementById('voiceBtn');
+          if (voiceBtn) {
+            voiceBtn.textContent = '🎤';
+            voiceBtn.dataset.listening = 'false';
+          }
+
+          const labAvg = document.getElementById('labAvg');
+          if (labAvg) {
+            labAvg.textContent = (appLang === 'ja') ? '平均タイム' : 'Avg Time';
+          }
+
+          updateStats();
+        }
+
+        function startVoiceInput() {
+          if (!voiceModeActive) return;
+          if (activeRecog) return;
+
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRecognition) {
+            alert(appLang === 'ja'
+              ? 'このブラウザは音声認識に対応していません'
+              : 'Speech recognition is not supported');
+            return;
+          }
+
+          ensureAudio();
+
+          const recog = new SpeechRecognition();
+          activeRecog = recog;
+
+          recog.lang = (appLang === 'en') ? 'en-US' : 'ja-JP';
+          recog.interimResults = true;
+          recog.continuous = false;
+
+          const voiceBtn = document.getElementById('voiceBtn');
+          if (voiceBtn) {
+            voiceBtn.textContent = '🎙️';
+            voiceBtn.dataset.listening = 'true';
+          }
+
+          recog.onresult = (e) => {
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              if (!e.results[i].isFinal) continue;
+
+              const spoken = e.results[i][0].transcript.trim();
+              const num = parseSpoken(spoken);
+
+              if (!isNaN(num)) {
+                try { recog.stop(); } catch (_) {}
+
+                const ansEl = document.getElementById('answer');
+                if (ansEl) ansEl.value = String(num);
+
+                check();
+
+                if (voiceAutoMode) {
+                  setTimeout(() => {
+                    if (voiceModeActive && voiceAutoMode && !activeRecog) {
+                      startVoiceInput();
+                    }
+                  }, 600);
+                }
+                return;
+              }
+            }
+          };
+
+          recog.onerror = (e) => {
+            console.warn('voice error:', e.error);
+            activeRecog = null;
+
+            if (voiceBtn) {
+              voiceBtn.textContent = '🎤';
+              voiceBtn.dataset.listening = 'false';
+            }
+          };
+
+          recog.onend = () => {
+            activeRecog = null;
+
+            if (voiceBtn) {
+              voiceBtn.textContent = '🎤';
+              voiceBtn.dataset.listening = 'false';
+            }
+          };
+
+          try {
+            recog.start();
+          } catch (e) {
+            console.warn('recog.start error:', e);
+            activeRecog = null;
+
+            if (voiceBtn) {
+              voiceBtn.textContent = '🎤';
+              voiceBtn.dataset.listening = 'false';
+            }
+          }
+        }
+
+        (function(){
+          const mvb = document.getElementById('modeVoice');
+          if (!mvb) return;
+
+          const openVoice = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (typeof run !== 'undefined' && run) return;
+
+            if (voiceModeActive) {
+              deactivateVoiceMode();
+            } else {
+              activateVoiceMode();
+            }
+          };
+
+          mvb.addEventListener('touchend', openVoice, { passive: false });
+          mvb.addEventListener('click', openVoice);
+        })();
+
+        (function(){
+          const vb = document.getElementById('voiceBtn');
+          if (!vb) return;
+
+          const onVoiceBtn = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!voiceModeActive) return;
+            if (activeRecog) return;
+
+            startVoiceInput();
+          };
+
+          vb.addEventListener('touchend', onVoiceBtn, { passive: false });
+          vb.addEventListener('click', onVoiceBtn);
+        })();
+
+        (function(){
+          const okBtn = document.querySelector('.key.ok');
+          if (!okBtn) return;
+
+          const onOk = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            check();
+          };
+
+          okBtn.addEventListener('touchend', onOk, { passive: false });
+          okBtn.addEventListener('click', onOk);
+        })();
+
         // ========================================
         // Service Worker 登録 (完全版)
         // ========================================
@@ -4845,374 +5157,6 @@ function checkFastest({sec, dan}){
         }
         
                 })();
-/* ========== 音声認識（高速版） ========== */
-let activeRecog   = null;
-let voiceAutoMode = false;     // 自動再開モードのフラグ
-let voiceModeActive = false;   // 🎤 音声モードフラグ
-let voiceTotal      = 0;       // 音声モード：合計回答数
-let voiceCorrect    = 0;       // 音声モード：正解数
-
-function activateVoiceMode() {
-  const modal = document.getElementById('voiceStartModal');
-  if (!modal) return;
-  if (modal.classList.contains('show')) return;
-
-  const isJa = (appLang === 'ja');
-  document.getElementById('voiceStartTitle').textContent =
-    isJa ? '🎤 声で答えるモード' : '🎤 Voice Mode';
-  document.getElementById('voiceStartDesc').innerHTML = isJa
-    ? 'マイクに向かって答えを声に出してください<br>タイムは記録されません<br>正答率を記録します'
-    : 'Say your answer into the microphone<br>Time is not recorded<br>Accuracy will be tracked';
-  document.getElementById('voiceStartCancel').textContent =
-    isJa ? 'キャンセル' : 'Cancel';
-  document.getElementById('voiceStartGo').textContent =
-    isJa ? 'スタート' : 'Start';
-
-  const countEl   = document.getElementById('voiceCountNum');
-  const cancelBtn = document.getElementById('voiceStartCancel');
-  const backBtn   = modal.querySelector('.back');
-  const goBtn     = document.getElementById('voiceStartGo');
-
-  countEl.textContent = '🎤';
-  countEl.classList.remove('pop-grow');
-
-  modal.classList.add('show');
-  setOverlayLock(true);
-
-  const closeModal = () => {
-    modal.classList.remove('show');
-    setOverlayLock(false);
-
-    document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
-    const defBtn = document.getElementById('modeP');
-    if (defBtn) defBtn.classList.add('active');
-    state.mode = 'product';
-  };
-
-  cancelBtn.onclick = closeModal;
-  backBtn.onclick   = closeModal;
-
-  goBtn.onclick = () => {
-    ensureAudio();
-
-    let i = 0;
-    const seq = ['3', '2', '1'];
-
-    const tick = () => {
-      countEl.textContent = seq[i];
-      countEl.classList.remove('pop-grow');
-      void countEl.offsetWidth;
-      countEl.classList.add('pop-grow');
-      ensureAudio();
-      tone(700, .12, 'sine', .9);
-      i++;
-
-      if (i < seq.length) {
-        setTimeout(tick, 650);
-      } else {
-        setTimeout(() => {
-          modal.classList.remove('show');
-          setOverlayLock(false);
-
-          voiceModeActive = true;
-          voiceTotal = 0;
-          voiceCorrect = 0;
-          document.body.classList.add('voice-mode');
-
-          const labAvg = document.getElementById('labAvg');
-          if (labAvg) labAvg.textContent = isJa ? '正答率' : 'Accuracy';
-
-          const avgTimeEl = document.getElementById('avgTime');
-          if (avgTimeEl) avgTimeEl.textContent = '—';
-
-          if (!normalStarted) {
-            normalStarted = true;
-            userInteracted = true;
-          }
-          if (!state.correct) newProblem(true);
-
-          const fab = document.getElementById('taStopFab');
-          if (fab) {
-            fab.textContent = isJa ? '⏹ 終了' : '⏹ Stop';
-            fab.style.display = 'flex';
-          }
-
-          setTimeout(() => {
-            const ansEl = document.getElementById('answer');
-            if (ansEl) ansEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 200);
-
-          voiceAutoMode = true;
-          if (!activeRecog) startVoiceInput();
-        }, 650);
-      }
-    };
-
-    setTimeout(tick, 220);
-  };
-}
-
-function deactivateVoiceMode() {
-  voiceModeActive = false;
-  document.body.classList.remove('voice-mode');
-
-  const isJa = (appLang === 'ja');
-
-  // ラベルを「平均タイム」に戻す
-  const labAvg = document.getElementById('labAvg');
-  if (labAvg) labAvg.textContent = isJa ? '平均タイム' : 'Avg Time';
-
-  // マイクOFF
-  voiceAutoMode = false;
-  if (activeRecog) {
-    try { activeRecog.stop(); } catch(_) {}
-    activeRecog = null;
-  }
-  const vb = document.getElementById('voiceBtn');
-  if (vb) { vb.textContent = '🎤'; vb.dataset.listening = 'false'; }
-
-  // ★ 停止FABを隠す
-  const fab = document.getElementById('taStopFab');
-  if (fab) fab.style.display = 'none';
-
-  // ★ 声モード専用サマリーを表示
-  const accuracy = voiceTotal > 0
-    ? Math.round(voiceCorrect / voiceTotal * 100) : 0;
-
-  document.getElementById('voiceSummaryTitle').textContent =
-    isJa ? '🎤 声で答えるモード 結果' : '🎤 Voice Mode Results';
-  document.getElementById('vsLab1').textContent = isJa ? '正答率' : 'Accuracy';
-  document.getElementById('vsLab2').textContent = isJa ? '回答数' : 'Total';
-  document.getElementById('vsLab3').textContent = isJa ? '正解数' : 'Correct';
-  document.getElementById('vsAccuracy').textContent = accuracy + '%';
-  document.getElementById('vsTotal').textContent = voiceTotal + (isJa ? '問' : 'Q');
-  document.getElementById('vsCorrect').textContent = voiceCorrect + (isJa ? '問' : 'Q');
-
-  const summaryModal = document.getElementById('voiceSummaryModal');
-  if (summaryModal) {
-    summaryModal.classList.add('show');
-    setOverlayLock(true);
-    document.getElementById('voiceSummaryClose').onclick = () => {
-      summaryModal.classList.remove('show');
-      setOverlayLock(false);
-    };
-    summaryModal.querySelector('.back').onclick = () => {
-      summaryModal.classList.remove('show');
-      setOverlayLock(false);
-    };
-  }
-
-  // ★ モード選択ボタンをデフォルトに戻す
-  document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
-  const defBtn = document.getElementById('modeP');
-  if (defBtn) defBtn.classList.add('active');
-  state.mode = 'product';
-
-  updateStats();
-}
-
-// 🎤 声で答えるボタン専用 touchend（Safari user gesture対応）
-(function(){
-  const mvb = document.getElementById('modeVoice');
-  if (!mvb) return;
-
-  const openVoice = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!voiceModeActive) {
-      document.querySelectorAll('#modeSet .pill').forEach(b => b.classList.remove('active'));
-      mvb.classList.add('active');
-      activateVoiceMode();
-    } else {
-      deactivateVoiceMode();
-      const defBtn = document.getElementById('modeP');
-      if (defBtn) defBtn.classList.add('active');
-      state.mode = 'product';
-    }
-  };
-
-  mvb.addEventListener('touchend', openVoice, { passive: false });
-  mvb.addEventListener('click', openVoice);
-})();
-
-// 発話テキスト → 数字に変換する関数
-function parseSpoken(str) {
-  // ① 数字文字列をそのまま変換（"21" → 21）
-  const direct = parseInt(str.replace(/[^0-9]/g, ''), 10);
-  if (!isNaN(direct) && direct > 0) return direct;
-
-  // ② 英語の単語 → 数字
-  const enWords = {
-    'zero':0,'one':1,'two':2,'three':3,'four':4,
-    'five':5,'six':6,'seven':7,'eight':8,'nine':9,
-    'ten':10,'eleven':11,'twelve':12,'thirteen':13,
-    'fourteen':14,'fifteen':15,'sixteen':16,
-    'seventeen':17,'eighteen':18,'nineteen':19,
-    'twenty':20,'thirty':30,'forty':40,'fifty':50,
-    'sixty':60,'seventy':70,'eighty':80,'ninety':90,
-    'twenty-one':21,'twenty-two':22,'twenty-three':23,
-    'twenty-four':24,'twenty-five':25,'twenty-six':26,
-    'twenty-seven':27,'twenty-eight':28,'twenty-nine':29,
-    'thirty-six':36,'forty-eight':48,'fifty-six':56,
-    'sixty-three':63,'seventy-two':72,'eighty-one':81,
-  };
-  const lower = str.toLowerCase().trim();
-  if (enWords[lower] !== undefined) return enWords[lower];
-
-  // ③ 日本語の漢数字 → 数字（"二十一" → 21）
-  const jaMap = {'〇':0,'一':1,'二':2,'三':3,'四':4,
-                 '五':5,'六':6,'七':7,'八':8,'九':9};
-  if (str === '十') return 10;
-  if (str.includes('十')) {
-    const parts = str.split('十');
-    const tens  = jaMap[parts[0]] ?? 1;
-    const ones  = jaMap[parts[1]] ?? 0;
-    return tens * 10 + ones;
-  }
-  if (jaMap[str] !== undefined) return jaMap[str];
-
-  // ④ ひらがな直接マッチ（1〜9、10の倍数）
-  const hiDirect = {
-    'ぜろ':0,'いち':1,'に':2,'さん':3,'し':4,'よん':4,
-    'ご':5,'ろく':6,'なな':7,'しち':7,'はち':8,'く':9,'きゅう':9,
-    'じゅう':10,'にじゅう':20,'さんじゅう':30,'よんじゅう':40,
-    'ごじゅう':50,'ろくじゅう':60,'ななじゅう':70,'はちじゅう':80,'きゅうじゅう':90
-  };
-  if (hiDirect[str] !== undefined) return hiDirect[str];
-
-  // ⑤ ひらがな合成（にじゅうよん→24、じゅういち→11 など）
-  const hiT = {'に':2,'さん':3,'よん':4,'ご':5,'ろく':6,'なな':7,'はち':8,'きゅう':9};
-  const hiO = {'いち':1,'に':2,'さん':3,'し':4,'よん':4,'ご':5,'ろく':6,'なな':7,'しち':7,'はち':8,'く':9,'きゅう':9};
-  // XじゅうY 形式（20〜99）例：にじゅうよん→24
-  const m2 = str.match(/^(に|さん|よん|ご|ろく|なな|はち|きゅう)じゅう(いち|に|さん|し|よん|ご|ろく|なな|しち|はち|く|きゅう)?$/);
-  if (m2) return hiT[m2[1]] * 10 + (m2[2] ? (hiO[m2[2]] ?? 0) : 0);
-  // じゅうY 形式（11〜19）例：じゅうに→12
-  const m1 = str.match(/^じゅう(いち|に|さん|し|よん|ご|ろく|なな|しち|はち|く|きゅう)$/);
-  if (m1) return 10 + (hiO[m1[1]] ?? 0);
-
-  return NaN;
-}
-
-// ★ voiceBtn のタッチ・クリックを直接バインド（iPhone PWA対応）
-(function(){
-  const vb = document.getElementById('voiceBtn');
-  if (!vb) return;
-
-  // iPhone PWA 対応：touchend で確実に発火
-  vb.addEventListener('touchend', (e) => {
-    e.preventDefault();    // デフォルト動作をキャンセル
-    e.stopPropagation();   // keypad の touchstart に邪魔されないようにする
-    startVoiceInput();
-  }, { passive: false });
-
-  // Mac Safari / Chrome 対応
-  vb.addEventListener('click', (e) => {
-    e.stopPropagation();
-    startVoiceInput();
-  });
-})();
-
-(function(){
-  const mvb = document.getElementById('modeVoice');
-  if (!mvb) return;
-
-  const openVoice = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    activateVoiceMode();
-  };
-
-  mvb.addEventListener('touchend', openVoice, { passive: false });
-  mvb.addEventListener('click', openVoice);
-})();
-
-function startVoiceInput() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert(appLang === 'ja'
-      ? 'このブラウザは音声認識に対応していません'
-      : 'Speech recognition is not supported');
-    return;
-  }
-
-  voiceAutoMode = true;
-  const recog = new SpeechRecognition();
-  activeRecog = recog;
-
-  recog.lang = (window.appLang === 'en') ? 'en-US' : 'ja-JP';
-  recog.interimResults = true;
-
-  recog.onresult = (e) => {
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (!e.results[i].isFinal) continue;
-
-      const spoken = e.results[i][0].transcript.trim();
-      const num = parseSpoken(spoken);
-
-      if (!isNaN(num)) {
-        try { recog.stop(); } catch (_) {}
-        document.getElementById('answer').value = String(num);
-        check();
-
-        if (voiceAutoMode) {
-          setTimeout(() => {
-            if (voiceAutoMode && !activeRecog) startVoiceInput();
-          }, 600);
-        }
-        return;
-      }
-    }
-  };
-
-  recog.onerror = (e) => {
-    console.warn(e.error);
-    activeRecog = null;
-  };
-
-  recog.onend = () => {
-    activeRecog = null;
-  };
-
-  try {
-    recog.start();
-  } catch (e) {
-    console.warn('recog.start error:', e);
-    activeRecog = null;
-  }
-}
-
-(function(){
-  const vb = document.getElementById('voiceBtn');
-  if (!vb) return;
-
-  vb.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startVoiceInput();
-  }, { passive: false });
-
-  vb.addEventListener('click', (e) => {
-    e.stopPropagation();
-    startVoiceInput();
-  });
-})();
-
-(function(){
-  const okBtn = document.querySelector('.key.ok');
-  if (!okBtn) return;
-
-  okBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    check();
-  }, { passive: false });
-
-  okBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    check();
-  });
-})();
     
 </script>
 
