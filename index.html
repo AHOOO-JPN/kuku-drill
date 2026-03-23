@@ -1183,10 +1183,7 @@ body.voice-mode .key.ok {
   opacity: 0.25;
   pointer-events: none;
 }
-/* 音声モード中はマイクボタンを非表示（常にON状態のため不要） */
-body.voice-mode #voiceBtn {
-  display: none !important;
-}
+
 /* 音声モード中のマイクアイコン（ヘッダー付近に常時表示） */
 #voiceModeIndicator {
   display: none;
@@ -1235,19 +1232,19 @@ body.voice-mode #voiceModeIndicator {
   <button type="button" class="key">7</button>
   <button type="button" class="key">8</button>
   <button type="button" class="key">9</button>
+
   <button type="button" class="key">4</button>
   <button type="button" class="key">5</button>
   <button type="button" class="key">6</button>
+
   <button type="button" class="key">1</button>
   <button type="button" class="key">2</button>
   <button type="button" class="key">3</button>
-  <button id="voiceBtn" class="key" style="font-size:26px;" aria-label="声で答える">🎤</button>
+
   <button type="button" class="key">0</button>
   <button type="button" class="key">⌫</button>
-</div><!-- ★ keypad ここで閉じる -->
-
-<!-- ★ OKボタンはkeypadの外に出す -->
-<button class="key ok" onclick="check()" style="width:100%; margin-top:10px; border-radius:14px;">OK</button>
+  <button type="button" class="key ok">OK</button>
+</div>
 
       <div id="result" class="result"></div>
             <div id="voiceModeIndicator">🔴 声で答えてね！マイクに向かって話してください</div>
@@ -4652,122 +4649,94 @@ if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault
           goBtn.addEventListener('click', onVoiceGo);
         }
 
-        function deactivateVoiceMode() {
-          voiceModeActive = false;
-          voiceAutoMode = false;
-          document.body.classList.remove('voice-mode');
+function deactivateVoiceMode() {
+  voiceModeActive = false;
+  voiceAutoMode = false;
+  document.body.classList.remove('voice-mode');
 
-          const modal = document.getElementById('voiceStartModal');
-          if (modal) modal.classList.remove('show');
-          setOverlayLock(false);
+  const modal = document.getElementById('voiceStartModal');
+  if (modal) modal.classList.remove('show');
+  setOverlayLock(false);
 
-          if (activeRecog) {
-            try { activeRecog.stop(); } catch (_) {}
-            activeRecog = null;
-          }
+  if (activeRecog) {
+    try { activeRecog.stop(); } catch (_) {}
+    activeRecog = null;
+  }
 
-          const stopFab = document.getElementById('taStopFab');
-          if (stopFab) stopFab.style.display = 'none';
+  const stopFab = document.getElementById('taStopFab');
+  if (stopFab) stopFab.style.display = 'none';
 
-          const voiceBtn = document.getElementById('voiceBtn');
-          if (voiceBtn) {
-            voiceBtn.textContent = '🎤';
-            voiceBtn.dataset.listening = 'false';
-          }
+  const labAvg = document.getElementById('labAvg');
+  if (labAvg) {
+    labAvg.textContent = (appLang === 'ja') ? '平均タイム' : 'Avg Time';
+  }
 
-          const labAvg = document.getElementById('labAvg');
-          if (labAvg) {
-            labAvg.textContent = (appLang === 'ja') ? '平均タイム' : 'Avg Time';
-          }
+  updateStats();
+}
+function startVoiceInput() {
+  if (!voiceModeActive) return;
+  if (activeRecog) return;
 
-          updateStats();
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert(appLang === 'ja'
+      ? 'このブラウザは音声認識に対応していません'
+      : 'Speech recognition is not supported');
+    return;
+  }
+
+  ensureAudio();
+
+  const recog = new SpeechRecognition();
+  activeRecog = recog;
+
+  recog.lang = (appLang === 'en') ? 'en-US' : 'ja-JP';
+  recog.interimResults = true;
+  recog.continuous = false;
+
+  recog.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+
+      const spoken = e.results[i][0].transcript.trim();
+      const num = parseSpoken(spoken);
+
+      if (!isNaN(num)) {
+        try { recog.stop(); } catch (_) {}
+
+        const ansEl = document.getElementById('answer');
+        if (ansEl) ansEl.value = String(num);
+
+        check();
+
+        if (voiceAutoMode) {
+          setTimeout(() => {
+            if (voiceModeActive && voiceAutoMode && !activeRecog) {
+              startVoiceInput();
+            }
+          }, 600);
         }
+        return;
+      }
+    }
+  };
 
-        function startVoiceInput() {
-          if (!voiceModeActive) return;
-          if (activeRecog) return;
+  recog.onerror = (e) => {
+    console.warn('voice error:', e.error);
+    activeRecog = null;
+  };
 
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SpeechRecognition) {
-            alert(appLang === 'ja'
-              ? 'このブラウザは音声認識に対応していません'
-              : 'Speech recognition is not supported');
-            return;
-          }
+  recog.onend = () => {
+    activeRecog = null;
+  };
 
-          ensureAudio();
-
-          const recog = new SpeechRecognition();
-          activeRecog = recog;
-
-          recog.lang = (appLang === 'en') ? 'en-US' : 'ja-JP';
-          recog.interimResults = true;
-          recog.continuous = false;
-
-          const voiceBtn = document.getElementById('voiceBtn');
-          if (voiceBtn) {
-            voiceBtn.textContent = '🎙️';
-            voiceBtn.dataset.listening = 'true';
-          }
-
-          recog.onresult = (e) => {
-            for (let i = e.resultIndex; i < e.results.length; i++) {
-              if (!e.results[i].isFinal) continue;
-
-              const spoken = e.results[i][0].transcript.trim();
-              const num = parseSpoken(spoken);
-
-              if (!isNaN(num)) {
-                try { recog.stop(); } catch (_) {}
-
-                const ansEl = document.getElementById('answer');
-                if (ansEl) ansEl.value = String(num);
-
-                check();
-
-                if (voiceAutoMode) {
-                  setTimeout(() => {
-                    if (voiceModeActive && voiceAutoMode && !activeRecog) {
-                      startVoiceInput();
-                    }
-                  }, 600);
-                }
-                return;
-              }
-            }
-          };
-
-          recog.onerror = (e) => {
-            console.warn('voice error:', e.error);
-            activeRecog = null;
-
-            if (voiceBtn) {
-              voiceBtn.textContent = '🎤';
-              voiceBtn.dataset.listening = 'false';
-            }
-          };
-
-          recog.onend = () => {
-            activeRecog = null;
-
-            if (voiceBtn) {
-              voiceBtn.textContent = '🎤';
-              voiceBtn.dataset.listening = 'false';
-            }
-          };
-
-          try {
-            recog.start();
-          } catch (e) {
-            console.warn('recog.start error:', e);
-            activeRecog = null;
-
-            if (voiceBtn) {
-              voiceBtn.textContent = '🎤';
-              voiceBtn.dataset.listening = 'false';
-            }
-          }
-        }
+  try {
+    recog.start();
+  } catch (e) {
+    console.warn('recog.start error:', e);
+    activeRecog = null;
+  }
+}
 
         (function(){
           const mvb = document.getElementById('modeVoice');
@@ -4788,24 +4757,6 @@ if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault
 
           mvb.addEventListener('touchend', openVoice, { passive: false });
           mvb.addEventListener('click', openVoice);
-        })();
-
-        (function(){
-          const vb = document.getElementById('voiceBtn');
-          if (!vb) return;
-
-          const onVoiceBtn = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (!voiceModeActive) return;
-            if (activeRecog) return;
-
-            startVoiceInput();
-          };
-
-          vb.addEventListener('touchend', onVoiceBtn, { passive: false });
-          vb.addEventListener('click', onVoiceBtn);
         })();
 
         (function(){
