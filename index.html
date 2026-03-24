@@ -4513,6 +4513,7 @@ if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault
         let voiceModeActive = false;
         let voiceTotal = 0;
         let voiceCorrect = 0;
+        let voiceRestartTimer = null;
 
         function activateVoiceMode() {
           const modal = document.getElementById('voiceStartModal');
@@ -4652,6 +4653,10 @@ if(taStopFab){ taStopFab.addEventListener('click', async (e)=>{ e.preventDefault
 function deactivateVoiceMode() {
   voiceModeActive = false;
   voiceAutoMode = false;
+
+  clearTimeout(voiceRestartTimer);
+  voiceRestartTimer = null;
+
   document.body.classList.remove('voice-mode');
 
   const modal = document.getElementById('voiceStartModal');
@@ -4659,6 +4664,7 @@ function deactivateVoiceMode() {
   setOverlayLock(false);
 
   if (activeRecog) {
+    try { activeRecog.abort(); } catch (_) {}
     try { activeRecog.stop(); } catch (_) {}
     activeRecog = null;
   }
@@ -4671,8 +4677,135 @@ function deactivateVoiceMode() {
     labAvg.textContent = (appLang === 'ja') ? '平均タイム' : 'Avg Time';
   }
 
+  // 必要なら結果表示を軽く戻す
+  const resultEl = document.getElementById('result');
+  if (resultEl && resultEl.textContent && resultEl.textContent.startsWith('[voice')) {
+    resultEl.textContent = '';
+    resultEl.className = 'result';
+  }
+
   updateStats();
 }
+
+function parseSpoken(raw) {
+  if (raw == null) return NaN;
+
+  let s = String(raw).trim().normalize('NFKC').toLowerCase();
+
+  // よく入る余計な語を軽く除去
+  s = s
+    .replace(/\s+/g, '')
+    .replace(/[。、，,.!?！？]/g, '')
+    .replace(/^(こたえは|答えは|こたえ|答え)/, '')
+    .replace(/(です|でした|だよ|かな)$/g, '');
+
+  // まず半角数字を優先
+  const m = s.match(/\d{1,3}/);
+  if (m) {
+    const n = parseInt(m[0], 10);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  const kanaDigit = {
+    'ぜろ': 0, 'れい': 0,
+    'いち': 1,
+    'に': 2,
+    'さん': 3,
+    'よん': 4, 'し': 4,
+    'ご': 5,
+    'ろく': 6,
+    'なな': 7, 'しち': 7,
+    'はち': 8,
+    'きゅう': 9, 'く': 9
+  };
+
+  const kanjiDigit = {
+    '零': 0, '〇': 0,
+    '一': 1,
+    '二': 2,
+    '三': 3,
+    '四': 4,
+    '五': 5,
+    '六': 6,
+    '七': 7,
+    '八': 8,
+    '九': 9
+  };
+
+  const directMap = {
+    'ぜろ': 0, 'れい': 0, '零': 0, '〇': 0,
+    'いち': 1, '一': 1,
+    'に': 2, '二': 2,
+    'さん': 3, '三': 3,
+    'よん': 4, 'し': 4, '四': 4,
+    'ご': 5, '五': 5,
+    'ろく': 6, '六': 6,
+    'なな': 7, 'しち': 7, '七': 7,
+    'はち': 8, '八': 8,
+    'きゅう': 9, 'く': 9, '九': 9,
+    'じゅう': 10, '十': 10
+  };
+
+  if (directMap[s] != null) return directMap[s];
+
+  function parseByUnit(text, unit, digitMap) {
+    const idx = text.indexOf(unit);
+    if (idx < 0) return NaN;
+
+    const left = text.slice(0, idx);
+    const right = text.slice(idx + unit.length);
+
+    let tens;
+    if (left === '') {
+      tens = 1;
+    } else if (digitMap[left] != null) {
+      tens = digitMap[left];
+    } else {
+      return NaN;
+    }
+
+    let ones = 0;
+    if (right !== '') {
+      if (digitMap[right] != null) {
+        ones = digitMap[right];
+      } else {
+        return NaN;
+      }
+    }
+
+    return tens * 10 + ones;
+  }
+
+  // かな: じゅう, さんじゅうろく, はちじゅういち
+  let n = parseByUnit(s, 'じゅう', kanaDigit);
+  if (!Number.isNaN(n)) return n;
+
+  // 漢字: 十, 三十六, 八十一
+  n = parseByUnit(s, '十', kanjiDigit);
+  if (!Number.isNaN(n)) return n;
+
+  // 「30」「３６」以外の混在ケース対策
+  const normalized = s
+    .replace(/零|〇/g, '0')
+    .replace(/一/g, '1')
+    .replace(/二/g, '2')
+    .replace(/三/g, '3')
+    .replace(/四/g, '4')
+    .replace(/五/g, '5')
+    .replace(/六/g, '6')
+    .replace(/七/g, '7')
+    .replace(/八/g, '8')
+    .replace(/九/g, '9');
+
+  const m2 = normalized.match(/\d{1,3}/);
+  if (m2) {
+    const n2 = parseInt(m2[0], 10);
+    return Number.isFinite(n2) ? n2 : NaN;
+  }
+
+  return NaN;
+}
+
 function startVoiceInput() {
   if (!voiceModeActive) return;
   if (activeRecog) return;
@@ -4685,49 +4818,103 @@ function startVoiceInput() {
     return;
   }
 
+  clearTimeout(voiceRestartTimer);
+  voiceRestartTimer = null;
+
   ensureAudio();
 
   const recog = new SpeechRecognition();
   activeRecog = recog;
 
   recog.lang = (appLang === 'en') ? 'en-US' : 'ja-JP';
-  recog.interimResults = true;
+  recog.interimResults = false;
   recog.continuous = false;
+  recog.maxAlternatives = 3;
+
+  let handled = false;
 
   recog.onresult = (e) => {
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (!e.results[i].isFinal) continue;
+      const res = e.results[i];
 
-      const spoken = e.results[i][0].transcript.trim();
-      const num = parseSpoken(spoken);
+      for (let j = 0; j < res.length; j++) {
+        const spoken = String(res[j].transcript || '').trim();
+        const num = parseSpoken(spoken);
 
-      if (!isNaN(num)) {
-        try { recog.stop(); } catch (_) {}
+        console.log('[voice transcript]', spoken, '=>', num);
 
-        const ansEl = document.getElementById('answer');
-        if (ansEl) ansEl.value = String(num);
+        if (!Number.isNaN(num)) {
+          handled = true;
 
-        check();
+          const ansEl = document.getElementById('answer');
+          if (ansEl) ansEl.value = String(num);
 
-        if (voiceAutoMode) {
-          setTimeout(() => {
-            if (voiceModeActive && voiceAutoMode && !activeRecog) {
-              startVoiceInput();
-            }
-          }, 600);
+          try { recog.abort(); } catch (_) {}
+          try { recog.stop(); } catch (_) {}
+          activeRecog = null;
+
+          check();
+
+          if (voiceModeActive && voiceAutoMode) {
+            voiceRestartTimer = setTimeout(() => {
+              voiceRestartTimer = null;
+              if (voiceModeActive && voiceAutoMode && !activeRecog) {
+                startVoiceInput();
+              }
+            }, 700);
+          }
+          return;
         }
-        return;
       }
     }
+
+    console.log('[voice] 数値に変換できる発話なし');
   };
 
   recog.onerror = (e) => {
-    console.warn('voice error:', e.error);
+    console.warn('[voice error]', e.error);
     activeRecog = null;
+
+    // stop/abort由来の終了は黙って抜ける
+    if (e.error === 'aborted') return;
+
+    // 権限拒否系は自動再開しない
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      voiceAutoMode = false;
+      alert(appLang === 'ja'
+        ? 'マイクの使用が許可されていません'
+        : 'Microphone permission is not granted');
+      return;
+    }
+
+    // voice mode 継続中だけ軽く再試行
+    if (voiceModeActive && voiceAutoMode && !activeRecog) {
+      clearTimeout(voiceRestartTimer);
+      voiceRestartTimer = setTimeout(() => {
+        voiceRestartTimer = null;
+        if (voiceModeActive && voiceAutoMode && !activeRecog) {
+          startVoiceInput();
+        }
+      }, 800);
+    }
   };
 
   recog.onend = () => {
     activeRecog = null;
+
+    // すでに回答処理済みならここでは何もしない
+    if (handled) return;
+
+    // voice mode を抜けていたら再開しない
+    if (!voiceModeActive || !voiceAutoMode) return;
+
+    clearTimeout(voiceRestartTimer);
+    voiceRestartTimer = setTimeout(() => {
+      voiceRestartTimer = null;
+      if (voiceModeActive && voiceAutoMode && !activeRecog) {
+        startVoiceInput();
+      }
+    }, 800);
   };
 
   try {
